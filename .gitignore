@@ -1,0 +1,8 @@
+# Build files
+out/
+
+# Third party libraries
+thirdparty/*
+
+# Exclude the getCryptoTools.py script
+!thirdparty/getCryptoTools.py
