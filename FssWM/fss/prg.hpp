@@ -38,19 +38,31 @@ public:
         block tmp[2];
         tmp[0] = seed_out[0] = seed_in;
         tmp[1] = seed_out[1] = seed_in;
+
         ParaEnc<2, 1>(tmp, aes_key);
+
         seed_out[0] = seed_out[0] ^ tmp[0];
         seed_out[1] = seed_out[1] ^ tmp[1];
     }
 
-    void DoubleExpand(std::array<block, 8> &seed_in, std::array<std::array<block, 2>, 8> &seed_out) {
-        block tmp[8][2];
-        for (uint32_t i = 0; i < 8; i++) {
-            tmp[i][0] = seed_out[i][0] = seed_in[i];
-            tmp[i][1] = seed_out[i][1] = seed_in[i];
-            ParaEnc<2, 1>(tmp[i], aes_key);
-            seed_out[i][0] = seed_out[i][0] ^ tmp[i][0];
-            seed_out[i][1] = seed_out[i][1] ^ tmp[i][1];
+    /**
+     * @brief Encrypts 8 input blocks using the PRG in parallel.
+     * @param seed_in The input blocks to be encrypted.
+     * @param seed_out The output blocks after encryption.
+     * @note Efficient parallel processing using ParaEnc.
+     */
+    void DoubleExpand(std::array<block, 8> &seed_in, std::array<std::array<block, 8>, 2> &seed_out) {
+        std::array<block, 16> tmp;
+        for (size_t i = 0; i < 8; ++i) {
+            tmp[2 * i] = seed_out[0][i] = seed_in[i];
+            tmp[2 * i + 1] = seed_out[1][i] = seed_in[i];
+        }
+
+        ParaEnc<16, 1>(tmp.data(), aes_key);
+
+        for (size_t i = 0; i < 8; ++i) {
+            seed_out[0][i] = seed_out[0][i] ^ tmp[2 * i];
+            seed_out[1][i] = seed_out[1][i] ^ tmp[2 * i + 1];
         }
     }
 

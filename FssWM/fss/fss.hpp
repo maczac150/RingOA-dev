@@ -64,9 +64,9 @@ uint32_t Convert(const block &b, const uint32_t bitsize);
  * @param b The block to be converted.
  * @param split_bit The number of bits to split the block into.
  * @param bitsize The bitsize of the output value.
- * @return A vector of uint32_t values after splitting the block.
+ * @param output The vector to store the output values.
  */
-std::vector<uint32_t> CovertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize);
+void CovertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output);
 
 /**
  * @brief Split a block into some blocks and get the `idx`-th value.

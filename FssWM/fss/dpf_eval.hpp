@@ -123,10 +123,18 @@ private:
      */
     void FullDomainNonRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
-    void FullDomainNonRecursive_Opt4(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    /**
+     * @brief Full domain evaluation of the DPF key using the non-recursive optimized approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainNonRecursive_Opt(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
-    void FullDomainNonRecursive_Opt8(const DpfKey &key, std::vector<uint32_t> &outputs) const;
-
+    /**
+     * @brief Full domain evaluation of the DPF key using the breadth-first search approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
     void FullDomainBfs(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
     /**

@@ -51,34 +51,31 @@ uint32_t Convert(const block &b, const uint32_t bitsize) {
     return _mm_cvtsi128_si32(b) & ((1U << bitsize) - 1U);
 }
 
-std::vector<uint32_t> CovertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize) {
-    std::vector<uint32_t> vec(1U << split_bit);
-
+void CovertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output) {
     uint32_t mask = (1U << bitsize) - 1U;
     if (split_bit == 2) {
         alignas(16) uint32_t data32[4];
         _mm_store_si128(reinterpret_cast<__m128i *>(data32), b);
         for (uint32_t i = 0; i < 4; i++) {
-            vec[i] = data32[i] & ((1U << bitsize) - 1U);
+            output[i] = data32[i] & mask;
         }
     } else if (split_bit == 3) {
         alignas(16) uint16_t data16[8];
         _mm_store_si128(reinterpret_cast<__m128i *>(data16), b);
         for (uint32_t i = 0; i < 8; i++) {
-            vec[i] = data16[i] & ((1U << bitsize) - 1U);
+            output[i] = data16[i] & mask;
         }
     } else if (split_bit == 7) {
         uint8_t bytes[16];
         _mm_store_si128((__m128i *)bytes, b);
         for (int i = 0; i < 128; ++i) {
             uint8_t byte = bytes[i / 8];
-            vec[i]       = (byte >> (i % 8)) & 0x01 & mask;
+            output[i]    = (byte >> (i % 8)) & 0x01 & mask;
         }
     } else {
         utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
         exit(EXIT_FAILURE);
     }
-    return vec;
 }
 
 uint32_t GetValueFromSplitBlock(block &b, const uint32_t split_bit, const uint32_t idx) {

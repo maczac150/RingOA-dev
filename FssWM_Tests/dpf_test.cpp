@@ -80,18 +80,18 @@ void Dpf_Fde_Test() {
         // fsswm::fss::dpf::DpfParameters(10, 1, true),
         // fsswm::fss::dpf::DpfParameters(20, 20, true),
         // fsswm::fss::dpf::DpfParameters(20, 1, true),
-        fsswm::fss::dpf::DpfParameters(10, 10, true),
+        // fsswm::fss::dpf::DpfParameters(10, 10, true),
         // fsswm::fss::dpf::DpfParameters(15, 15, true),
         // fsswm::fss::dpf::DpfParameters(20, 20, true),
-        // fsswm::fss::dpf::DpfParameters(25, 25, true),
+        fsswm::fss::dpf::DpfParameters(25, 25, true),
     };
 
     for (const fsswm::fss::dpf::DpfParameters &params : params_list) {
         params.PrintDpfParameters();
         uint32_t                         e = params.element_bitsize;
-        fsswm::fss::dpf::DpfKeyGenerator gen(params, true);
-        fsswm::fss::dpf::DpfEvaluator    eval(params, true);
-        fsswm::fss::dpf::EvalType        eval_type = fsswm::fss::dpf::EvalType::kNonRecursive;
+        fsswm::fss::dpf::DpfKeyGenerator gen(params);
+        fsswm::fss::dpf::DpfEvaluator    eval(params);
+        fsswm::fss::dpf::EvalType        eval_type = fsswm::fss::dpf::EvalType::kNonRecursive_Opt;
         uint32_t                         alpha     = 5;
         uint32_t                         beta      = 1;
 
@@ -99,6 +99,7 @@ void Dpf_Fde_Test() {
         std::pair<fsswm::fss::dpf::DpfKey, fsswm::fss::dpf::DpfKey> keys = gen.GenerateKeys(alpha, beta);
         timer.Print(LOC, "Key generation time: ");
 
+        // Initialize the output vector
         timer.Start();
         std::vector<uint32_t> outputs_0 = eval.EvaluateFullDomain(keys.first, eval_type);
         timer.Print(LOC, "Evaluation time (party 0): ");
