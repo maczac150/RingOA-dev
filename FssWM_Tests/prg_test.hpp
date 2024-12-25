@@ -1,12 +1,10 @@
 #ifndef TESTS_PRG_TEST_H_
 #define TESTS_PRG_TEST_H_
 
-namespace fsswm {
-namespace test {
+namespace test_fsswm {
 
-void prg_test();
+void Prg_Test();
 
-}    // namespace test
-}    // namespace fsswm
+}    // namespace test_fsswm
 
 #endif    // TESTS_PRG_TEST_H_

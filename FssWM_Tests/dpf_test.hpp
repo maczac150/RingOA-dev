@@ -1,12 +1,11 @@
 #ifndef TESTS_DPF_TEST_H_
 #define TESTS_DPF_TEST_H_
 
-namespace fsswm {
-namespace test {
+namespace test_fsswm {
 
-void dpf_test();
+void Dpf_Params_Test();
+void Dpf_Fde_Test();
 
-}    // namespace test
-}    // namespace fsswm
+}    // namespace test_fsswm
 
 #endif    // TESTS_DPF_TEST_H_

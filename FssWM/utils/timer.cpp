@@ -76,7 +76,7 @@ bool ExecutionTimer::IsExceedLimitTime(const double res, const uint32_t limit_ti
         case SECONDS:
             return res > limit_time_ms / 1000;
     }
-    utils::Logger::FatalLog(LOCATION, "Invalid time unit");
+    utils::Logger::FatalLog(LOC, "Invalid time unit");
     return false;
 }
 

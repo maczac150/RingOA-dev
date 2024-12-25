@@ -2,11 +2,25 @@
 #define FSS_DPF_EVAL_H_
 
 #include "dpf_key.hpp"
+#include "prg.hpp"
 
 namespace fsswm {
 namespace fss {
 namespace dpf {
 
+enum class EvalType
+{
+    kNaive,            /**< Naive approach for DPF evaluation. */
+    kRecursive,        /**< Recursive approach for DPF evaluation. */
+    kNonRecursive,     /**< Non-recursive approach for DPF evaluation. */
+    kNonRecursive_Opt, /**< Non-recursive approach for DPF evaluation. */
+    kBfs               /**< Breadth-first search approach for DPF evaluation. */
+};
+
+/**
+ * @class DpfEvaluator
+ * @brief A class to evaluate
+ */
 class DpfEvaluator {
 public:
     /**
@@ -29,7 +43,7 @@ public:
      * @param x The x value to evaluate the DPF key.
      * @return The evaluated value at x.
      */
-    uint32_t EvaluateAt(DpfKey &key, uint32_t x) const;
+    uint32_t EvaluateAt(const DpfKey &key, uint32_t x) const;
 
     /**
      * @brief Evaluate the DPF key at the given x value using the naive approach.
@@ -37,7 +51,7 @@ public:
      * @param x The x value to evaluate the DPF key.
      * @return The evaluated value at x.
      */
-    uint32_t EvaluateAtNaive(DpfKey &key, uint32_t x) const;
+    uint32_t EvaluateAtNaive(const DpfKey &key, uint32_t x) const;
 
     /**
      * @brief Evaluate the DPF key at the given x value using the early termination approach.
@@ -45,11 +59,34 @@ public:
      * @param x The x value to evaluate the DPF key.
      * @return The evaluated value at x.
      */
-    uint32_t EvaluateAtOptimized(DpfKey &key, uint32_t x) const;
+    uint32_t EvaluateAtOptimized(const DpfKey &key, uint32_t x) const;
+
+    /**
+     * @brief Evaluate the DPF key for all possible x values.
+     * @param key The DPF key to evaluate.
+     * @return The outputs for the DPF key.
+     */
+    std::vector<uint32_t> EvaluateFullDomain(const DpfKey &key, const EvalType eval_type) const;
+
+    /**
+     * @brief Evaluate the DPF key for all possible x values using the naive approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void EvaluateFullDomainNaive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    /**
+     * @brief Evaluate the DPF key for all possible x values using the early termination approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void EvaluateFullDomainOptimized(const DpfKey &key, std::vector<uint32_t> &outputs, const EvalType eval_type) const;
 
 private:
     DpfParameters params_; /**< DPF parameters for the DPF key. */
     bool          debug_;  /**< Flag to enable/disable debugging. */
+
+    prg::PseudoRandomGenerator &G_ = prg::PseudoRandomGeneratorSingleton::GetInstance();
 
     /**
      * @brief Validate the input values.
@@ -68,9 +105,65 @@ private:
      * @param key The DPF key to evaluate.
      */
     void EvaluateNextSeed(
-        uint32_t current_level, block &current_seed, bool &current_control_bit,
+        const uint32_t current_level, const block &current_seed, const bool &current_control_bit,
         std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
-        DpfKey &key) const;
+        const DpfKey &key) const;
+
+    /**
+     * @brief Full domain evaluation of the DPF key using the recursive approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    /**
+     * @brief Full domain evaluation of the DPF key using the non-recursive approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainNonRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    void FullDomainNonRecursive_Opt4(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    void FullDomainNonRecursive_Opt8(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    void FullDomainBfs(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    /**
+     * @brief Full domain evaluation of the DPF key using the naive approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainNaive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+
+    /**
+     * @brief Traverse the DPF key for the given seed and control bit.
+     * @param current_seed The current seed for the DPF key.
+     * @param current_control_bit The current control bit for the DPF key.
+     * @param key The DPF key to evaluate.
+     * @param i The current level of the DPF key.
+     * @param j The current index of the DPF key.
+     * @param outputs The outputs for the DPF key.
+     */
+    void Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<uint32_t> &outputs) const;
+
+    /**
+     * @brief Compute the output block for the DPF key.
+     * @param seed The seed for the DPF key.
+     * @param control_bit The control bit for the DPF key.
+     * @param key The DPF key to evaluate.
+     * @return block The output block for the DPF key.
+     */
+    block ComputeOutputBlock(const block &final_seed, bool final_control_bit, const DpfKey &key) const;
+
+    /**
+     * @brief Compute the output blocks for the DPF key.
+     * @param final_seeds The final seeds for the DPF key.
+     * @param final_control_bits The final control bits for the DPF key.
+     * @param key The DPF key to evaluate.
+     * @return std::vector<block> The output blocks for the DPF key.
+     */
+    std::vector<block> ComputeOutputBlocks(const std::vector<block> &final_seeds, const std::vector<bool> &final_control_bits, const DpfKey &key) const;
 };
 
 }    // namespace dpf

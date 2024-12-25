@@ -14,20 +14,20 @@ FileIo::FileIo(const bool debug, const std::string ext)
 void FileIo::WriteValueToFile(const std::string &file_path, const uint32_t data, const bool append) {
     // Open the file
     std::ofstream file;
-    if (!OpenFile(file, file_path, LOCATION, append)) {
+    if (!OpenFile(file, file_path, LOC, append)) {
         exit(EXIT_FAILURE);
     }
     // Write the value to the file
     file << data << "\n";
     // Close the file
     file.close();
-    utils::Logger::DebugLog(LOCATION, "Value has been written to the file (" + file_path + this->ext_ + ")", this->debug_);
+    utils::Logger::DebugLog(LOC, "Value has been written to the file (" + file_path + this->ext_ + ")", this->debug_);
 }
 
 void FileIo::WriteVectorToFile(const std::string &file_path, const std::vector<uint32_t> &data, const bool append) {
     // Open the file
     std::ofstream file;
-    if (!OpenFile(file, file_path, LOCATION, append)) {
+    if (!OpenFile(file, file_path, LOC, append)) {
         exit(EXIT_FAILURE);
     }
     // Write the vector to the file
@@ -41,26 +41,26 @@ void FileIo::WriteVectorToFile(const std::string &file_path, const std::vector<u
     file << "\n";
     // Close the file
     file.close();
-    utils::Logger::DebugLog(LOCATION, "Numbers have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
+    utils::Logger::DebugLog(LOC, "Numbers have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
 }
 
 void FileIo::WriteStringToFile(const std::string &file_path, const std::string &data, const bool append) {
     // Open the file
     std::ofstream file;
-    if (!OpenFile(file, file_path, LOCATION, append)) {
+    if (!OpenFile(file, file_path, LOC, append)) {
         exit(EXIT_FAILURE);
     }
     // Write the string to the file
     file << data << "\n";
     // Close the file
     file.close();
-    utils::Logger::DebugLog(LOCATION, "String have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
+    utils::Logger::DebugLog(LOC, "String have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
 }
 
 void FileIo::WriteStringVectorToFile(const std::string &file_path, const std::vector<std::string> &data, const bool append) {
     // Open the file
     std::ofstream file;
-    if (!OpenFile(file, file_path, LOCATION, append)) {
+    if (!OpenFile(file, file_path, LOC, append)) {
         exit(EXIT_FAILURE);
     }
     // Write the string vector to the file
@@ -69,26 +69,26 @@ void FileIo::WriteStringVectorToFile(const std::string &file_path, const std::ve
     }
     // Close the file
     file.close();
-    utils::Logger::DebugLog(LOCATION, "Strings have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
+    utils::Logger::DebugLog(LOC, "Strings have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
 }
 
 void FileIo::ReadValueFromFile(const std::string &file_path, uint32_t &data) {
     // Open the file for reading
     std::ifstream file;
-    if (OpenFile(file, file_path, LOCATION)) {
+    if (OpenFile(file, file_path, LOC)) {
         file >> data;
     }
     // Close the file
     file.close();
-    utils::Logger::DebugLog(LOCATION, "Value read from file (" + file_path + this->ext_ + "): " + std::to_string(data), this->debug_);
+    utils::Logger::DebugLog(LOC, "Value read from file (" + file_path + this->ext_ + "): " + std::to_string(data), this->debug_);
 }
 
 void FileIo::ReadVectorFromFile(const std::string &file_path, std::vector<uint32_t> &data) {
     // Open the file
     std::ifstream file;
-    if (OpenFile(file, file_path, LOCATION)) {
+    if (OpenFile(file, file_path, LOC)) {
         // Read the number of elements from the first line of the file
-        uint32_t              size = ReadNumCountFromFile(file, LOCATION);
+        uint32_t              size = ReadNumCountFromFile(file, LOC);
         std::vector<uint32_t> vec;
         vec.reserve(size);
         std::string line;
@@ -105,7 +105,7 @@ void FileIo::ReadVectorFromFile(const std::string &file_path, std::vector<uint32
 void FileIo::ReadStringFromFile(const std::string &file_path, std::string &data) {
     // Open the file
     std::ifstream file;
-    if (OpenFile(file, file_path, LOCATION)) {
+    if (OpenFile(file, file_path, LOC)) {
         std::string line;
         std::getline(file, line);
         // Close the file
@@ -117,7 +117,7 @@ void FileIo::ReadStringFromFile(const std::string &file_path, std::string &data)
 void FileIo::ClearFileContents(const std::string &file_path) {
     // Open and clear the file
     std::ofstream file;
-    if (OpenFile(file, file_path, LOCATION)) {
+    if (OpenFile(file, file_path, LOC)) {
         // Close the file
         file.close();
     }

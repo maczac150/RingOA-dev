@@ -218,17 +218,6 @@ void PrintValidity(const std::string &info_msg, const uint32_t x, const uint32_t
 void PrintTestResult(const std::string &test_name, const bool result);
 
 /**
- * @brief Print an trace message to the console.
- *
- * This function prints a trace message with the specified message body.
- *
- * @param info_msg The information message to be displayed.
- * @param msg_body The message body to be displayed.
- * @param debug If true, the message is printed; if false, the message is not printed.
- */
-void PrintTraceMessage(const std::string &info_msg, const std::string &msg_body, const bool debug);
-
-/**
  * @brief Print an debug message to the console.
  *
  *  This function prints an debug message with the specified message body.
@@ -257,17 +246,7 @@ void PrintInfoMessage(const std::string &info_msg, const std::string &msg_body);
  * @param info_msg  The information message to be displayed.
  * @param msg_body  The message body to be displayed.
  */
-void PrintWarningMessage(const std::string &info_msg, const std::string &msg_body);
-
-/**
- * @brief Print an error message to the console.
- *
- *  This function prints an error message with the specified message body.
- *
- * @param info_msg  The information message to be displayed.
- * @param msg_body  The message body to be displayed.
- */
-void PrintErrorMessage(const std::string &info_msg, const std::string &msg_body);
+void PrintWarnMessage(const std::string &info_msg, const std::string &msg_body);
 
 /**
  * @brief Print a fatal message to the console.

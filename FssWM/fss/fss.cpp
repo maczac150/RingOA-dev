@@ -51,5 +51,58 @@ uint32_t Convert(const block &b, const uint32_t bitsize) {
     return _mm_cvtsi128_si32(b) & ((1U << bitsize) - 1U);
 }
 
+std::vector<uint32_t> CovertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize) {
+    std::vector<uint32_t> vec(1U << split_bit);
+
+    uint32_t mask = (1U << bitsize) - 1U;
+    if (split_bit == 2) {
+        alignas(16) uint32_t data32[4];
+        _mm_store_si128(reinterpret_cast<__m128i *>(data32), b);
+        for (uint32_t i = 0; i < 4; i++) {
+            vec[i] = data32[i] & ((1U << bitsize) - 1U);
+        }
+    } else if (split_bit == 3) {
+        alignas(16) uint16_t data16[8];
+        _mm_store_si128(reinterpret_cast<__m128i *>(data16), b);
+        for (uint32_t i = 0; i < 8; i++) {
+            vec[i] = data16[i] & ((1U << bitsize) - 1U);
+        }
+    } else if (split_bit == 7) {
+        uint8_t bytes[16];
+        _mm_store_si128((__m128i *)bytes, b);
+        for (int i = 0; i < 128; ++i) {
+            uint8_t byte = bytes[i / 8];
+            vec[i]       = (byte >> (i % 8)) & 0x01 & mask;
+        }
+    } else {
+        utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
+        exit(EXIT_FAILURE);
+    }
+    return vec;
+}
+
+uint32_t GetValueFromSplitBlock(block &b, const uint32_t split_bit, const uint32_t idx) {
+    if (split_bit == 2) {
+        alignas(16) uint32_t data32[4];
+        _mm_store_si128(reinterpret_cast<__m128i *>(data32), b);
+        return data32[idx];
+    } else if (split_bit == 3) {
+        alignas(16) uint16_t data16[8];
+        _mm_store_si128(reinterpret_cast<__m128i *>(data16), b);
+        return data16[idx];
+    } else if (split_bit == 7) {
+        uint64_t low  = _mm_extract_epi64(b, 0);
+        uint64_t high = _mm_extract_epi64(b, 1);
+        if (idx < 64) {
+            return (low >> idx) & 1;
+        } else {
+            return (high >> (idx - 64)) & 1;
+        }
+    } else {
+        utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
+        exit(EXIT_FAILURE);
+    }
+}
+
 }    // namespace fss
 }    // namespace fsswm

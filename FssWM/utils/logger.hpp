@@ -6,17 +6,17 @@
 #include <string>
 #include <vector>
 
-// LOCATION macro: Returns the current file name, line number, and function name as a string
+// LOC macro: Returns the current file name, line number, and function name as a string
 // Without function name: [LOG-INFO][filename.cpp:123]
-#define LOCATION (std::string(std::filesystem::path(__FILE__).filename()) + ":" + std::to_string(__LINE__)).c_str()
+#define LOC (std::string(std::filesystem::path(__FILE__).filename()) + ":" + std::to_string(__LINE__)).c_str()
 
 // Absolute path: [LOG-INFO][/home/username/.../filename.cpp:123][function_name]
-// #define LOCATION (std::string(__FILE__) + ":" + std::to_string(__LINE__) + "][" + std::string(__func__)).c_str()
+// #define LOC (std::string(__FILE__) + ":" + std::to_string(__LINE__) + "][" + std::string(__func__)).c_str()
 // File name only: [LOG-INFO][filename.cpp:123][function_name]
-// #define LOCATION (std::string(std::filesystem::path(__FILE__).filename()) + ":" + std::to_string(__LINE__) + "][" + std::string(__func__)).c_str()
+// #define LOC (std::string(std::filesystem::path(__FILE__).filename()) + ":" + std::to_string(__LINE__) + "][" + std::string(__func__)).c_str()
 
-// PRETTY_LOCATION macro: Returns the current file name, line number, and pretty function name as a string
-#define PRETTY_LOCATION (std::string(std::filesystem::path(__FILE__).filename()) + ":" + std::to_string(__LINE__) + "][" + std::string(__PRETTY_FUNCTION__)).c_str()
+// PRETTY_LOC macro: Returns the current file name, line number, and pretty function name as a string
+#define PRETTY_LOC (std::string(std::filesystem::path(__FILE__).filename()) + ":" + std::to_string(__LINE__) + "][" + std::string(__PRETTY_FUNCTION__)).c_str()
 
 namespace utils {
 
@@ -24,12 +24,14 @@ enum class LogLevel
 {
     DEBUG,
     INFO,
+    WARNING,
     FATAL
 };
 
 constexpr int     kMsgMaxLength  = 70;
 const std::string kLogLevelDebug = "[DEBUG]";
 const std::string kLogLevelInfo  = "[INFO]";
+const std::string kLogLevelWarn  = "[WARNING]";
 const std::string kLogLevelFatal = "[FATAL]";
 const std::string kDash          = "---------------------------------------------------------------------";
 
@@ -75,19 +77,25 @@ public:
 
     /**
      * USEAGE:
-     * utils::Logger::DebugLog(LOCATION, "This is DEBUG log.", debug);
+     * utils::Logger::DebugLog(LOC, "This is DEBUG log.", debug);
      */
     static void DebugLog(const std::string &location, const std::string &message, const bool debug);
 
     /**
      * USEAGE:
-     * utils::Logger::InfoLog(LOCATION, "This is INFO log.");
+     * utils::Logger::InfoLog(LOC, "This is INFO log.");
      */
     static void InfoLog(const std::string &location, const std::string &message);
 
     /**
      * USEAGE:
-     * utils::Logger::FatalLog(LOCATION, "This is FATAL log.");
+     * utils::Logger::WarnLog(LOC, "This is WARNING log.");
+     */
+    static void WarnLog(const std::string &location, const std::string &message);
+
+    /**
+     * USEAGE:
+     * utils::Logger::FatalLog(LOC, "This is FATAL log.");
      */
     static void FatalLog(const std::string &location, const std::string &message);
 

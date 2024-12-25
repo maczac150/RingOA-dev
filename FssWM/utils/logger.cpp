@@ -38,6 +38,13 @@ void Logger::InfoLog(const std::string &location, const std::string &message) {
 #endif
 }
 
+void Logger::WarnLog(const std::string &location, const std::string &message) {
+    PrintWarnMessage(location, message);
+#ifdef LOGGING_ENABLED
+    SetLogFormat(kLogLevelWarn, location, message);
+#endif
+}
+
 void Logger::FatalLog(const std::string &location, const std::string &message) {
     PrintFatalMessage(location, message);
 #ifdef LOGGING_ENABLED

@@ -2,6 +2,7 @@
 #define FSS_DPF_GEN_H_
 
 #include "dpf_key.hpp"
+#include "prg.hpp"
 
 namespace fsswm {
 namespace fss {
@@ -51,6 +52,8 @@ private:
     DpfParameters params_; /**< DPF parameters for the DPF key. */
     bool          debug_;  /**< Flag to enable/disable debugging. */
 
+    prg::PseudoRandomGenerator &G_ = prg::PseudoRandomGeneratorSingleton::GetInstance(); /**< Pseudo-random generator for the DPF key. */
+
     /**
      * @brief Validate the input values.
      * @param alpha The alpha value for the DPF key.
@@ -71,6 +74,19 @@ private:
                           block &current_seed_0, bool &current_control_bit_0,
                           block &current_seed_1, bool &current_control_bit_1,
                           std::pair<DpfKey, DpfKey> &key_pair) const;
+
+    /**
+     * @brief Set the output for the DPF key.
+     * @param alpha The alpha value for the DPF key.
+     * @param beta The beta value for the DPF key.
+     * @param final_seed_0 The seed for the DPF key for party 0.
+     * @param final_seed_1 The seed for the DPF key for party 1.
+     * @param final_control_bit_1 The control bit for party 1.
+     * @param key_pair The pair of DpfKey for the DPF key.
+     */
+    void SetOutput(uint32_t alpha, uint32_t beta,
+                   block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
+                   std::pair<DpfKey, DpfKey> &key_pair) const;
 };
 
 }    // namespace dpf

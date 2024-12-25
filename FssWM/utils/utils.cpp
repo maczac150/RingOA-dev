@@ -139,6 +139,12 @@ void PrintInfoMessage(const std::string &info_msg, const std::string &msg_body) 
     std::cout << msg_body << std::endl;
 }
 
+void PrintWarnMessage(const std::string &info_msg, const std::string &msg_body) {
+    PrintColoredText("[WARNING]", color_map["yellow"]);
+    PrintBoldText("[" + info_msg + "] ");
+    std::cout << msg_body << std::endl;
+}
+
 void PrintFatalMessage(const std::string &info_msg, const std::string &msg_body) {
     PrintColoredText("[FATAL]", color_map["red"]);
     PrintBoldText("[" + info_msg + "] ");

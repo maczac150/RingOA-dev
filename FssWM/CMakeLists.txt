@@ -26,4 +26,4 @@ endif()
 target_include_directories(fss PUBLIC ${EMP-TOOL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link libraries for fss
-target_link_libraries(fss PUBLIC emp-tool)
+target_link_libraries(fss PUBLIC emp-tool oc::cryptoTools)

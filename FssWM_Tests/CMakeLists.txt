@@ -25,4 +25,4 @@ endif()
 target_include_directories(test PRIVATE ${EMP-TOOL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # Link libraries to the executables
-target_link_libraries(test PRIVATE fss oc::cryptoTools -lcrypto ${EMP-TOOL_LIBRARIES})
+target_link_libraries(test PRIVATE fss -lcrypto ${EMP-TOOL_LIBRARIES} oc::cryptoTools oc::tests_cryptoTools)

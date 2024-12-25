@@ -14,9 +14,8 @@ namespace dpf {
 struct DpfParameters {
     const uint32_t input_bitsize;            /**< The size of input in bits. */
     const uint32_t element_bitsize;          /**< The size of each element in bits. */
-    const bool     enable_early_termination; /**< Toggle this flag to enable/disable early termination. */
+    bool           enable_early_termination; /**< Toggle this flag to enable/disable early termination. */
     const uint32_t terminate_bitsize;        /**< The size of the termination bits. */
-    const bool     debug;                    /**< Toggle this flag to enable/disable debugging. */
 
     /**
      * @brief Default constructor for DpfParameters is deleted.
@@ -28,23 +27,25 @@ struct DpfParameters {
      * @param n The input bitsize.
      * @param e The element bitsize.
      * @param enable_et Toggle this flag to enable/disable early termination.
-     * @param debug Toggle this flag to enable/disable debugging.
      */
-    DpfParameters(const uint32_t n, const uint32_t e, const bool enable_et = true, const bool debug = false);
+    DpfParameters(const uint32_t n, const uint32_t e, const bool enable_et = true);
 
     /**
      * @brief Compute the number of levels to terminate the DPF evaluation.
-     *
      * @return The number of levels to terminate the DPF evaluation.
      */
-    uint32_t ComputeTerminateLevel(const bool enable_et) const;
+    uint32_t ComputeTerminateLevel();
 
     /**
      * @brief Validate the parameters for the DPF.
-     *
      * @return True if the parameters are valid, false otherwise.
      */
     bool ValidateParameters() const;
+
+    /**
+     * @brief Print the details of the DpfParameters.
+     */
+    void PrintDpfParameters() const;
 };
 
 /**

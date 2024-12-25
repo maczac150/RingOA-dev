@@ -31,7 +31,7 @@ void Test_FileIo(const uint32_t mode, bool debug) {
     std::vector<std::string> modes         = {"File I/O unit tests", "Write and read value to file", "Write and read vector to file", "Write and read string to file", "Write and read string vector to file", "Log append"};
     uint32_t                 selected_mode = mode;
     if (selected_mode < 1 || selected_mode > modes.size()) {
-        utils::OptionHelpMessage(LOCATION, modes);
+        utils::OptionHelpMessage(LOC, modes);
         exit(EXIT_FAILURE);
     }
 
