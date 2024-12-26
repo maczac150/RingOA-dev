@@ -22,19 +22,41 @@ void Prg_Test() {
     utils::Logger::InfoLog(LOC, "seed_out[0]: " + fsswm::fss::ToString(seed_out[0]));
     utils::Logger::InfoLog(LOC, "seed_out[1]: " + fsswm::fss::ToString(seed_out[1]));
 
-    block zero_block = makeBlock(0, 0);
-    block one_block  = makeBlock(1, 0);
-    utils::Logger::InfoLog(LOC, "Equal test: zero_block == one_block: " + std::to_string(fsswm::fss::Equal(zero_block, one_block)));
-    utils::Logger::InfoLog(LOC, "Equal test: zero_block == zero_block: " + std::to_string(fsswm::fss::Equal(zero_block, zero_block)));
+    block expanded_seed;
+    bool  bit = false;
+    prg.Expand(seed_in, expanded_seed, bit);
 
-    uint32_t              repeat = 1 << 20;
-    utils::ExecutionTimer timer;
-    timer.SetTimeUnit(utils::TimeUnit::MICROSECONDS);
-    timer.Start();
-    for (uint32_t i = 0; i < repeat; i++) {
-        prg.DoubleExpand(seed_in, seed_out);
-    }
-    timer.Print(LOC, "DoubleExpand(seed_in, seed_out) elapsed time: ");
+    utils::Logger::InfoLog(LOC, "expanded_seed: " + fsswm::fss::ToString(expanded_seed));
+    utils::Logger::InfoLog(LOC, "Equal(seed_out[0], expanded_seed): " + std::to_string(fsswm::fss::Equal(seed_out[0], expanded_seed)));
+
+    bit = true;
+    prg.Expand(seed_in, expanded_seed, bit);
+
+    utils::Logger::InfoLog(LOC, "expanded_seed: " + fsswm::fss::ToString(expanded_seed));
+    utils::Logger::InfoLog(LOC, "Equal(seed_out[1], expanded_seed): " + std::to_string(fsswm::fss::Equal(seed_out[1], expanded_seed)));
+
+    utils::Logger::InfoLog(LOC, "PRG test finished");
+
+    // utils::Logger::InfoLog(LOC, "PRG microbenchmark started");
+
+    // uint32_t              repeat = 1 << 20;
+    // utils::ExecutionTimer timer;
+    // timer.SetTimeUnit(utils::TimeUnit::MICROSECONDS);
+
+    // timer.Start();
+    // for (uint32_t i = 0; i < repeat; i++) {
+    //     prg.DoubleExpand(seed_in, seed_out);
+    // }
+    // timer.Print(LOC, "DoubleExpand(seed_in, seed_out) elapsed time: ");
+
+    // timer.Start();
+    // for (uint32_t i = 0; i < repeat; i++) {
+    //     prg.Expand(seed_in, expanded_seed, false);
+    //     prg.Expand(seed_in, expanded_seed, true);
+    // }
+    // timer.Print(LOC, "Expand(seed_in, expanded_seed, bit) elapsed time: ");
+
+    // utils::Logger::InfoLog(LOC, "PRG microbenchmark finished");
 }
 
 }    // namespace test_fsswm

@@ -2,24 +2,20 @@
 #define UTILS_TIMER_H_
 
 #include <chrono>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
+
+#include "utils/logger.hpp"
 
 namespace utils {
 
 /**
- * @enum TimeUnit
  * @brief Enumeration of time units.
- *
- * This enumeration defines various time units for representing durations.
- * It includes:
- * - NANOSECONDS: Representing durations in nanoseconds. <br>
- * - MILLISECONDS: Representing durations in milliseconds.
- * - SECONDS: Representing durations in seconds.
- *
- * @note
- * - Use these enum values to specify the unit of time for various time-related operations.
- * - Each enum value corresponds to a specific time unit.
  */
 enum TimeUnit
 {
@@ -30,82 +26,91 @@ enum TimeUnit
 };
 
 /**
- * @class ExecutionTimer
- * @brief A utility class for measuring execution time.
- *
- * The `ExecutionTimer` class provides a simple interface to measure the execution time
- * of a code segment. It can record the start time and calculate the elapsed time when needed.
- *
- * @note
- * - Use the `Start` method to record the start time.
- * - Use the `End` method to calculate the elapsed time in the specified time unit (default is milliseconds).
- * - The class is based on the high-resolution clock for accurate timing.
+ * @brief Alias for high-resolution clock time points.
  */
-class ExecutionTimer {
+typedef std::chrono::high_resolution_clock::time_point TimePoint;
+
+/**
+ * @brief Timer Manager to handle multiple timers.
+ */
+class TimerManager {
 public:
     /**
-     * @brief Default constructor for the ExecutionTimer class.
+     * @brief Construct a new Timer Manager object.
+     * @param unit
      */
-    ExecutionTimer();
+    TimerManager() {};
 
     /**
-     * @brief Record the start time for measuring execution duration.
-     *
-     * Use this method to record the current time as the start time for measuring execution duration.
+     * @brief Create a new timer.
+     * @param name
+     * @return int
+     */
+    int32_t CreateNewTimer(const std::string &name = "");
+
+    /**
+     * @brief Select a timer by ID.
+     * @param timer_id
+     */
+    void SelectTimer(int32_t timer_id);
+
+    /**
+     * @brief Set the time unit for the selected timer.
+     * @param unit
+     */
+    void SetUnit(TimeUnit unit);
+
+    /**
+     * @brief Start the selected timer.
      */
     void Start();
 
     /**
-     * @brief Calculate the elapsed time since the start time.
-     *
-     * Use this method to calculate the elapsed time since the start time in the specified time unit.
-     *
-     * @param time_unit The time unit for representing the elapsed time.
-     * @return The elapsed time since the start time in the specified time unit.
+     * @brief Stop the selected timer.
      */
-    double Print(const std::string &location, const std::string &message = "");
+    void Stop();
 
     /**
-     * @brief Set the time unit for representing the elapsed time.
-     *
-     * Use this method to set the time unit for representing the elapsed time.
-     *
-     * @param time_unit The time unit for representing the elapsed time.
+     * @brief Mark the current time.
      */
-    void SetTimeUnit(const TimeUnit time_unit);
+    void Mark();
 
     /**
-     * @brief Get the time unit for representing the elapsed time.
-     *
-     * Use this method to get the time unit for representing the elapsed time.
-     *
-     * @return The time unit for representing the elapsed time.
+     * @brief Print the results of the current timer.
      */
-    TimeUnit GetTimeUnit() const;
-
-    /**
-     * @brief Get the time unit string.
-     *
-     * Use this method to get the time unit string.
-     *
-     * @return The time unit string.
-     */
-    std::string GetTimeUnitStr() const;
-
-    /**
-     * @brief Check if the execution time exceeds the specified limit.
-     *
-     * @param res The measured execution time.
-     * @param limit_time_ms The time limit in milliseconds.
-     * @return `true`  If the execution time exceeds the limit.
-     * @return `false` Otherwise.
-     */
-    static bool IsExceedLimitTime(const double res, const uint32_t limit_time_ms, const TimeUnit unit);
+    void PrintCurrentResults(const TimeUnit unit = MILLISECONDS) const;
 
 private:
-    std::chrono::time_point<std::chrono::high_resolution_clock> start_; /**< The start time point. */
-    std::chrono::time_point<std::chrono::high_resolution_clock> end_;   /**< The end time point. */
-    TimeUnit                                                    unit_;  /**< The time unit for representing the elapsed time. */
+    /**
+     * @brief Timer structure to store timer data.
+     */
+    struct Timer {
+        std::string            name;
+        std::vector<TimePoint> start_times;
+        std::vector<TimePoint> end_times;
+        std::vector<double>    elapsed_times;
+    };
+
+    std::map<int, Timer> timers_;                          /**< Map of timers with IDs */
+    int32_t              current_timer_id_ = -1;           /**< ID of the selected timer */
+    TimeUnit             unit_             = MILLISECONDS; /**< Time unit */
+    int32_t              timer_count_      = 0;            /**< Timer count */
+
+    /**
+     * @brief Get the elapsed time between two time points.
+     * @param start The start time point.
+     * @param end The end time point.
+     * @param unit The time unit to use.
+     * @return double The elapsed time in the selected time unit.
+     */
+    double GetElapsedTime(const TimePoint &start, const TimePoint &end) const;
+
+    /**
+     * @brief Get the string representation of a time unit.
+     * @param unit The time unit.
+     * @return std::string The string representation of the time unit.
+     */
+    std::string GetUnitString(TimeUnit unit) const;
 };
 
 }    // namespace utils

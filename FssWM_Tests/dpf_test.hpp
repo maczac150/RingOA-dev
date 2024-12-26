@@ -5,6 +5,8 @@ namespace test_fsswm {
 
 void Dpf_Params_Test();
 void Dpf_Fde_Test();
+void Dpf_Fde_One_Test();
+void Dpf_Fde_Bench_Test();
 
 }    // namespace test_fsswm
 

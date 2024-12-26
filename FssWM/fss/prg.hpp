@@ -29,10 +29,35 @@ public:
     }
 
     /**
+     * @brief Encrypts the input block using a single AES key.
+     * @param seed_in The input block to be encrypted.
+     * @param seed_out The output block after encryption.
+     * @param key_lr The AES key to be used.
+     */
+    void Expand(block seed_in, block &seed_out, bool key_lr) {
+        block tmp = seed_in;
+        AES_ecb_encrypt_blks(&tmp, 1, &aes_key[key_lr]);
+        seed_out = seed_in ^ tmp;
+    }
+
+    /**
+     * @brief Encrypts an array of 8 input blocks using a single AES key.
+     * @param seed_in The input blocks to be encrypted.
+     * @param seed_out The output blocks after encryption.
+     * @param key_lr The AES key to be used.
+     */
+    void Expand(std::array<block, 8> &seed_in, std::array<block, 8> &seed_out, bool key_lr) {
+        std::array<block, 8> tmp = seed_in;
+        AES_ecb_encrypt_blks(tmp.data(), 8, &aes_key[key_lr]);
+        for (size_t i = 0; i < 8; ++i) {
+            seed_out[i] = seed_in[i] ^ tmp[i];
+        }
+    }
+
+    /**
      * @brief Encrypts the input block using the PRG.
      * @param seed_in The input block to be encrypted.
      * @param seed_out The output block after encryption.
-     * @note PRG: G(s) = PRF_seed0(s) ^ s || PRF_seed1(s) ^ s
      */
     void DoubleExpand(block seed_in, std::array<block, 2> &seed_out) {
         block tmp[2];
@@ -49,7 +74,6 @@ public:
      * @brief Encrypts 8 input blocks using the PRG in parallel.
      * @param seed_in The input blocks to be encrypted.
      * @param seed_out The output blocks after encryption.
-     * @note Efficient parallel processing using ParaEnc.
      */
     void DoubleExpand(std::array<block, 8> &seed_in, std::array<std::array<block, 8>, 2> &seed_out) {
         std::array<block, 16> tmp;

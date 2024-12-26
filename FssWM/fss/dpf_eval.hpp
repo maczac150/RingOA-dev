@@ -8,13 +8,19 @@ namespace fsswm {
 namespace fss {
 namespace dpf {
 
+/**
+ * @enum EvalType
+ * @brief Enumeration for the evaluation types for DPF.
+ * @note Efficinecy: kNonRecursive_HalfPRG > kNonRecursive_Opt > kNonRecursive > kRecursive > kNaive
+ */
 enum class EvalType
 {
-    kNaive,            /**< Naive approach for DPF evaluation. */
-    kRecursive,        /**< Recursive approach for DPF evaluation. */
-    kNonRecursive,     /**< Non-recursive approach for DPF evaluation. */
-    kNonRecursive_Opt, /**< Non-recursive approach for DPF evaluation. */
-    kBfs               /**< Breadth-first search approach for DPF evaluation. */
+    // Evaluation types for DPF
+    kNaive,          /**< Naive approach for DPF evaluation. */
+    kRec,            /**< Recursive approach for DPF evaluation. */
+    kNonRec,         /**< Non-recursive approach for DPF evaluation. */
+    kNonRec_ParaEnc, /**< Non-recursive approach using parallel encryption for DPF evaluation. */
+    kNonRec_HalfPRG  /**< Non-recursive approach using half PRG for DPF evaluation. */
 };
 
 /**
@@ -64,23 +70,18 @@ public:
     /**
      * @brief Evaluate the DPF key for all possible x values.
      * @param key The DPF key to evaluate.
+     * @param eval_type The evaluation type for the DPF key (default: kNonRec_HalfPRG).
      * @return The outputs for the DPF key.
      */
-    std::vector<uint32_t> EvaluateFullDomain(const DpfKey &key, const EvalType eval_type) const;
+    std::vector<uint32_t> EvaluateFullDomain(const DpfKey &key, const EvalType eval_type = EvalType::kNonRec_HalfPRG) const;
 
     /**
-     * @brief Evaluate the DPF key for all possible x values using the naive approach.
+     * @brief Evaluate the DPF key for all possible x values, domain of outputs is 1 bit.
      * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
+     * @param eval_type The evaluation type for the DPF key (default: kNonRec_HalfPRG).
+     * @return The outputs for the DPF key.
      */
-    void EvaluateFullDomainNaive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
-
-    /**
-     * @brief Evaluate the DPF key for all possible x values using the early termination approach.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     */
-    void EvaluateFullDomainOptimized(const DpfKey &key, std::vector<uint32_t> &outputs, const EvalType eval_type) const;
+    std::vector<uint32_t> EvaluateFullDomainOneBit(const DpfKey &key, const EvalType eval_type = EvalType::kNonRec_HalfPRG) const;
 
 private:
     DpfParameters params_; /**< DPF parameters for the DPF key. */
@@ -124,18 +125,18 @@ private:
     void FullDomainNonRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
     /**
-     * @brief Full domain evaluation of the DPF key using the non-recursive optimized approach.
+     * @brief Full domain evaluation of the DPF key using the non-recursive using parallel encryption approach.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNonRecursive_Opt(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
     /**
-     * @brief Full domain evaluation of the DPF key using the breadth-first search approach.
+     * @brief Full domain evaluation of the DPF key using the non-recursive using half PRG approach.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainBfs(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
     /**
      * @brief Full domain evaluation of the DPF key using the naive approach.

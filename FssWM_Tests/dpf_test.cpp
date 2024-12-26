@@ -5,6 +5,7 @@
 #include "FssWM/fss/dpf_gen.hpp"
 #include "FssWM/fss/dpf_key.hpp"
 #include "FssWM/utils/logger.hpp"
+#include "FssWM/utils/rng.hpp"
 #include "FssWM/utils/timer.hpp"
 #include "FssWM/utils/utils.hpp"
 
@@ -44,7 +45,7 @@ void Dpf_Params_Test() {
     };
 
     for (const fsswm::fss::dpf::DpfParameters &params : params_list) {
-        params.PrintDpfParameters();
+        // params.PrintDpfParameters();
         uint32_t                                                    e = params.element_bitsize;
         fsswm::fss::dpf::DpfKeyGenerator                            gen(params);
         fsswm::fss::dpf::DpfEvaluator                               eval(params);
@@ -71,49 +72,100 @@ void Dpf_Params_Test() {
 }
 
 void Dpf_Fde_Test() {
-    utils::ExecutionTimer timer;
-    timer.SetTimeUnit(utils::TimeUnit::MICROSECONDS);
-
     std::vector<fsswm::fss::dpf::DpfParameters> params_list = {
-        // fsswm::fss::dpf::DpfParameters(5, 5, false),
-        // fsswm::fss::dpf::DpfParameters(10, 10, true),
-        // fsswm::fss::dpf::DpfParameters(10, 1, true),
-        // fsswm::fss::dpf::DpfParameters(20, 20, true),
-        // fsswm::fss::dpf::DpfParameters(20, 1, true),
-        // fsswm::fss::dpf::DpfParameters(10, 10, true),
-        // fsswm::fss::dpf::DpfParameters(15, 15, true),
-        // fsswm::fss::dpf::DpfParameters(20, 20, true),
+        fsswm::fss::dpf::DpfParameters(5, 5, false),
+        fsswm::fss::dpf::DpfParameters(10, 10, true),
+        fsswm::fss::dpf::DpfParameters(15, 15, true),
+        fsswm::fss::dpf::DpfParameters(20, 20, true),
         fsswm::fss::dpf::DpfParameters(25, 25, true),
     };
 
     for (const fsswm::fss::dpf::DpfParameters &params : params_list) {
-        params.PrintDpfParameters();
+        // params.PrintDpfParameters();
+        uint32_t                         n = params.input_bitsize;
         uint32_t                         e = params.element_bitsize;
         fsswm::fss::dpf::DpfKeyGenerator gen(params);
-        fsswm::fss::dpf::DpfEvaluator    eval(params);
-        fsswm::fss::dpf::EvalType        eval_type = fsswm::fss::dpf::EvalType::kNonRecursive_Opt;
-        uint32_t                         alpha     = 5;
-        uint32_t                         beta      = 1;
+        fsswm::fss::dpf::DpfEvaluator    eval(params, true);
+        uint32_t                         alpha = utils::Mod(utils::SecureRng::Rand64(), n);
+        uint32_t                         beta  = utils::Mod(utils::SecureRng::Rand64(), e);
 
-        timer.Start();
+        // Generate keys
         std::pair<fsswm::fss::dpf::DpfKey, fsswm::fss::dpf::DpfKey> keys = gen.GenerateKeys(alpha, beta);
-        timer.Print(LOC, "Key generation time: ");
 
-        // Initialize the output vector
-        timer.Start();
-        std::vector<uint32_t> outputs_0 = eval.EvaluateFullDomain(keys.first, eval_type);
-        timer.Print(LOC, "Evaluation time (party 0): ");
-
-        std::vector<uint32_t> outputs_1 = eval.EvaluateFullDomain(keys.second, eval_type);
+        // Evaluate keys
+        std::vector<uint32_t> outputs_0 = eval.EvaluateFullDomain(keys.first);
+        std::vector<uint32_t> outputs_1 = eval.EvaluateFullDomain(keys.second);
         std::vector<uint32_t> outputs(outputs_0.size());
         for (uint32_t i = 0; i < outputs_0.size(); i++) {
             outputs[i] = utils::Mod(outputs_0[i] + outputs_1[i], e);
         }
 
-        utils::Logger::DebugLog(LOC, "Outputs: " + utils::VectorToStr(outputs), true);
-
+        // Check FDE
         if (!DpfFullDomainCheck(alpha, beta, outputs, true))
             throw oc::UnitTestFail("FDE check failed");
+    }
+}
+
+void Dpf_Fde_One_Test() {
+    std::vector<fsswm::fss::dpf::DpfParameters> params_list = {
+        fsswm::fss::dpf::DpfParameters(5, 1, false),
+        fsswm::fss::dpf::DpfParameters(10, 1, true),
+        fsswm::fss::dpf::DpfParameters(15, 1, true),
+        fsswm::fss::dpf::DpfParameters(20, 1, true),
+        fsswm::fss::dpf::DpfParameters(25, 1, true),
+    };
+
+    for (const fsswm::fss::dpf::DpfParameters &params : params_list) {
+        // params.PrintDpfParameters();
+        uint32_t                         n = params.input_bitsize;
+        uint32_t                         e = params.element_bitsize;
+        fsswm::fss::dpf::DpfKeyGenerator gen(params);
+        fsswm::fss::dpf::DpfEvaluator    eval(params, true);
+        uint32_t                         alpha = utils::Mod(utils::SecureRng::Rand64(), n);
+        uint32_t                         beta  = utils::Mod(utils::SecureRng::Rand64(), e);
+
+        // Generate keys
+        std::pair<fsswm::fss::dpf::DpfKey, fsswm::fss::dpf::DpfKey> keys = gen.GenerateKeys(alpha, beta);
+
+        // Evaluate keys
+        std::vector<uint32_t> outputs_0 = eval.EvaluateFullDomainOneBit(keys.first);
+        std::vector<uint32_t> outputs_1 = eval.EvaluateFullDomainOneBit(keys.second);
+        std::vector<uint32_t> outputs(outputs_0.size());
+        for (uint32_t i = 0; i < outputs_0.size(); i++) {
+            outputs[i] = utils::Mod(outputs_0[i] + outputs_1[i], e);
+        }
+
+        // Check FDE
+        if (!DpfFullDomainCheck(alpha, beta, outputs, true))
+            throw oc::UnitTestFail("FDE check failed");
+    }
+}
+
+void Dpf_Fde_Bench_Test() {
+    // utils::ExecutionTimer timer;
+    // timer.SetTimeUnit(utils::TimeUnit::MICROSECONDS);
+
+    uint32_t            repeat = 30;
+    std::vector<double> eval_times(repeat);
+
+    for (uint32_t size = 12; size <= 28; size += 2) {
+        fsswm::fss::dpf::DpfParameters   params(size, size, true);
+        uint32_t                         n = params.input_bitsize;
+        uint32_t                         e = params.element_bitsize;
+        fsswm::fss::dpf::DpfKeyGenerator gen(params);
+        fsswm::fss::dpf::DpfEvaluator    eval(params, true);
+        uint32_t                         alpha = utils::Mod(utils::SecureRng::Rand64(), n);
+        uint32_t                         beta  = utils::Mod(utils::SecureRng::Rand64(), e);
+
+        // Generate keys
+        std::pair<fsswm::fss::dpf::DpfKey, fsswm::fss::dpf::DpfKey> keys = gen.GenerateKeys(alpha, beta);
+
+        // Evaluate keys
+        for (uint32_t i = 0; i < repeat; i++) {
+            // timer.Start();
+            std::vector<uint32_t> outputs_0 = eval.EvaluateFullDomain(keys.first);
+            // eval_times[i]                   = timer.Print(LOC, "FDE evaluation time for size " + std::to_string(size));
+        }
     }
 }
 
