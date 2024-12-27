@@ -9,18 +9,37 @@ namespace fsswm {
 namespace fss {
 namespace dpf {
 
-DpfParameters::DpfParameters(const uint32_t n, const uint32_t e, const bool enable_et)
+std::string GetEvalTypeString(const EvalType eval_type) {
+    switch (eval_type) {
+        case EvalType::kNaive:
+            return "Naive";
+        case EvalType::kRec:
+            return "Recursive";
+        case EvalType::kNonRec:
+            return "Non-Recursive";
+        case EvalType::kNonRec_ParaEnc:
+            return "Non-Recursive_ParaEnc";
+        case EvalType::kNonRec_HalfPRG:
+            return "Non-Recursive_HalfPRG";
+        default:
+            return "Unknown";
+    }
+}
+
+DpfParameters::DpfParameters(const uint32_t n, const uint32_t e,
+                             const bool enable_et, const EvalType eval_type)
     : input_bitsize(n), element_bitsize(e), enable_early_termination(enable_et), terminate_bitsize(ComputeTerminateLevel()) {
     if (!ValidateParameters()) {
         utils::Logger::FatalLog(LOC, "Invalid DPF parameters");
         exit(EXIT_FAILURE);
     }
+    SetEvalType(eval_type);
 }
 
 uint32_t DpfParameters::ComputeTerminateLevel() {
     if (input_bitsize <= kSmallDomainSize && enable_early_termination) {
         // Disable early termination for small input bitsize
-        utils::Logger::WarnLog(LOC, "Disabling early termination for small input bitsize (<=" + std::to_string(kSmallDomainSize) + "bit)");
+        utils::Logger::WarnLog(LOC, "Disabling early termination for small input bitsize (<=" + std::to_string(kSmallDomainSize) + "bit): ET OFF");
         enable_early_termination = false;
     }
     if (enable_early_termination) {
@@ -40,6 +59,30 @@ uint32_t DpfParameters::ComputeTerminateLevel() {
     }
 }
 
+void DpfParameters::SetEvalType(EvalType eval_type) {
+    if (enable_early_termination) {
+        if (eval_type == EvalType::kNaive) {
+            enable_early_termination = false;
+            utils::Logger::WarnLog(LOC, "Disabling early termination for naive approach: ET OFF");
+        }
+        if (element_bitsize == 1) {
+            if (input_bitsize < 10) {    // 7 (early termination) + 3 (non-recursive)
+                utils::Logger::WarnLog(LOC, "Switching to non-recursive approach for the domain size less than 10 bits: EvalType: " + GetEvalTypeString(eval_type) + " -> Non-Recursive");
+                eval_type = EvalType::kNonRec;
+            } else if (eval_type == EvalType::kNonRec_ParaEnc && input_bitsize < 11) {    // 7+1 (early termination) + 3 (non-recursive)
+                utils::Logger::WarnLog(LOC, "Switching to non-recursive approach for the domain size less than 11 bits: EvalType: " + GetEvalTypeString(eval_type) + " -> Non-Recursive");
+                eval_type = EvalType::kNonRec;
+            }
+        }
+    } else {
+        if (eval_type != EvalType::kNaive) {
+            utils::Logger::WarnLog(LOC, "Early termination is disabled: Switching to naive approach: EvalType: " + GetEvalTypeString(eval_type) + " -> Naive");
+            eval_type = EvalType::kNaive;
+        }
+    }
+    fde_type = eval_type;
+}
+
 bool DpfParameters::ValidateParameters() const {
     bool valid = true;
     if (input_bitsize == 0 || element_bitsize == 0) {
@@ -54,7 +97,11 @@ bool DpfParameters::ValidateParameters() const {
 }
 
 void DpfParameters::PrintDpfParameters() const {
-    utils::Logger::InfoLog(LOC, "[DPF Parameters] Input: " + std::to_string(input_bitsize) + " bit, Element: " + std::to_string(element_bitsize) + " bit, Terminate: " + std::to_string(terminate_bitsize) + " bit (ET: " + (enable_early_termination ? "ON)" : "OFF)"));
+    std::ostringstream oss;
+    oss << "[DPF Parameters] (Input, Output, Terminate): (" << input_bitsize << ", " << element_bitsize << ", " << terminate_bitsize << ") bit";
+    oss << " (Early termination: " << (enable_early_termination ? "ON" : "OFF") << ")";
+    oss << " (EvalType: " << GetEvalTypeString(fde_type) << ")";
+    utils::Logger::InfoLog(LOC, oss.str());
 }
 
 DpfKey::DpfKey(const uint32_t id, const DpfParameters &params)

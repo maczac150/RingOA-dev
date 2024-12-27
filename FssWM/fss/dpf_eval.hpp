@@ -9,21 +9,6 @@ namespace fss {
 namespace dpf {
 
 /**
- * @enum EvalType
- * @brief Enumeration for the evaluation types for DPF.
- * @note Efficinecy: kNonRecursive_HalfPRG > kNonRecursive_Opt > kNonRecursive > kRecursive > kNaive
- */
-enum class EvalType
-{
-    // Evaluation types for DPF
-    kNaive,          /**< Naive approach for DPF evaluation. */
-    kRec,            /**< Recursive approach for DPF evaluation. */
-    kNonRec,         /**< Non-recursive approach for DPF evaluation. */
-    kNonRec_ParaEnc, /**< Non-recursive approach using parallel encryption for DPF evaluation. */
-    kNonRec_HalfPRG  /**< Non-recursive approach using half PRG for DPF evaluation. */
-};
-
-/**
  * @class DpfEvaluator
  * @brief A class to evaluate
  */
@@ -70,18 +55,17 @@ public:
     /**
      * @brief Evaluate the DPF key for all possible x values.
      * @param key The DPF key to evaluate.
-     * @param eval_type The evaluation type for the DPF key (default: kNonRec_HalfPRG).
-     * @return The outputs for the DPF key.
+     * @param outputs The outputs for the DPF key.
      */
-    std::vector<uint32_t> EvaluateFullDomain(const DpfKey &key, const EvalType eval_type = EvalType::kNonRec_HalfPRG) const;
+    void EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &outputs) const;
 
     /**
      * @brief Evaluate the DPF key for all possible x values, domain of outputs is 1 bit.
      * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
      * @param eval_type The evaluation type for the DPF key (default: kNonRec_HalfPRG).
-     * @return The outputs for the DPF key.
      */
-    std::vector<uint32_t> EvaluateFullDomainOneBit(const DpfKey &key, const EvalType eval_type = EvalType::kNonRec_HalfPRG) const;
+    void EvaluateFullDomainOneBit(const DpfKey &key, std::vector<block> &outputs) const;
 
 private:
     DpfParameters params_; /**< DPF parameters for the DPF key. */
@@ -115,28 +99,28 @@ private:
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
      * @brief Full domain evaluation of the DPF key using the non-recursive approach.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNonRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
-
-    /**
-     * @brief Full domain evaluation of the DPF key using the non-recursive using parallel encryption approach.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     */
-    void FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void FullDomainNonRecursive(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
      * @brief Full domain evaluation of the DPF key using the non-recursive using half PRG approach.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<block> &outputs) const;
+
+    /**
+     * @brief Full domain evaluation of the DPF key using the non-recursive using parallel encryption approach.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<block> &outputs) const;    // ! Too slow
 
     /**
      * @brief Full domain evaluation of the DPF key using the naive approach.
@@ -154,7 +138,7 @@ private:
      * @param j The current index of the DPF key.
      * @param outputs The outputs for the DPF key.
      */
-    void Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<uint32_t> &outputs) const;
+    void Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<block> &outputs) const;
 
     /**
      * @brief Compute the output block for the DPF key.

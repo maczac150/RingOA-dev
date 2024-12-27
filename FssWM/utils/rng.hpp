@@ -46,7 +46,7 @@ private:
         std::uniform_int_distribution<T> dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
         return dist(mtrng);
 #else
-        std::array<byte, sizeof(T)> rand;
+        std::array<byte, sizeof(T)> rand{};
         int                         success = RAND_bytes(rand.data(), rand.size());
         if (!success) {
             std::perror("failed to create randomness");

@@ -71,22 +71,20 @@ public:
     }
 
     /**
-     * @brief Encrypts 8 input blocks using the PRG in parallel.
+     * @brief Encrypts the input blocks using the PRG with separate keys.
      * @param seed_in The input blocks to be encrypted.
-     * @param seed_out The output blocks after encryption.
+     * @param seed_out The output blocks after encryption with left and right keys.
      */
     void DoubleExpand(std::array<block, 8> &seed_in, std::array<std::array<block, 8>, 2> &seed_out) {
-        std::array<block, 16> tmp;
-        for (size_t i = 0; i < 8; ++i) {
-            tmp[2 * i] = seed_out[0][i] = seed_in[i];
-            tmp[2 * i + 1] = seed_out[1][i] = seed_in[i];
-        }
+        for (uint32_t i = 0; i < 8; i++) {
+            block tmp[2];
+            tmp[0] = seed_out[0][i] = seed_in[i];
+            tmp[1] = seed_out[1][i] = seed_in[i];
 
-        ParaEnc<16, 1>(tmp.data(), aes_key);
+            ParaEnc<2, 1>(tmp, aes_key);
 
-        for (size_t i = 0; i < 8; ++i) {
-            seed_out[0][i] = seed_out[0][i] ^ tmp[2 * i];
-            seed_out[1][i] = seed_out[1][i] ^ tmp[2 * i + 1];
+            seed_out[0][i] = seed_out[0][i] ^ tmp[0];
+            seed_out[1][i] = seed_out[1][i] ^ tmp[1];
         }
     }
 

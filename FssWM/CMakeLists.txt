@@ -15,11 +15,11 @@ add_library(fss ${LIB_SOURCES})
 
 # Set compile options for fss
 target_compile_features(fss PUBLIC cxx_std_20)
-target_compile_options(fss PRIVATE -Wall -maes -msse4.1 -Wno-ignored-attributes)
+target_compile_options(fss PUBLIC -Wall -maes -msse4.1 -Wno-ignored-attributes)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(fss PRIVATE LOG_LEVEL_DEBUG RANDOM_SEED_FIXED)
+    target_compile_definitions(fss PUBLIC LOG_LEVEL_DEBUG RANDOM_SEED_FIXED)
 else()
-    target_compile_definitions(fss PRIVATE)
+    target_compile_definitions(fss PUBLIC)
 endif()
 
 # Include directories for fss

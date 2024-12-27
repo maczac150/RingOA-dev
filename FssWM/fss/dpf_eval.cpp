@@ -111,86 +111,94 @@ bool DpfEvaluator::ValidateInput(const uint32_t x) const {
     return valid;
 }
 
-std::vector<uint32_t> DpfEvaluator::EvaluateFullDomain(const DpfKey &key, const EvalType eval_type) const {
+void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &outputs) const {
+    uint32_t n               = params_.input_bitsize;
+    uint32_t nu              = params_.terminate_bitsize;
+    EvalType fde_type        = params_.fde_type;
+    uint32_t num_nodes       = 1U << nu;
+    uint32_t remaining_nodes = 1U << (n - nu);
+
     // Check if the domain size
     if (params_.element_bitsize == 1) {
         utils::Logger::FatalLog(LOC, "You should use EvaluateFullDomainOneBit for the domain size of 1 bit");
+        exit(EXIT_FAILURE);
     }
 
-    // Initialize the output vector
-    std::vector<uint32_t> outputs(1U << params_.input_bitsize);
+    // Check output vector size
+    if (outputs.size() != 1U << params_.input_bitsize) {
+        outputs.resize(1U << params_.input_bitsize);
+    }
+    std::vector<block> outputs_block(num_nodes, zero_block);
 
     // Evaluate the DPF key for all possible x values
-    if (params_.input_bitsize <= kSmallDomainSize || eval_type == EvalType::kNaive) {
-        FullDomainNaive(key, outputs);
-    } else {
-        if (params_.enable_early_termination) {
-            switch (eval_type) {
-                case EvalType::kRec:
-                    FullDomainRecursive(key, outputs);
-                    break;
-                case EvalType::kNonRec:
-                    FullDomainNonRecursive(key, outputs);
-                    break;
-                case EvalType::kNonRec_ParaEnc:
-                    FullDomainNonRecursive_ParaEnc(key, outputs);
-                    break;
-                case EvalType::kNonRec_HalfPRG:
-                    FullDomainNonRecursive_HalfPRG(key, outputs);
-                    break;
-                default:
-                    utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(eval_type)));
-                    exit(EXIT_FAILURE);
-            }
-        } else {
-            utils::Logger::FatalLog(LOC, "Set the early termination flag to true except for small domain size");
+    switch (fde_type) {
+        case EvalType::kNaive:
+            FullDomainNaive(key, outputs);
+            break;
+        case EvalType::kRec:
+            FullDomainRecursive(key, outputs_block);
+            break;
+        case EvalType::kNonRec:
+            FullDomainNonRecursive(key, outputs_block);
+            break;
+        case EvalType::kNonRec_ParaEnc:
+            FullDomainNonRecursive_ParaEnc(key, outputs_block);
+            break;
+        case EvalType::kNonRec_HalfPRG:
+            FullDomainNonRecursive_HalfPRG(key, outputs_block);
+            break;
+        default:
+            utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(fde_type)));
             exit(EXIT_FAILURE);
+    }
+    if (fde_type != EvalType::kNaive) {
+        std::vector<uint32_t> output_values(remaining_nodes);
+        for (uint32_t i = 0; i < num_nodes; i++) {
+            CovertVector(outputs_block[i], n - nu, params_.element_bitsize, output_values);
+            for (uint32_t j = 0; j < remaining_nodes; j++) {
+                outputs[i * remaining_nodes + j] = output_values[j];
+            }
         }
     }
-    return outputs;
 }
 
-std::vector<uint32_t> DpfEvaluator::EvaluateFullDomainOneBit(const DpfKey &key, const EvalType eval_type) const {
+void DpfEvaluator::EvaluateFullDomainOneBit(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu        = params_.terminate_bitsize;
+    EvalType fde_type  = params_.fde_type;
+    uint32_t num_nodes = 1U << nu;
+
     // Check if the domain size
     if (params_.element_bitsize != 1) {
         utils::Logger::FatalLog(LOC, "This function is only for the domain size of 1 bit");
+        exit(EXIT_FAILURE);
     }
 
-    // Initialize the output vector
-    std::vector<uint32_t> outputs(1U << params_.input_bitsize);
+    // Check output vector size
+    if (outputs.size() != num_nodes) {
+        outputs.resize(num_nodes);
+    }
 
     // Evaluate the DPF key for all possible x values
-    if (params_.input_bitsize <= kSmallDomainSize || eval_type == EvalType::kNaive) {
-        FullDomainNaive(key, outputs);
-    } else {
-        if (params_.enable_early_termination) {
-            if (params_.input_bitsize < 10) {    // 10 = 7 (early termination) + 3 (bfs)
-                FullDomainNonRecursive(key, outputs);
-            } else {
-                switch (eval_type) {
-                    case EvalType::kRec:
-                        FullDomainRecursive(key, outputs);
-                        break;
-                    case EvalType::kNonRec:
-                        FullDomainNonRecursive(key, outputs);
-                        break;
-                    case EvalType::kNonRec_ParaEnc:
-                        FullDomainNonRecursive_ParaEnc(key, outputs);
-                        break;
-                    case EvalType::kNonRec_HalfPRG:
-                        FullDomainNonRecursive_HalfPRG(key, outputs);
-                        break;
-                    default:
-                        utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(eval_type)));
-                        exit(EXIT_FAILURE);
-                }
-            }
-        } else {
-            utils::Logger::FatalLog(LOC, "Set the early termination flag to true except for small domain size");
+    switch (fde_type) {
+        case EvalType::kNaive:
+            utils::Logger::FatalLog(LOC, "Naive approach is not supported for the domain size of 1 bit");
+            break;
+        case EvalType::kRec:
+            FullDomainRecursive(key, outputs);
+            break;
+        case EvalType::kNonRec:
+            FullDomainNonRecursive(key, outputs);
+            break;
+        case EvalType::kNonRec_ParaEnc:
+            FullDomainNonRecursive_ParaEnc(key, outputs);
+            break;
+        case EvalType::kNonRec_HalfPRG:
+            FullDomainNonRecursive_HalfPRG(key, outputs);
+            break;
+        default:
+            utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(fde_type)));
             exit(EXIT_FAILURE);
-        }
     }
-    return outputs;
 }
 
 void DpfEvaluator::EvaluateNextSeed(
@@ -218,7 +226,7 @@ void DpfEvaluator::EvaluateNextSeed(
     expanded_control_bits[kRight] ^= (key.cw_control_right[current_level] & current_control_bit);
 }
 
-void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const {
+void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const {
     uint32_t nu = params_.terminate_bitsize;
 
 #ifdef LOG_LEVEL_DEBUG
@@ -233,10 +241,8 @@ void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<uint32_t> 
     Traverse(seed, control_bit, key, nu, 0, outputs);
 }
 
-void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<uint32_t> &outputs) const {
-    uint32_t n               = params_.input_bitsize;
-    uint32_t nu              = params_.terminate_bitsize;
-    uint32_t remaining_nodes = 1U << (n - nu);
+void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu = params_.terminate_bitsize;
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive)"), debug_);
@@ -303,24 +309,15 @@ void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<uint32_
 #endif
 
     // Compute the output values
-    std::vector<block>    outputs_block = ComputeOutputBlocks(output_seeds, output_control_bits, key);
-    std::vector<uint32_t> output_values(remaining_nodes);
-    for (uint32_t i = 0; i < last_idx; i++) {
-        CovertVector(outputs_block[i], n - nu, params_.element_bitsize, output_values);
-        for (uint32_t j = 0; j < remaining_nodes; j++) {
-            outputs[i * remaining_nodes + j] = output_values[j];
-        }
-    }
+    outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
 }
 
-void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<uint32_t> &outputs) const {
-    uint32_t n               = params_.input_bitsize;
-    uint32_t nu              = params_.terminate_bitsize;
-    uint32_t num_nodes       = 1U << nu;
-    uint32_t remaining_nodes = 1U << (n - nu);
+void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu        = params_.terminate_bitsize;
+    uint32_t num_nodes = 1U << nu;
 
 #ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive optimized)"), debug_);
+    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive ParaEnc)"), debug_);
     utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
 #endif
 
@@ -388,7 +385,8 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
             for (uint32_t i = 0; i < 8; i++) {
                 utils::Logger::DebugLog(LOC, level_str + "Current seed (" + std::to_string(i) + "): " + ToString(current_seeds[i]), debug_);
                 utils::Logger::DebugLog(LOC, level_str + "Current control bit (" + std::to_string(i) + "): " + std::to_string(current_control_bits[i]), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (L, R) (" + std::to_string(i) + "): " + ToString(expanded_seeds[i][kLeft]) + ", " + ToString(expanded_seeds[i][kRight]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (L) (" + std::to_string(i) + "): " + ToString(expanded_seeds[kLeft][i]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (R) (" + std::to_string(i) + "): " + ToString(expanded_seeds[kRight][i]), debug_);
                 utils::Logger::DebugLog(LOC, level_str + "Expanded control bit (L, R) (" + std::to_string(i) + "): " + std::to_string(expanded_control_bits[i][kLeft]) + ", " + std::to_string(expanded_control_bits[i][kRight]), debug_);
             }
 #endif
@@ -416,7 +414,8 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
             auto &tmp_seeds        = seed_stacks.top();
             auto &tmp_control_bits = control_bit_stacks.top();
             for (uint32_t j = 0; j < 8; j++) {
-                uint32_t access_idx             = j * 8 + i + current_idx;
+                uint32_t access_idx = j * last_idx + i + current_idx;
+                utils::Logger::DebugLog(LOC, "Access index: " + std::to_string(access_idx), debug_);
                 output_seeds[access_idx]        = tmp_seeds[j];
                 output_control_bits[access_idx] = tmp_control_bits[j];
             }
@@ -437,22 +436,12 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
 #endif
 
     // Compute the output values
-    std::vector<block>    outputs_block = ComputeOutputBlocks(output_seeds, output_control_bits, key);
-    std::vector<uint32_t> output_values(remaining_nodes);
-    for (uint32_t i = 0; i < num_nodes; i++) {
-        CovertVector(outputs_block[i], n - nu, params_.element_bitsize, output_values);
-        for (uint32_t j = 0; j < remaining_nodes; j++) {
-            outputs[i * remaining_nodes + j] = output_values[j];
-        }
-    }
+    outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
 }
 
-void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<uint32_t> &outputs) const {
-
-    uint32_t n               = params_.input_bitsize;
-    uint32_t nu              = params_.terminate_bitsize;
-    uint32_t num_nodes       = 1U << nu;
-    uint32_t remaining_nodes = 1U << (n - nu);
+void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu        = params_.terminate_bitsize;
+    uint32_t num_nodes = 1U << nu;
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive half PRG)"), debug_);
@@ -517,10 +506,11 @@ void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector
 #ifdef LOG_LEVEL_DEBUG
             std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
             for (uint32_t i = 0; i < 8; i++) {
+                utils::Logger::DebugLog(LOC, level_str + "Current bit: " + std::to_string(current_bit), debug_);
                 utils::Logger::DebugLog(LOC, level_str + "Current seed (" + std::to_string(i) + "): " + ToString(current_seeds[i]), debug_);
                 utils::Logger::DebugLog(LOC, level_str + "Current control bit (" + std::to_string(i) + "): " + std::to_string(current_control_bits[i]), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (L, R) (" + std::to_string(i) + "): " + ToString(expanded_seeds[i]) + ", " + ToString(expanded_seeds[i]), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Expanded control bit (L, R) (" + std::to_string(i) + "): " + std::to_string(expanded_control_bits[i]) + ", " + std::to_string(expanded_control_bits[i]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (" + std::to_string(i) + "): " + ToString(expanded_seeds[i]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Expanded control bit (" + std::to_string(i) + "): " + std::to_string(expanded_control_bits[i]), debug_);
             }
 #endif
 
@@ -561,14 +551,7 @@ void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector
 #endif
 
     // Compute the output values
-    std::vector<block>    outputs_block = ComputeOutputBlocks(output_seeds, output_control_bits, key);
-    std::vector<uint32_t> output_values(remaining_nodes);
-    for (uint32_t i = 0; i < num_nodes; i++) {
-        CovertVector(outputs_block[i], n - nu, params_.element_bitsize, output_values);
-        for (uint32_t j = 0; j < remaining_nodes; j++) {
-            outputs[i * remaining_nodes + j] = output_values[j];
-        }
-    }
+    outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
 }
 
 void DpfEvaluator::FullDomainNaive(const DpfKey &key, std::vector<uint32_t> &outputs) const {
@@ -583,9 +566,8 @@ void DpfEvaluator::FullDomainNaive(const DpfKey &key, std::vector<uint32_t> &out
     }
 }
 
-void DpfEvaluator::Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<uint32_t> &outputs) const {
-    uint32_t nu            = params_.terminate_bitsize;
-    uint32_t remaining_bit = params_.input_bitsize - params_.terminate_bitsize;
+void DpfEvaluator::Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<block> &outputs) const {
+    uint32_t nu = params_.terminate_bitsize;
 
     if (i > 0) {
         // Evaluate the DPF key
@@ -596,14 +578,10 @@ void DpfEvaluator::Traverse(const block &current_seed, const bool current_contro
 
         // Traverse the left and right subtrees
         Traverse(expanded_seeds[kLeft], expanded_control_bits[kLeft], key, i - 1, j, outputs);
-        Traverse(expanded_seeds[kRight], expanded_control_bits[kRight], key, i - 1, j + utils::Pow(2, remaining_bit + i - 1), outputs);
+        Traverse(expanded_seeds[kRight], expanded_control_bits[kRight], key, i - 1, j + (1U << (i - 1)), outputs);
     } else {
-        block                 output_block = ComputeOutputBlock(current_seed, current_control_bit, key);
-        std::vector<uint32_t> output_values(1U << remaining_bit);
-        CovertVector(output_block, remaining_bit, params_.element_bitsize, output_values);
-        for (uint32_t k = j; k < j + utils::Pow(2, remaining_bit); k++) {
-            outputs[k] = output_values[k - j];
-        }
+        // Compute the output block
+        outputs[j] = ComputeOutputBlock(current_seed, current_control_bit, key);
     }
 }
 

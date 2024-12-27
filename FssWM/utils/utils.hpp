@@ -54,7 +54,7 @@ std::vector<uint32_t> CreateVectorWithSameValue(const uint32_t value, const uint
  * @return A string representation of the std::array elements separated by 'del'.
  */
 template <typename T = uint32_t, std::size_t N>
-std::string ArrayToStr(const std::array<T, N> &array, const std::string &del = " ") {
+std::string ToString(const std::array<T, N> &array, const std::string &del = " ") {
     std::stringstream ss;
     for (std::size_t i = 0; i < array.size(); i++) {
         ss << array[i];
@@ -73,7 +73,7 @@ std::string ArrayToStr(const std::array<T, N> &array, const std::string &del = "
  * @return A string representation of the std::vector elements separated by 'delimiter'.
  */
 template <typename T = uint32_t>
-std::string VectorToStr(const std::vector<T> &vec, const std::string &del = " ") {
+std::string ToString(const std::vector<T> &vec, const std::string &del = " ") {
     std::stringstream ss;
     for (std::size_t i = 0; i < vec.size(); i++) {
         ss << vec[i];
@@ -89,7 +89,7 @@ std::string VectorToStr(const std::vector<T> &vec, const std::string &del = " ")
  * @param bool_vector The input boolean vector to be converted.
  * @return A string representation of the boolean vector.
  */
-std::string BoolVectorToStr(const std::vector<bool> &bool_vector);
+std::string ToString(const std::vector<bool> &bool_vector);
 
 /**
  * @brief Converts a double value to a string representation with specified precision.
@@ -97,7 +97,7 @@ std::string BoolVectorToStr(const std::vector<bool> &bool_vector);
  * @param digits The number of digits after the decimal point in the resulting string.
  * @return A string representation of the double value with the specified precision.
  */
-std::string DoubleToStr(const double val, const size_t digits = 0);
+std::string ToString(const double val, const size_t digits = 0);
 
 /**
  * @brief Converts an array of bytes to a hexadecimal string representation.

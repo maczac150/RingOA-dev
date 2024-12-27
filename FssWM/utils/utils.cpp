@@ -31,7 +31,7 @@ std::vector<std::uint32_t> CreateVectorWithSameValue(const uint32_t value, const
     return result;
 }
 
-std::string BoolVectorToStr(const std::vector<bool> &bool_vector) {
+std::string ToString(const std::vector<bool> &bool_vector) {
     std::string res_str = "";
     for (int i = 0; i < static_cast<int>(bool_vector.size()); i++) {
         res_str += std::to_string(bool_vector[i]);
@@ -39,7 +39,7 @@ std::string BoolVectorToStr(const std::vector<bool> &bool_vector) {
     return res_str;
 }
 
-std::string DoubleToStr(const double val, const size_t digits) {
+std::string ToString(const double val, const size_t digits) {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(digits) << val;
     std::string result  = ss.str();

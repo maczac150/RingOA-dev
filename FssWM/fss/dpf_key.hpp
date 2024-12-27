@@ -8,6 +8,27 @@ namespace fss {
 namespace dpf {
 
 /**
+ * @enum EvalType
+ * @brief Enumeration for the evaluation types for DPF.
+ */
+enum class EvalType
+{
+    // Evaluation types for DPF
+    kNaive,          /**< Naive approach for DPF evaluation. */
+    kRec,            /**< Recursive approach for DPF evaluation. */
+    kNonRec,         /**< Non-recursive approach for DPF evaluation. */
+    kNonRec_HalfPRG, /**< Non-recursive approach using half PRG for DPF evaluation. */
+    kNonRec_ParaEnc  /**< Non-recursive approach using parallel encryption for DPF evaluation. */
+};
+
+/**
+ * @brief Get the string representation of the evaluation type.
+ * @param eval_type The evaluation type for the DPF key.
+ * @return std::string The string representation of the evaluation type.
+ */
+std::string GetEvalTypeString(const EvalType eval_type);
+
+/**
  * @struct DpfParameters
  * @brief A struct to hold params for the Distributed Point Function (DPF).
  */
@@ -16,6 +37,7 @@ struct DpfParameters {
     const uint32_t element_bitsize;          /**< The size of each element in bits. */
     bool           enable_early_termination; /**< Toggle this flag to enable/disable early termination. */
     const uint32_t terminate_bitsize;        /**< The size of the termination bits. */
+    EvalType       fde_type;                 /**< The evaluation type for full domain evaluation. */
 
     /**
      * @brief Default constructor for DpfParameters is deleted.
@@ -28,13 +50,21 @@ struct DpfParameters {
      * @param e The element bitsize.
      * @param enable_et Toggle this flag to enable/disable early termination.
      */
-    DpfParameters(const uint32_t n, const uint32_t e, const bool enable_et = true);
+    DpfParameters(const uint32_t n, const uint32_t e,
+                  const bool enable_et = true, const EvalType eval_type = EvalType::kNonRec_HalfPRG);
 
     /**
      * @brief Compute the number of levels to terminate the DPF evaluation.
      * @return The number of levels to terminate the DPF evaluation.
      */
     uint32_t ComputeTerminateLevel();
+
+    /**
+     * @brief Set the evaluation type for the DPF.
+     * @param eval_type The evaluation type for the DPF.
+     * @note Priority order: early termination > evaluation type.
+     */
+    void SetEvalType(EvalType eval_type);
 
     /**
      * @brief Validate the parameters for the DPF.
