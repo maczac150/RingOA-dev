@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "utils/file_io.hpp"
 #include "utils/utils.hpp"
 
 // LOC macro: Returns the current file name, line number, and function name as a string
@@ -110,7 +111,9 @@ public:
      * @param message The log message to be printed.
      */
     static void WarnLog(const std::string &location, const std::string &message) {
+#ifdef LOG_LEVEL_DEBUG
         PrintWarnMessage(location, message);
+#endif
 #ifdef LOGGING_ENABLED
         SetLogFormat(kLogLevelWarn, location, message);
 #endif
@@ -194,9 +197,9 @@ private:
     }
 };
 
-extern LogFormat                log_format_;
-extern std::vector<std::string> log_list_;
-extern std::mutex               log_mutex_;
+inline LogFormat                Logger::log_format_;
+inline std::mutex               Logger::log_mutex_;
+inline std::vector<std::string> Logger::log_list_;
 
 }    // namespace utils
 

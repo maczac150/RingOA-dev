@@ -17,7 +17,7 @@ target_compile_options(test PRIVATE -Wall -maes -msse4.1 -Wno-ignored-attributes
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(fss PRIVATE LOG_LEVEL_DEBUG RANDOM_SEED_FIXED)
 else()
-    target_compile_definitions(fss PRIVATE)
+    target_compile_definitions(fss PRIVATE LOGGING_ENABLED)
 endif()
 
 

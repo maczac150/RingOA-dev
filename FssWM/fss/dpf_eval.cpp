@@ -16,7 +16,7 @@ uint32_t DpfEvaluator::EvaluateAt(const DpfKey &key, uint32_t x) const {
         utils::Logger::FatalLog(LOC, "Invalid input value: x=" + std::to_string(x));
         exit(EXIT_FAILURE);
     }
-    if (params_.enable_early_termination) {
+    if (params_.GetEnableEarlyTermination()) {
         return EvaluateAtOptimized(key, x);
     } else {
         return EvaluateAtNaive(key, x);
@@ -24,8 +24,8 @@ uint32_t DpfEvaluator::EvaluateAt(const DpfKey &key, uint32_t x) const {
 }
 
 uint32_t DpfEvaluator::EvaluateAtNaive(const DpfKey &key, uint32_t x) const {
-    uint32_t n = params_.input_bitsize;
-    uint32_t e = params_.element_bitsize;
+    uint32_t n = params_.GetInputBitsize();
+    uint32_t e = params_.GetElementBitsize();
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate input with DPF key"), debug_);
@@ -62,9 +62,9 @@ uint32_t DpfEvaluator::EvaluateAtNaive(const DpfKey &key, uint32_t x) const {
 }
 
 uint32_t DpfEvaluator::EvaluateAtOptimized(const DpfKey &key, uint32_t x) const {
-    uint32_t n  = params_.input_bitsize;
-    uint32_t e  = params_.element_bitsize;
-    uint32_t nu = params_.terminate_bitsize;
+    uint32_t n  = params_.GetInputBitsize();
+    uint32_t e  = params_.GetElementBitsize();
+    uint32_t nu = params_.GetTerminateBitsize();
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate input with DPF key (optimized)"), debug_);
@@ -105,28 +105,33 @@ uint32_t DpfEvaluator::EvaluateAtOptimized(const DpfKey &key, uint32_t x) const 
 
 bool DpfEvaluator::ValidateInput(const uint32_t x) const {
     bool valid = true;
-    if (x >= (1UL << params_.input_bitsize)) {
+    if (x >= (1UL << params_.GetInputBitsize())) {
         valid = false;
     }
     return valid;
 }
 
 void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &outputs) const {
-    uint32_t n               = params_.input_bitsize;
-    uint32_t nu              = params_.terminate_bitsize;
-    EvalType fde_type        = params_.fde_type;
-    uint32_t num_nodes       = 1U << nu;
-    uint32_t remaining_nodes = 1U << (n - nu);
+    uint32_t n         = params_.GetInputBitsize();
+    uint32_t nu        = params_.GetTerminateBitsize();
+    EvalType fde_type  = params_.GetFdeEvalType();
+    uint32_t num_nodes = 1U << nu;
+
+    // utils::TimerManager tm;
+    // int32_t             tm_eval = tm.CreateNewTimer("Eval full domain");
+    // int32_t             tm_out  = tm.CreateNewTimer("Compute output values");
+    // tm.SelectTimer(tm_eval);
+    // tm.Start();
 
     // Check if the domain size
-    if (params_.element_bitsize == 1) {
+    if (params_.GetElementBitsize() == 1) {
         utils::Logger::FatalLog(LOC, "You should use EvaluateFullDomainOneBit for the domain size of 1 bit");
         exit(EXIT_FAILURE);
     }
 
     // Check output vector size
-    if (outputs.size() != 1U << params_.input_bitsize) {
-        outputs.resize(1U << params_.input_bitsize);
+    if (outputs.size() != 1U << params_.GetInputBitsize()) {
+        outputs.resize(1U << params_.GetInputBitsize());
     }
     std::vector<block> outputs_block(num_nodes, zero_block);
 
@@ -151,24 +156,23 @@ void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &
             utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(fde_type)));
             exit(EXIT_FAILURE);
     }
+    // tm.Stop();
+    // tm.SelectTimer(tm_out);
+    // tm.Start();
     if (fde_type != EvalType::kNaive) {
-        std::vector<uint32_t> output_values(remaining_nodes);
-        for (uint32_t i = 0; i < num_nodes; i++) {
-            CovertVector(outputs_block[i], n - nu, params_.element_bitsize, output_values);
-            for (uint32_t j = 0; j < remaining_nodes; j++) {
-                outputs[i * remaining_nodes + j] = output_values[j];
-            }
-        }
+        ConvertVector(outputs_block, n - nu, params_.GetElementBitsize(), outputs);
     }
+    // tm.Stop("Compute output values");
+    // tm.PrintAllResults(utils::TimeUnit::MICROSECONDS);
 }
 
 void DpfEvaluator::EvaluateFullDomainOneBit(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu        = params_.terminate_bitsize;
-    EvalType fde_type  = params_.fde_type;
+    uint32_t nu        = params_.GetTerminateBitsize();
+    EvalType fde_type  = params_.GetFdeEvalType();
     uint32_t num_nodes = 1U << nu;
 
     // Check if the domain size
-    if (params_.element_bitsize != 1) {
+    if (params_.GetElementBitsize() != 1) {
         utils::Logger::FatalLog(LOC, "This function is only for the domain size of 1 bit");
         exit(EXIT_FAILURE);
     }
@@ -220,14 +224,18 @@ void DpfEvaluator::EvaluateNextSeed(
 #endif
 
     // Apply correction word if control bit is true
-    expanded_seeds[kLeft] ^= (key.cw_seed[current_level] & zero_and_all_one[current_control_bit]);
-    expanded_seeds[kRight] ^= (key.cw_seed[current_level] & zero_and_all_one[current_control_bit]);
-    expanded_control_bits[kLeft] ^= (key.cw_control_left[current_level] & current_control_bit);
-    expanded_control_bits[kRight] ^= (key.cw_control_right[current_level] & current_control_bit);
+    const block mask = key.cw_seed[current_level] & zero_and_all_one[current_control_bit];
+    expanded_seeds[kLeft] ^= mask;
+    expanded_seeds[kRight] ^= mask;
+
+    const bool control_mask_left  = key.cw_control_left[current_level] & current_control_bit;
+    const bool control_mask_right = key.cw_control_right[current_level] & current_control_bit;
+    expanded_control_bits[kLeft] ^= control_mask_left;
+    expanded_control_bits[kRight] ^= control_mask_right;
 }
 
 void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu = params_.terminate_bitsize;
+    uint32_t nu = params_.GetTerminateBitsize();
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (recursive)"), debug_);
@@ -242,7 +250,7 @@ void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<block> &ou
 }
 
 void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu = params_.terminate_bitsize;
+    uint32_t nu = params_.GetTerminateBitsize();
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive)"), debug_);
@@ -313,7 +321,7 @@ void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<block> 
 }
 
 void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu        = params_.terminate_bitsize;
+    uint32_t nu        = params_.GetTerminateBitsize();
     uint32_t num_nodes = 1U << nu;
 
 #ifdef LOG_LEVEL_DEBUG
@@ -440,7 +448,7 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
 }
 
 void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu        = params_.terminate_bitsize;
+    uint32_t nu        = params_.GetTerminateBitsize();
     uint32_t num_nodes = 1U << nu;
 
 #ifdef LOG_LEVEL_DEBUG
@@ -464,8 +472,10 @@ void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector
             next_control_bits[j * 2]     = expanded_control_bits[kLeft];
             next_control_bits[j * 2 + 1] = expanded_control_bits[kRight];
         }
-        std::swap(start_seeds, next_seeds);
-        std::swap(start_control_bits, next_control_bits);
+        start_seeds        = std::move(next_seeds);
+        start_control_bits = std::move(next_control_bits);
+        // std::swap(start_seeds, next_seeds);
+        // std::swap(start_control_bits, next_control_bits);
     }
 
     // Initialize the variables
@@ -493,7 +503,9 @@ void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector
     while (current_idx < last_idx) {
         while (current_level < last_depth) {
             // Expand the seed and control bits
-            bool current_bit = (current_idx >> (last_depth - 1U - current_level)) & 1U;
+            uint32_t mask        = (current_idx >> (last_depth - 1U - current_level));
+            bool     current_bit = mask & 1U;
+
             for (uint32_t i = 0; i < 8; i++) {
                 current_seeds[i]        = prev_seeds[current_level][i];
                 current_control_bits[i] = prev_control_bits[current_level][i];
@@ -561,18 +573,18 @@ void DpfEvaluator::FullDomainNaive(const DpfKey &key, std::vector<uint32_t> &out
 #endif
 
     // Evaluate the DPF key for all possible x values
-    for (uint32_t x = 0; x < (1U << params_.input_bitsize); x++) {
+    for (uint32_t x = 0; x < (1U << params_.GetInputBitsize()); x++) {
         outputs[x] = EvaluateAtNaive(key, x);
     }
 }
 
 void DpfEvaluator::Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<block> &outputs) const {
-    uint32_t nu = params_.terminate_bitsize;
+    uint32_t nu = params_.GetTerminateBitsize();
 
     if (i > 0) {
         // Evaluate the DPF key
-        std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
-        std::array<bool, 2>  expanded_control_bits;    // expanded_control_bits[keep or lose]
+        alignas(16) std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
+        alignas(16) std::array<bool, 2>  expanded_control_bits;    // expanded_control_bits[keep or lose]
 
         EvaluateNextSeed(nu - i, current_seed, current_control_bit, expanded_seeds, expanded_control_bits, key);
 
@@ -588,7 +600,7 @@ void DpfEvaluator::Traverse(const block &current_seed, const bool current_contro
 block DpfEvaluator::ComputeOutputBlock(const block &final_seed, bool final_control_bit, const DpfKey &key) const {
     // Compute the mask block and remaining bits
     block    mask          = zero_and_all_one[final_control_bit];
-    uint32_t remaining_bit = params_.input_bitsize - params_.terminate_bitsize;
+    uint32_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
 
     // Set the output block
     block output = zero_block;
@@ -618,7 +630,7 @@ block DpfEvaluator::ComputeOutputBlock(const block &final_seed, bool final_contr
 
 std::vector<block> DpfEvaluator::ComputeOutputBlocks(const std::vector<block> &final_seeds, const std::vector<bool> &final_control_bits, const DpfKey &key) const {
     // Compute the mask block and remaining bits
-    uint32_t remaining_bit = params_.input_bitsize - params_.terminate_bitsize;
+    uint32_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
 
     // Set the output block
     std::vector<block> outputs(final_seeds.size(), zero_block);

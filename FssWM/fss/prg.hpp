@@ -49,9 +49,17 @@ public:
     void Expand(std::array<block, 8> &seed_in, std::array<block, 8> &seed_out, bool key_lr) {
         std::array<block, 8> tmp = seed_in;
         AES_ecb_encrypt_blks(tmp.data(), 8, &aes_key[key_lr]);
-        for (size_t i = 0; i < 8; ++i) {
-            seed_out[i] = seed_in[i] ^ tmp[i];
-        }
+        seed_out[0] = seed_in[0] ^ tmp[0];
+        seed_out[1] = seed_in[1] ^ tmp[1];
+        seed_out[2] = seed_in[2] ^ tmp[2];
+        seed_out[3] = seed_in[3] ^ tmp[3];
+        seed_out[4] = seed_in[4] ^ tmp[4];
+        seed_out[5] = seed_in[5] ^ tmp[5];
+        seed_out[6] = seed_in[6] ^ tmp[6];
+        seed_out[7] = seed_in[7] ^ tmp[7];
+        // for (size_t i = 0; i < 8; ++i) {
+        //     seed_out[i] = seed_in[i] ^ tmp[i];
+        // }
     }
 
     /**

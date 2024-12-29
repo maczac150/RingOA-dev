@@ -19,7 +19,7 @@ target_compile_options(fss PUBLIC -Wall -maes -msse4.1 -Wno-ignored-attributes)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(fss PUBLIC LOG_LEVEL_DEBUG RANDOM_SEED_FIXED)
 else()
-    target_compile_definitions(fss PUBLIC)
+    target_compile_definitions(fss PUBLIC LOGGING_ENABLED)
 endif()
 
 # Include directories for fss

@@ -33,12 +33,17 @@ if (NOT emp-tool_FOUND)
     message(FATAL_ERROR "emp-tool library not found. Ensure it is installed on the system.")
 endif()
 
+# Set profile flags
+set(CMAKE_C_FLAGS_PROFILE "-pg -O2 -g")
+set(CMAKE_CXX_FLAGS_PROFILE "-pg -O2 -g")
+set(CMAKE_EXE_LINKER_FLAGS_PROFILE "-pg -O2 -g")
+
 # Check build type
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-if (NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release")
+if (NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|Profile")
     message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Supported types are Debug and Release.")
 endif()
 

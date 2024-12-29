@@ -21,7 +21,7 @@ std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint32_t alpha, uint32_t
     std::pair<DpfKey, DpfKey> key_pair = std::make_pair(std::move(key_0), std::move(key_1));
 
     // Generate the DPF key
-    if (params_.enable_early_termination) {
+    if (params_.GetEnableEarlyTermination()) {
         GenerateKeysOptimized(alpha, beta, key_pair);
     } else {
         GenerateKeysNaive(alpha, beta, key_pair);
@@ -31,8 +31,8 @@ std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint32_t alpha, uint32_t
 }
 
 void DpfKeyGenerator::GenerateKeysNaive(uint32_t alpha, uint32_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
-    uint32_t n = params_.input_bitsize;
-    uint32_t e = params_.element_bitsize;
+    uint32_t n = params_.GetInputBitsize();
+    uint32_t e = params_.GetElementBitsize();
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, "Generating DPF key (naive approach)", debug_);
@@ -78,8 +78,8 @@ void DpfKeyGenerator::GenerateKeysNaive(uint32_t alpha, uint32_t beta, std::pair
 }
 
 void DpfKeyGenerator::GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
-    uint32_t n  = params_.input_bitsize;
-    uint32_t nu = this->params_.terminate_bitsize;
+    uint32_t n  = params_.GetInputBitsize();
+    uint32_t nu = this->params_.GetTerminateBitsize();
 
 #ifdef LOG_LEVEL_DEBUG
     utils::Logger::DebugLog(LOC, "Generating DPF key (optimized approach)", debug_);
@@ -122,7 +122,7 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::
 
 bool DpfKeyGenerator::ValidateInput(const uint32_t alpha, const uint32_t beta) const {
     bool valid = true;
-    if (alpha >= (1UL << params_.input_bitsize) || beta >= (1UL << params_.element_bitsize)) {
+    if (alpha >= (1UL << params_.GetInputBitsize()) || beta >= (1UL << params_.GetElementBitsize())) {
         valid = false;
     }
     return valid;
@@ -207,7 +207,7 @@ void DpfKeyGenerator::SetOutput(uint32_t alpha, uint32_t beta,
                                 block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
                                 std::pair<DpfKey, DpfKey> &key_pair) const {
     // Compute the remaining bits and alpha_hat
-    uint32_t remaining_bit = params_.input_bitsize - params_.terminate_bitsize;
+    uint32_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
     uint32_t alpha_hat     = utils::GetLowerNBits(alpha, remaining_bit);
     block    beta_block    = makeBlock(0, beta);
 

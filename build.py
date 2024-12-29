@@ -62,7 +62,12 @@ def Build(projectName, mainArgs, cmakeArgs, install, prefix, par):
         prefix (str): Installation directory.
         par (int): Number of parallel build threads.
     """
-    buildType = "Debug" if "--Debug" in mainArgs else "Release"
+    if "--Debug" in mainArgs:
+        buildType = "Debug"
+    elif "--Profile" in mainArgs:
+        buildType = "Profile"
+    else:
+        buildType = "Release"
     osStr = platform.system()
     if osStr == "Windows":
         print("Windows is not supported.")

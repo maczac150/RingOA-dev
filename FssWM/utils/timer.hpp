@@ -77,6 +77,12 @@ public:
      */
     void PrintCurrentResults(const std::string &msg = "", const TimeUnit unit = MILLISECONDS, const bool show_details = false) const;
 
+    /**
+     * @brief Print all results of the timers.
+     * @param unit The time unit to print.
+     */
+    void PrintAllResults(const TimeUnit unit = MILLISECONDS, const bool show_details = false);
+
 private:
     /**
      * @brief Timer structure to store timer data.

@@ -29,16 +29,10 @@ enum class EvalType
 std::string GetEvalTypeString(const EvalType eval_type);
 
 /**
- * @struct DpfParameters
- * @brief A struct to hold params for the Distributed Point Function (DPF).
+ * @brief A class to hold params for the Distributed Point Function (DPF).
  */
-struct DpfParameters {
-    const uint32_t input_bitsize;            /**< The size of input in bits. */
-    const uint32_t element_bitsize;          /**< The size of each element in bits. */
-    bool           enable_early_termination; /**< Toggle this flag to enable/disable early termination. */
-    const uint32_t terminate_bitsize;        /**< The size of the termination bits. */
-    EvalType       fde_type;                 /**< The evaluation type for full domain evaluation. */
-
+class DpfParameters {
+public:
     /**
      * @brief Default constructor for DpfParameters is deleted.
      */
@@ -49,22 +43,68 @@ struct DpfParameters {
      * @param n The input bitsize.
      * @param e The element bitsize.
      * @param enable_et Toggle this flag to enable/disable early termination.
+     * @param eval_type The evaluation type for the DPF.
      */
     DpfParameters(const uint32_t n, const uint32_t e,
-                  const bool enable_et = true, const EvalType eval_type = EvalType::kNonRec_HalfPRG);
+                  const bool enable_et = true, EvalType eval_type = EvalType::kNonRec_HalfPRG);
 
     /**
-     * @brief Compute the number of levels to terminate the DPF evaluation.
-     * @return The number of levels to terminate the DPF evaluation.
+     * @brief Get the Input Bitsize object
+     * @return uint32_t The size of input in bits.
      */
-    uint32_t ComputeTerminateLevel();
+    uint32_t GetInputBitsize() const {
+        return input_bitsize_;
+    }
+
+    /**
+     * @brief Get the Element Bitsize object
+     * @return uint32_t The size of each element in bits.
+     */
+    uint32_t GetElementBitsize() const {
+        return element_bitsize_;
+    }
+
+    /**
+     * @brief Get the Early Termination flag.
+     * @return bool The flag to enable/disable early termination.
+     */
+    bool GetEnableEarlyTermination() const {
+        return enable_et_;
+    }
+
+    /**
+     * @brief Get the Terminate Bitsize object
+     * @return uint32_t The size of the termination bits.
+     */
+    uint32_t GetTerminateBitsize() const {
+        return terminate_bitsize_;
+    }
+
+    /**
+     * @brief Get the Full Domain Evaluation type.
+     * @return EvalType The evaluation type for full domain evaluation.
+     */
+    EvalType GetFdeEvalType() const {
+        return fde_type_;
+    }
+
+    /**
+     * @brief Adjust the parameters based on the evaluation type.
+     * @param eval_type The evaluation type for the DPF.
+     */
+    void
+    AdjustParameters(EvalType &eval_type);
+
+    /**
+     * @brief Set the number of levels to terminate the DPF evaluation.
+     */
+    void ComputeTerminateLevel();
 
     /**
      * @brief Set the evaluation type for the DPF.
      * @param eval_type The evaluation type for the DPF.
-     * @note Priority order: early termination > evaluation type.
      */
-    void SetEvalType(EvalType eval_type);
+    void DecideFdeEvalType(EvalType eval_type);
 
     /**
      * @brief Validate the parameters for the DPF.
@@ -73,9 +113,25 @@ struct DpfParameters {
     bool ValidateParameters() const;
 
     /**
+     * @brief Reconfigure the parameters for the DPF.
+     * @param n The input bitsize.
+     * @param e The element bitsize.
+     * @param enable_et Toggle this flag to enable/disable early termination.
+     * @param eval_type The evaluation type for the DPF.
+     */
+    void ReconfigureParameters(const uint32_t n, const uint32_t e, const bool enable_et, EvalType eval_type);
+
+    /**
      * @brief Print the details of the DpfParameters.
      */
     void PrintDpfParameters() const;
+
+private:
+    uint32_t input_bitsize_;     /**< The size of input in bits. */
+    uint32_t element_bitsize_;   /**< The size of each element in bits. */
+    bool     enable_et_;         /**< Toggle this flag to enable/disable early termination. */
+    uint32_t terminate_bitsize_; /**< The size of the termination bits. */
+    EvalType fde_type_;          /**< The evaluation type for full domain evaluation. */
 };
 
 /**

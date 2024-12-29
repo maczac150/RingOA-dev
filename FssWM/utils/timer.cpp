@@ -129,6 +129,15 @@ void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit un
     }
 }
 
+void TimerManager::PrintAllResults(const TimeUnit unit, const bool show_details) {
+    std::string unit_str = GetUnitString(unit);
+
+    for (int32_t i = 0; i < timer_count_; ++i) {
+        SelectTimer(i);
+        PrintCurrentResults("", unit, show_details);
+    }
+}
+
 // Base time unit is nanoseconds
 double TimerManager::GetElapsedTime(const TimePoint &start, const TimePoint &end) const {
     using namespace std::chrono;
