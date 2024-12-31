@@ -14,12 +14,16 @@ namespace dpf {
 enum class EvalType
 {
     // Evaluation types for DPF
-    kNaive,          /**< Naive approach for DPF evaluation. */
-    kRec,            /**< Recursive approach for DPF evaluation. */
-    kNonRec,         /**< Non-recursive approach for DPF evaluation. */
-    kNonRec_HalfPRG, /**< Non-recursive approach using half PRG for DPF evaluation. */
-    kNonRec_ParaEnc  /**< Non-recursive approach using parallel encryption for DPF evaluation. */
+    kNaive,
+    kRecursion,
+    kIterSingle,
+    kIterDouble,
+    kIterSingleBatch,
+    kIterDoubleBatch,    // ! This is working but too slow
 };
+
+const EvalType kDefaultEvalType   = EvalType::kIterSingle;
+const EvalType kOptimizedEvalType = EvalType::kIterSingleBatch;
 
 /**
  * @brief Get the string representation of the evaluation type.
@@ -46,7 +50,7 @@ public:
      * @param eval_type The evaluation type for the DPF.
      */
     DpfParameters(const uint32_t n, const uint32_t e,
-                  const bool enable_et = true, EvalType eval_type = EvalType::kNonRec_HalfPRG);
+                  const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
 
     /**
      * @brief Get the Input Bitsize object

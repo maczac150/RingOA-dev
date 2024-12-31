@@ -136,21 +136,28 @@ void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &
     std::vector<block> outputs_block(num_nodes, zero_block);
 
     // Evaluate the DPF key for all possible x values
+#ifdef LOG_LEVEL_DEBUG
+    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain " + GetEvalTypeString(fde_type)), debug_);
+    utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
+#endif
     switch (fde_type) {
         case EvalType::kNaive:
             FullDomainNaive(key, outputs);
             break;
-        case EvalType::kRec:
-            FullDomainRecursive(key, outputs_block);
+        case EvalType::kRecursion:
+            FullDomainRecursion(key, outputs_block);
             break;
-        case EvalType::kNonRec:
-            FullDomainNonRecursive(key, outputs_block);
+        case EvalType::kIterSingle:
+            FullDomainIterativeSingle(key, outputs_block);
             break;
-        case EvalType::kNonRec_ParaEnc:
-            FullDomainNonRecursive_ParaEnc(key, outputs_block);
+        case EvalType::kIterDouble:
+            FullDomainIterativeDouble(key, outputs_block);
             break;
-        case EvalType::kNonRec_HalfPRG:
-            FullDomainNonRecursive_HalfPRG(key, outputs_block);
+        case EvalType::kIterSingleBatch:
+            FullDomainIterativeSingleBatch(key, outputs_block);
+            break;
+        case EvalType::kIterDoubleBatch:
+            FullDomainIterativeDoubleBatch(key, outputs_block);
             break;
         default:
             utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(fde_type)));
@@ -187,17 +194,20 @@ void DpfEvaluator::EvaluateFullDomainOneBit(const DpfKey &key, std::vector<block
         case EvalType::kNaive:
             utils::Logger::FatalLog(LOC, "Naive approach is not supported for the domain size of 1 bit");
             break;
-        case EvalType::kRec:
-            FullDomainRecursive(key, outputs);
+        case EvalType::kRecursion:
+            FullDomainRecursion(key, outputs);
             break;
-        case EvalType::kNonRec:
-            FullDomainNonRecursive(key, outputs);
+        case EvalType::kIterSingle:
+            FullDomainIterativeSingle(key, outputs);
             break;
-        case EvalType::kNonRec_ParaEnc:
-            FullDomainNonRecursive_ParaEnc(key, outputs);
+        case EvalType::kIterDouble:
+            FullDomainIterativeDouble(key, outputs);
             break;
-        case EvalType::kNonRec_HalfPRG:
-            FullDomainNonRecursive_HalfPRG(key, outputs);
+        case EvalType::kIterSingleBatch:
+            FullDomainIterativeSingleBatch(key, outputs);
+            break;
+        case EvalType::kIterDoubleBatch:
+            FullDomainIterativeDoubleBatch(key, outputs);
             break;
         default:
             utils::Logger::FatalLog(LOC, "Invalid evaluation type: " + std::to_string(static_cast<int>(fde_type)));
@@ -234,13 +244,8 @@ void DpfEvaluator::EvaluateNextSeed(
     expanded_control_bits[kRight] ^= control_mask_right;
 }
 
-void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const {
+void DpfEvaluator::FullDomainRecursion(const DpfKey &key, std::vector<block> &outputs) const {
     uint32_t nu = params_.GetTerminateBitsize();
-
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (recursive)"), debug_);
-    utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
-#endif
 
     // Get the seed and control bit from the given DPF key
     block seed        = key.init_seed;
@@ -249,13 +254,81 @@ void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<block> &ou
     Traverse(seed, control_bit, key, nu, 0, outputs);
 }
 
-void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<block> &outputs) const {
+void DpfEvaluator::FullDomainIterativeSingle(const DpfKey &key, std::vector<block> &outputs) const {
     uint32_t nu = params_.GetTerminateBitsize();
 
+    // Initialize the variables
+    uint32_t           current_level = 0;
+    uint32_t           current_idx   = 0;
+    uint32_t           last_depth    = nu;
+    uint32_t           last_idx      = 1U << last_depth;
+    std::vector<block> output_seeds(last_idx, zero_block);
+    std::vector<bool>  output_control_bits(last_idx, false);
+
+    // Store the seeds and control bits
+    block              expanded_seed;
+    bool               expanded_control_bit;
+    std::vector<block> prev_seeds(last_depth + 1);
+    std::vector<bool>  prev_control_bits(last_depth + 1);
+
+    // Evaluate the DPF key
+    prev_seeds[0]        = key.init_seed;
+    prev_control_bits[0] = key.party_id != 0;
+
+    while (current_idx < last_idx) {
+        while (current_level < last_depth) {
+            // Expand the seed and control bits
+            uint32_t mask        = (current_idx >> (last_depth - 1U - current_level));
+            bool     current_bit = mask & 1U;
+
+            G_.Expand(prev_seeds[current_level], expanded_seed, current_bit);
+
+            expanded_control_bit = getLSB(expanded_seed);
+
 #ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive)"), debug_);
-    utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
+            std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
+            utils::Logger::DebugLog(LOC, level_str + "Current bit: " + std::to_string(current_bit), debug_);
+            utils::Logger::DebugLog(LOC, level_str + "Current seed: " + ToString(prev_seeds[current_level]), debug_);
+            utils::Logger::DebugLog(LOC, level_str + "Current control bit: " + std::to_string(prev_control_bits[current_level]), debug_);
+            utils::Logger::DebugLog(LOC, level_str + "Expanded seed: " + ToString(expanded_seed), debug_);
+            utils::Logger::DebugLog(LOC, level_str + "Expanded control bit: " + std::to_string(expanded_control_bit), debug_);
 #endif
+
+            // Apply correction word if control bit is true
+            bool cw_control_bit = current_bit ? key.cw_control_right[current_level] : key.cw_control_left[current_level];
+            expanded_seed ^= (key.cw_seed[current_level] & zero_and_all_one[prev_control_bits[current_level]]);
+            expanded_control_bit ^= (cw_control_bit & prev_control_bits[current_level]);
+
+            // Update the current level
+            current_level++;
+
+            // Update the previous seeds and control bits
+            prev_seeds[current_level]        = expanded_seed;
+            prev_control_bits[current_level] = expanded_control_bit;
+        }
+
+        // Get the seed and control bit from prev_seeds and prev_control_bits
+        output_seeds[current_idx]        = prev_seeds[current_level];
+        output_control_bits[current_idx] = prev_control_bits[current_level];
+
+        // Update the current index
+        int shift = (current_idx + 1U) ^ current_idx;
+        current_level -= oc::log2floor(shift) + 1;
+        current_idx++;
+    }
+
+#ifdef LOG_LEVEL_DEBUG
+    for (uint32_t i = 0; i < last_idx; i++) {
+        utils::Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(output_seeds[i]), debug_);
+    }
+#endif
+
+    // Compute the output values
+    outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
+}
+
+void DpfEvaluator::FullDomainIterativeDouble(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu = params_.GetTerminateBitsize();
 
     // Get the seed and control bit from the given DPF key
     block seed        = key.init_seed;
@@ -320,14 +393,9 @@ void DpfEvaluator::FullDomainNonRecursive(const DpfKey &key, std::vector<block> 
     outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
 }
 
-void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu        = params_.GetTerminateBitsize();
-    uint32_t num_nodes = 1U << nu;
-
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive ParaEnc)"), debug_);
-    utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
-#endif
+void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu            = params_.GetTerminateBitsize();
+    uint32_t remaining_bit = params_.GetInputBitsize() - nu;
 
     // Breadth-first traversal for 8 nodes
     std::vector<block> start_seeds{key.init_seed}, next_seeds;
@@ -345,8 +413,132 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
             next_control_bits[j * 2]     = expanded_control_bits[kLeft];
             next_control_bits[j * 2 + 1] = expanded_control_bits[kRight];
         }
-        std::swap(start_seeds, next_seeds);
-        std::swap(start_control_bits, next_control_bits);
+        start_seeds        = std::move(next_seeds);
+        start_control_bits = std::move(next_control_bits);
+    }
+
+    // Initialize the variables
+    uint32_t current_level = 0;
+    uint32_t current_idx   = 0;
+    uint32_t last_depth    = std::max(static_cast<int32_t>(nu) - 3, 0);
+    uint32_t last_idx      = 1U << last_depth;
+
+    // Store the seeds and control bits
+    std::array<block, 8>              expanded_seeds;
+    std::array<bool, 8>               expanded_control_bits;
+    std::vector<std::array<block, 8>> prev_seeds(last_depth + 1);
+    std::vector<std::array<bool, 8>>  prev_control_bits(last_depth + 1);
+
+    // Evaluate the DPF key
+    for (uint32_t i = 0; i < 8; i++) {
+        prev_seeds[0][i]        = start_seeds[i];
+        prev_control_bits[0][i] = start_control_bits[i];
+    }
+
+    while (current_idx < last_idx) {
+        while (current_level < last_depth) {
+            // Expand the seed and control bits
+            uint32_t mask        = (current_idx >> (last_depth - 1U - current_level));
+            bool     current_bit = mask & 1U;
+
+            G_.Expand(prev_seeds[current_level], expanded_seeds, current_bit);
+            for (uint32_t i = 0; i < 8; i++) {
+                expanded_control_bits[i] = getLSB(expanded_seeds[i]);
+            }
+
+#ifdef LOG_LEVEL_DEBUG
+            std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
+            for (uint32_t i = 0; i < 8; i++) {
+                utils::Logger::DebugLog(LOC, level_str + "Current bit: " + std::to_string(current_bit), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Current seed (" + std::to_string(i) + "): " + ToString(prev_seeds[current_level][i]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Current control bit (" + std::to_string(i) + "): " + std::to_string(prev_control_bits[current_level][i]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (" + std::to_string(i) + "): " + ToString(expanded_seeds[i]), debug_);
+                utils::Logger::DebugLog(LOC, level_str + "Expanded control bit (" + std::to_string(i) + "): " + std::to_string(expanded_control_bits[i]), debug_);
+            }
+#endif
+
+            // Apply correction word if control bit is true
+            bool cw_control_bit = current_bit ? key.cw_control_right[current_level + 3] : key.cw_control_left[current_level + 3];
+            for (uint32_t i = 0; i < 8; i++) {
+                expanded_seeds[i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[prev_control_bits[current_level][i]]);
+                expanded_control_bits[i] ^= (cw_control_bit & prev_control_bits[current_level][i]);
+            }
+
+            // Update the current level
+            current_level++;
+
+            // Update the previous seeds and control bits
+            for (uint32_t i = 0; i < 8; i++) {
+                prev_seeds[current_level][i]        = expanded_seeds[i];
+                prev_control_bits[current_level][i] = expanded_control_bits[i];
+            }
+        }
+
+        if (remaining_bit == 2) {
+            if (key.party_id) {
+                for (uint32_t i = 0; i < 8; i++) {
+                    outputs[i * last_idx + current_idx] = _mm_sub_epi32(zero_block, _mm_add_epi32(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output));
+                }
+            } else {
+                for (uint32_t i = 0; i < 8; i++) {
+                    outputs[i * last_idx + current_idx] = _mm_add_epi32(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output);
+                }
+            }
+        } else if (remaining_bit == 3) {
+            if (key.party_id) {
+                for (uint32_t i = 0; i < 8; i++) {
+                    outputs[i * last_idx + current_idx] = _mm_sub_epi16(zero_block, _mm_add_epi16(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output));
+                }
+            } else {
+                for (uint32_t i = 0; i < 8; i++) {
+                    outputs[i * last_idx + current_idx] = _mm_add_epi16(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output);
+                }
+            }
+        } else if (remaining_bit == 7) {
+            for (uint32_t i = 0; i < 8; i++) {
+                outputs[i * last_idx + current_idx] = prev_seeds[current_level][i] ^ (zero_and_all_one[prev_control_bits[current_level][i]] & key.output);
+            }
+        } else {
+            utils::Logger::FatalLog(LOC, "Invalid remaining bit: " + std::to_string(remaining_bit));
+            exit(EXIT_FAILURE);
+        }
+
+        // Update the current index
+        int shift = (current_idx + 1U) ^ current_idx;
+        current_level -= oc::log2floor(shift) + 1;
+        current_idx++;
+    }
+
+#ifdef LOG_LEVEL_DEBUG
+    for (uint32_t i = 0; i < outputs.size(); i++) {
+        utils::Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(outputs[i]), debug_);
+    }
+#endif
+}
+
+void DpfEvaluator::FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector<block> &outputs) const {
+    uint32_t nu            = params_.GetTerminateBitsize();
+    uint32_t num_nodes     = 1U << nu;
+    uint32_t remaining_bit = params_.GetInputBitsize() - nu;
+
+    // Breadth-first traversal for 8 nodes
+    std::vector<block> start_seeds{key.init_seed}, next_seeds;
+    std::vector<bool>  start_control_bits{key.party_id != 0}, next_control_bits;
+
+    for (uint32_t i = 0; i < 3; i++) {
+        std::array<block, 2> expanded_seeds;
+        std::array<bool, 2>  expanded_control_bits;
+        next_seeds.resize(1U << (i + 1));
+        next_control_bits.resize(1U << (i + 1));
+        for (size_t j = 0; j < start_seeds.size(); j++) {
+            EvaluateNextSeed(i, start_seeds[j], start_control_bits[j], expanded_seeds, expanded_control_bits, key);
+            next_seeds[j * 2]            = expanded_seeds[kLeft];
+            next_seeds[j * 2 + 1]        = expanded_seeds[kRight];
+            next_control_bits[j * 2]     = expanded_control_bits[kLeft];
+            next_control_bits[j * 2 + 1] = expanded_control_bits[kRight];
+        }
+        start_seeds        = std::move(next_seeds);
+        start_control_bits = std::move(next_control_bits);
     }
 
     // Push the initial seeds and control bits to the queue
@@ -417,18 +609,51 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
             current_level++;
         }
 
-        // Get the seed and control bit from the queue
-        for (int i = 0; i < 2; i++) {
-            auto &tmp_seeds        = seed_stacks.top();
-            auto &tmp_control_bits = control_bit_stacks.top();
-            for (uint32_t j = 0; j < 8; j++) {
-                uint32_t access_idx = j * last_idx + i + current_idx;
-                utils::Logger::DebugLog(LOC, "Access index: " + std::to_string(access_idx), debug_);
-                output_seeds[access_idx]        = tmp_seeds[j];
-                output_control_bits[access_idx] = tmp_control_bits[j];
+        if (remaining_bit == 2) {
+            for (uint32_t i = 0; i < 2; i++) {
+                auto &tmp_seeds        = seed_stacks.top();
+                auto &tmp_control_bits = control_bit_stacks.top();
+                if (key.party_id) {
+                    for (uint32_t j = 0; j < 8; j++) {
+                        outputs[j * last_idx + current_idx + i] = _mm_sub_epi32(zero_block, _mm_add_epi32(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output));
+                    }
+                } else {
+                    for (uint32_t j = 0; j < 8; j++) {
+                        outputs[j * last_idx + current_idx + i] = _mm_add_epi32(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output);
+                    }
+                }
+                seed_stacks.pop();
+                control_bit_stacks.pop();
             }
-            seed_stacks.pop();
-            control_bit_stacks.pop();
+        } else if (remaining_bit == 3) {
+            for (uint32_t i = 0; i < 2; i++) {
+                auto &tmp_seeds        = seed_stacks.top();
+                auto &tmp_control_bits = control_bit_stacks.top();
+                if (key.party_id) {
+                    for (uint32_t j = 0; j < 8; j++) {
+                        outputs[j * last_idx + current_idx + i] = _mm_sub_epi16(zero_block, _mm_add_epi16(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output));
+                    }
+                } else {
+                    for (uint32_t j = 0; j < 8; j++) {
+                        outputs[j * last_idx + current_idx + i] = _mm_add_epi16(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output);
+                    }
+                }
+                seed_stacks.pop();
+                control_bit_stacks.pop();
+            }
+        } else if (remaining_bit == 7) {
+            for (uint32_t i = 0; i < 2; i++) {
+                auto &tmp_seeds        = seed_stacks.top();
+                auto &tmp_control_bits = control_bit_stacks.top();
+                for (uint32_t j = 0; j < 8; j++) {
+                    outputs[j * last_idx + current_idx + i] = tmp_seeds[j] ^ (zero_and_all_one[tmp_control_bits[j]] & key.output);
+                }
+                seed_stacks.pop();
+                control_bit_stacks.pop();
+            }
+        } else {
+            utils::Logger::FatalLog(LOC, "Invalid remaining bit: " + std::to_string(remaining_bit));
+            exit(EXIT_FAILURE);
         }
 
         // Update the current index
@@ -439,139 +664,12 @@ void DpfEvaluator::FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector
 
 #ifdef LOG_LEVEL_DEBUG
     for (uint32_t i = 0; i < num_nodes; i++) {
-        utils::Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(output_seeds[i]), debug_);
+        utils::Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(outputs[i]), debug_);
     }
 #endif
-
-    // Compute the output values
-    outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
-}
-
-void DpfEvaluator::FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu        = params_.GetTerminateBitsize();
-    uint32_t num_nodes = 1U << nu;
-
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (non-recursive half PRG)"), debug_);
-    utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
-#endif
-
-    // Breadth-first traversal for 8 nodes
-    std::vector<block> start_seeds{key.init_seed}, next_seeds;
-    std::vector<bool>  start_control_bits{key.party_id != 0}, next_control_bits;
-
-    for (uint32_t i = 0; i < 3; i++) {
-        std::array<block, 2> expanded_seeds;
-        std::array<bool, 2>  expanded_control_bits;
-        next_seeds.resize(1U << (i + 1));
-        next_control_bits.resize(1U << (i + 1));
-        for (size_t j = 0; j < start_seeds.size(); j++) {
-            EvaluateNextSeed(i, start_seeds[j], start_control_bits[j], expanded_seeds, expanded_control_bits, key);
-            next_seeds[j * 2]            = expanded_seeds[kLeft];
-            next_seeds[j * 2 + 1]        = expanded_seeds[kRight];
-            next_control_bits[j * 2]     = expanded_control_bits[kLeft];
-            next_control_bits[j * 2 + 1] = expanded_control_bits[kRight];
-        }
-        start_seeds        = std::move(next_seeds);
-        start_control_bits = std::move(next_control_bits);
-        // std::swap(start_seeds, next_seeds);
-        // std::swap(start_control_bits, next_control_bits);
-    }
-
-    // Initialize the variables
-    uint32_t           current_level = 0;
-    uint32_t           current_idx   = 0;
-    uint32_t           last_depth    = std::max(static_cast<int32_t>(nu) - 3, 0);
-    uint32_t           last_idx      = 1U << last_depth;
-    std::vector<block> output_seeds(num_nodes, zero_block);
-    std::vector<bool>  output_control_bits(num_nodes, false);
-
-    // Store the seeds and control bits
-    std::array<block, 8>              expanded_seeds;
-    std::array<bool, 8>               expanded_control_bits;
-    std::array<block, 8>              current_seeds;
-    std::array<bool, 8>               current_control_bits;
-    std::vector<std::array<block, 8>> prev_seeds(last_depth + 1);
-    std::vector<std::array<bool, 8>>  prev_control_bits(last_depth + 1);
-
-    // Evaluate the DPF key
-    for (uint32_t i = 0; i < 8; i++) {
-        prev_seeds[0][i]        = start_seeds[i];
-        prev_control_bits[0][i] = start_control_bits[i];
-    }
-
-    while (current_idx < last_idx) {
-        while (current_level < last_depth) {
-            // Expand the seed and control bits
-            uint32_t mask        = (current_idx >> (last_depth - 1U - current_level));
-            bool     current_bit = mask & 1U;
-
-            for (uint32_t i = 0; i < 8; i++) {
-                current_seeds[i]        = prev_seeds[current_level][i];
-                current_control_bits[i] = prev_control_bits[current_level][i];
-            }
-            G_.Expand(current_seeds, expanded_seeds, current_bit);
-            for (uint32_t i = 0; i < 8; i++) {
-                expanded_control_bits[i] = getLSB(expanded_seeds[i]);
-            }
-
-#ifdef LOG_LEVEL_DEBUG
-            std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
-            for (uint32_t i = 0; i < 8; i++) {
-                utils::Logger::DebugLog(LOC, level_str + "Current bit: " + std::to_string(current_bit), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Current seed (" + std::to_string(i) + "): " + ToString(current_seeds[i]), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Current control bit (" + std::to_string(i) + "): " + std::to_string(current_control_bits[i]), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Expanded seed (" + std::to_string(i) + "): " + ToString(expanded_seeds[i]), debug_);
-                utils::Logger::DebugLog(LOC, level_str + "Expanded control bit (" + std::to_string(i) + "): " + std::to_string(expanded_control_bits[i]), debug_);
-            }
-#endif
-
-            // Apply correction word if control bit is true
-            bool cw_control_bit = current_bit ? key.cw_control_right[current_level + 3] : key.cw_control_left[current_level + 3];
-            for (uint32_t i = 0; i < 8; i++) {
-                expanded_seeds[i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[current_control_bits[i]]);
-                expanded_control_bits[i] ^= (cw_control_bit & current_control_bits[i]);
-            }
-
-            // Update the current level
-            current_level++;
-
-            // Update the previous seeds and control bits
-            for (uint32_t i = 0; i < 8; i++) {
-                prev_seeds[current_level][i]        = expanded_seeds[i];
-                prev_control_bits[current_level][i] = expanded_control_bits[i];
-            }
-        }
-
-        // Get the seed and control bit from prev_seeds and prev_control_bits
-        for (uint32_t i = 0; i < 8; i++) {
-            uint32_t access_idx             = i * last_idx + current_idx;
-            output_seeds[access_idx]        = prev_seeds[current_level][i];
-            output_control_bits[access_idx] = prev_control_bits[current_level][i];
-        }
-
-        // Update the current index
-        int shift = (current_idx + 1U) ^ current_idx;
-        current_level -= oc::log2floor(shift) + 1;
-        current_idx++;
-    }
-
-#ifdef LOG_LEVEL_DEBUG
-    for (uint32_t i = 0; i < num_nodes; i++) {
-        utils::Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(output_seeds[i]), debug_);
-    }
-#endif
-
-    // Compute the output values
-    outputs = ComputeOutputBlocks(output_seeds, output_control_bits, key);
 }
 
 void DpfEvaluator::FullDomainNaive(const DpfKey &key, std::vector<uint32_t> &outputs) const {
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, utils::Logger::StrWithSep("Evaluate full domain with DPF key (naive)"), debug_);
-    utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(key.party_id), debug_);
-#endif
-
     // Evaluate the DPF key for all possible x values
     for (uint32_t x = 0; x < (1U << params_.GetInputBitsize()); x++) {
         outputs[x] = EvaluateAtNaive(key, x);

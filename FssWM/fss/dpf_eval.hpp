@@ -99,28 +99,35 @@ private:
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const;
+    void FullDomainRecursion(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
-     * @brief Full domain evaluation of the DPF key using the non-recursive approach.
+     * @brief Full domain evaluation of the DPF key using the iterative approach with single PRG.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNonRecursive(const DpfKey &key, std::vector<block> &outputs) const;
+    void FullDomainIterativeSingle(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
-     * @brief Full domain evaluation of the DPF key using the non-recursive using half PRG approach.
+     * @brief Full domain evaluation of the DPF key using the iterative approach with double PRG.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNonRecursive_HalfPRG(const DpfKey &key, std::vector<block> &outputs) const;
+    void FullDomainIterativeDouble(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
-     * @brief Full domain evaluation of the DPF key using the non-recursive using parallel encryption approach.
+     * @brief Full domain evaluation of the DPF key using the iterative approach with single PRG and parallel evaluation.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNonRecursive_ParaEnc(const DpfKey &key, std::vector<block> &outputs) const;    // ! Too slow
+    void FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const;
+
+    /**
+     * @brief Full domain evaluation of the DPF key using the iterative approach with double PRG and parallel evaluation.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
      * @brief Full domain evaluation of the DPF key using the naive approach.

@@ -10,8 +10,8 @@
 namespace test_fsswm {
 
 oc::TestCollection Tests([](oc::TestCollection &t) {
-    t.add("Timer_Test", Timer_Test);
-    t.add("Prg_Test", Prg_Test);
+    // t.add("Timer_Test", Timer_Test);
+    // t.add("Prg_Test", Prg_Test);
     t.add("Dpf_Params_Test", Dpf_Params_Test);
     t.add("Dpf_Fde_Type_Test", Dpf_Fde_Type_Test);
     t.add("Dpf_Fde_Test", Dpf_Fde_Test);

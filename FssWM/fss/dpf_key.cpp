@@ -13,14 +13,16 @@ std::string GetEvalTypeString(const EvalType eval_type) {
     switch (eval_type) {
         case EvalType::kNaive:
             return "Naive";
-        case EvalType::kRec:
-            return "Recursive";
-        case EvalType::kNonRec:
-            return "Non-Recursive";
-        case EvalType::kNonRec_ParaEnc:
-            return "Non-Recursive_ParaEnc";
-        case EvalType::kNonRec_HalfPRG:
-            return "Non-Recursive_HalfPRG";
+        case EvalType::kRecursion:
+            return "Recursion";
+        case EvalType::kIterSingle:
+            return "IterSingle";
+        case EvalType::kIterDouble:
+            return "IterDouble";
+        case EvalType::kIterSingleBatch:
+            return "IterSingleBatch";
+        case EvalType::kIterDoubleBatch:
+            return "IterDoubleBatch";
         default:
             return "Unknown";
     }
@@ -79,10 +81,10 @@ void DpfParameters::DecideFdeEvalType(EvalType eval_type) {
         if (element_bitsize_ == 1) {
             if (input_bitsize_ < 10) {    // 7 (early termination) + 3 (non-recursive)
                 utils::Logger::WarnLog(LOC, "Switching to non-recursive approach for the domain size less than 10 bits: EvalType: " + GetEvalTypeString(eval_type) + " -> Non-Recursive");
-                eval_type = EvalType::kNonRec;
-            } else if (eval_type == EvalType::kNonRec_ParaEnc && input_bitsize_ < 11) {    // 7+1 (early termination) + 3 (non-recursive)
+                eval_type = kDefaultEvalType;
+            } else if (eval_type == EvalType::kIterDoubleBatch && input_bitsize_ < 11) {    // 7+1 (early termination) + 3 (non-recursive)
                 utils::Logger::WarnLog(LOC, "Switching to non-recursive approach for the domain size less than 11 bits: EvalType: " + GetEvalTypeString(eval_type) + " -> Non-Recursive");
-                eval_type = EvalType::kNonRec;
+                eval_type = kDefaultEvalType;
             }
         }
     } else {
