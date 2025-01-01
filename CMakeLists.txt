@@ -17,19 +17,22 @@ set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
 # Find Boost library
 find_package(Boost REQUIRED HINTS ${THIRD_PARTY_DIR}/unix)
-if (NOT Boost_FOUND)
-message(FATAL_ERROR "Boost library not found. Please install it or set the path correctly.")
+
+if(NOT Boost_FOUND)
+    message(FATAL_ERROR "Boost library not found. Please install it or set the path correctly.")
 endif()
 
 # Find cryptoTools library
 find_package(cryptoTools REQUIRED HINTS ${THIRD_PARTY_DIR}/unix)
-if (NOT cryptoTools_FOUND)
-message(FATAL_ERROR "cryptoTools library not found. Please install it or set the path correctly.")
+
+if(NOT cryptoTools_FOUND)
+    message(FATAL_ERROR "cryptoTools library not found. Please install it or set the path correctly.")
 endif()
 
 # Find emp-tool library
 find_package(emp-tool REQUIRED)
-if (NOT emp-tool_FOUND)
+
+if(NOT emp-tool_FOUND)
     message(FATAL_ERROR "emp-tool library not found. Ensure it is installed on the system.")
 endif()
 
@@ -39,11 +42,11 @@ set(CMAKE_CXX_FLAGS_PROFILE "-pg -O2 -g")
 set(CMAKE_EXE_LINKER_FLAGS_PROFILE "-pg -O2 -g")
 
 # Check build type
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-if (NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|Profile")
+if(NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|Profile")
     message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Supported types are Debug and Release.")
 endif()
 
@@ -70,9 +73,7 @@ message(STATUS "  Boost Libraries           : ${Boost_LIBRARIES}")
 message(STATUS "  Boost Library Dirs        : ${Boost_LIBRARY_DIRS}")
 message(STATUS "--------------------------------------------")
 
-#######################################################
-#                     Build FssWM                     #
-#######################################################
+# Build FssWM
 
 # Add the source files
 add_subdirectory(FssWM)
