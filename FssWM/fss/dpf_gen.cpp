@@ -1,19 +1,37 @@
-#include "dpf_gen.hpp"
+#include "dpf_gen.h"
 
-#include "fss.hpp"
-#include "utils/logger.hpp"
-#include "utils/utils.hpp"
+#include "FssWM/utils/logger.h"
+#include "FssWM/utils/utils.h"
+#include "fss.h"
+#include "prg.h"
 
 namespace fsswm {
 namespace fss {
 namespace dpf {
 
+using utils::GetLowerNBits;
+using utils::Logger;
+using utils::Mod;
+using utils::Pow;
+
+DpfKeyGenerator::DpfKeyGenerator(const DpfParameters &params)
+    : params_(params),
+      G_(prg::PseudoRandomGeneratorSingleton::GetInstance()) {
+}
+
 std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint32_t alpha, uint32_t beta) const {
     // Validate the input values
     if (!ValidateInput(alpha, beta)) {
-        utils::Logger::FatalLog(LOC, "Invalid input values: alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "Invalid input values: alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
+        std::exit(EXIT_FAILURE);
     }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    std::string gen_type = params_.GetEnableEarlyTermination() ? "optimized" : "naive";
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate DPF keys (" + gen_type + " approach)"));
+    Logger::DebugLog(LOC, "Alpha: " + std::to_string(alpha));
+    Logger::DebugLog(LOC, "Beta: " + std::to_string(beta));
+#endif
 
     // Initialize the DPF keys
     DpfKey                    key_0(0, params_);
@@ -32,13 +50,7 @@ std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint32_t alpha, uint32_t
 
 void DpfKeyGenerator::GenerateKeysNaive(uint32_t alpha, uint32_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
     uint32_t n = params_.GetInputBitsize();
-    uint32_t e = params_.GetElementBitsize();
-
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, "Generating DPF key (naive approach)", debug_);
-    utils::Logger::DebugLog(LOC, "Alpha: " + std::to_string(alpha), debug_);
-    utils::Logger::DebugLog(LOC, "Beta: " + std::to_string(beta), debug_);
-#endif
+    uint32_t e = params_.GetOutputBitsize();
 
     // Set the initial seed and control bits
     block seed_0              = SetRandomBlock();
@@ -48,32 +60,29 @@ void DpfKeyGenerator::GenerateKeysNaive(uint32_t alpha, uint32_t beta, std::pair
     key_pair.first.init_seed  = seed_0;
     key_pair.second.init_seed = seed_1;
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, "[P0] Initial seed: " + ToString(seed_0), debug_);
-    utils::Logger::DebugLog(LOC, "[P0] Control bit: " + std::to_string(control_bit_0), debug_);
-    utils::Logger::DebugLog(LOC, "[P1] Initial seed: " + ToString(seed_1), debug_);
-    utils::Logger::DebugLog(LOC, "[P1] Control bit: " + std::to_string(control_bit_1), debug_);
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
+    Logger::TraceLog(LOC, "[P0] Initial seed: " + ToString(seed_0));
+    Logger::TraceLog(LOC, "[P0] Control bit: " + std::to_string(control_bit_0));
+    Logger::TraceLog(LOC, "[P1] Initial seed: " + ToString(seed_1));
+    Logger::TraceLog(LOC, "[P1] Control bit: " + std::to_string(control_bit_1));
 #endif
 
     // Generate next seed and compute correction words
-    for (uint32_t i = 0; i < n; i++) {
+    for (uint32_t i = 0; i < n; ++i) {
         bool current_bit = (alpha & (1U << (n - i - 1))) != 0;
         GenerateNextSeed(i, current_bit, seed_0, control_bit_0, seed_1, control_bit_1, key_pair);
     }
 
     // Set the output
-    uint32_t result        = utils::Mod(utils::Pow(-1, control_bit_1) * (beta - Convert(seed_0, e) + Convert(seed_1, e)), e);
+    uint32_t result        = Mod(Pow(-1, control_bit_1) * (beta - Convert(seed_0, e) + Convert(seed_1, e)), e);
     block    output        = makeBlock(0, result);
     key_pair.first.output  = output;
     key_pair.second.output = output;
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, "Output: " + ToString(output), debug_);
-    utils::AddNewLine(debug_);
-    key_pair.first.PrintDpfKey(debug_);
-    utils::AddNewLine(debug_);
-    key_pair.second.PrintDpfKey(debug_);
-    utils::AddNewLine(debug_);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Output: " + ToString(output));
+    key_pair.first.PrintDpfKey();
+    key_pair.second.PrintDpfKey();
 #endif
 }
 
@@ -81,12 +90,6 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::
     uint32_t n  = params_.GetInputBitsize();
     uint32_t nu = this->params_.GetTerminateBitsize();
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, "Generating DPF key (optimized approach)", debug_);
-    utils::Logger::DebugLog(LOC, "Alpha: " + std::to_string(alpha), debug_);
-    utils::Logger::DebugLog(LOC, "Beta: " + std::to_string(beta), debug_);
-#endif
-
     // Set the initial seed and control bits
     block seed_0              = SetRandomBlock();
     block seed_1              = SetRandomBlock();
@@ -95,15 +98,15 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::
     key_pair.first.init_seed  = seed_0;
     key_pair.second.init_seed = seed_1;
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, "[P0] Initial seed: " + ToString(seed_0), debug_);
-    utils::Logger::DebugLog(LOC, "[P0] Control bit: " + std::to_string(control_bit_0), debug_);
-    utils::Logger::DebugLog(LOC, "[P1] Initial seed: " + ToString(seed_1), debug_);
-    utils::Logger::DebugLog(LOC, "[P1] Control bit: " + std::to_string(control_bit_1), debug_);
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
+    Logger::TraceLog(LOC, "[P0] Initial seed: " + ToString(seed_0));
+    Logger::TraceLog(LOC, "[P0] Control bit: " + std::to_string(control_bit_0));
+    Logger::TraceLog(LOC, "[P1] Initial seed: " + ToString(seed_1));
+    Logger::TraceLog(LOC, "[P1] Control bit: " + std::to_string(control_bit_1));
 #endif
 
     // Generate next seed and compute correction words
-    for (uint32_t i = 0; i < nu; i++) {
+    for (uint32_t i = 0; i < nu; ++i) {
         bool current_bit = (alpha & (1U << (n - i - 1))) != 0;
         GenerateNextSeed(i, current_bit, seed_0, control_bit_0, seed_1, control_bit_1, key_pair);
     }
@@ -111,18 +114,15 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::
     // Set the output
     SetOutput(alpha, beta, seed_0, seed_1, control_bit_1, key_pair);
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::AddNewLine(debug_);
-    key_pair.first.PrintDpfKey(debug_);
-    utils::AddNewLine(debug_);
-    key_pair.second.PrintDpfKey(debug_);
-    utils::AddNewLine(debug_);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    key_pair.first.PrintDpfKey();
+    key_pair.second.PrintDpfKey();
 #endif
 }
 
 bool DpfKeyGenerator::ValidateInput(const uint32_t alpha, const uint32_t beta) const {
     bool valid = true;
-    if (alpha >= (1UL << params_.GetInputBitsize()) || beta >= (1UL << params_.GetElementBitsize())) {
+    if (alpha >= (1UL << params_.GetInputBitsize()) || beta >= (1UL << params_.GetOutputBitsize())) {
         valid = false;
     }
     return valid;
@@ -132,9 +132,6 @@ void DpfKeyGenerator::GenerateNextSeed(const uint32_t current_level, const bool 
                                        block &current_seed_0, bool &current_control_bit_0,
                                        block &current_seed_1, bool &current_control_bit_1,
                                        std::pair<DpfKey, DpfKey> &key_pair) const {
-#ifdef LOG_LEVEL_DEBUG
-    std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
-#endif
 
     std::array<block, 2> expanded_seed_0;           // expanded_seed_0[keep or lose]
     std::array<block, 2> expanded_seed_1;           // expanded_seed_1[keep or lose]
@@ -151,32 +148,30 @@ void DpfKeyGenerator::GenerateNextSeed(const uint32_t current_level, const bool 
     expanded_control_bit_1[kLeft]  = getLSB(expanded_seed_1[kLeft]);
     expanded_control_bit_1[kRight] = getLSB(expanded_seed_1[kRight]);
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, level_str + "[P0] Expanded seed (L): " + ToString(expanded_seed_0[kLeft]), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P0] Expanded seed (R): " + ToString(expanded_seed_0[kRight]), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P0] Expanded control bit (L, R): " + std::to_string(expanded_control_bit_0[kLeft]) + ", " + std::to_string(expanded_control_bit_0[kRight]), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P1] Expanded seed (L): " + ToString(expanded_seed_1[kLeft]), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P1] Expanded seed (R): " + ToString(expanded_seed_1[kRight]), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P1] Expanded control bit (L, R): " + std::to_string(expanded_control_bit_1[kLeft]) + ", " + std::to_string(expanded_control_bit_1[kRight]), debug_);
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
+    std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
+    Logger::TraceLog(LOC, level_str + "[P0] Expanded seed (L): " + ToString(expanded_seed_0[kLeft]));
+    Logger::TraceLog(LOC, level_str + "[P0] Expanded seed (R): " + ToString(expanded_seed_0[kRight]));
+    Logger::TraceLog(LOC, level_str + "[P0] Expanded control bit (L, R): " + std::to_string(expanded_control_bit_0[kLeft]) + ", " + std::to_string(expanded_control_bit_0[kRight]));
+    Logger::TraceLog(LOC, level_str + "[P1] Expanded seed (L): " + ToString(expanded_seed_1[kLeft]));
+    Logger::TraceLog(LOC, level_str + "[P1] Expanded seed (R): " + ToString(expanded_seed_1[kRight]));
+    Logger::TraceLog(LOC, level_str + "[P1] Expanded control bit (L, R): " + std::to_string(expanded_control_bit_1[kLeft]) + ", " + std::to_string(expanded_control_bit_1[kRight]));
 #endif
 
     // Choose keep or lose path
     bool keep = current_bit, lose = !current_bit;
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, level_str + "Current bit: " + std::to_string(current_bit) + " (Keep: " + std::to_string(keep) + ", Lose: " + std::to_string(lose) + ")", debug_);
-#endif
 
     // Compute seed correction
     seed_correction = expanded_seed_0[lose] ^ expanded_seed_1[lose];
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, level_str + "Seed correction: " + ToString(seed_correction), debug_);
-#endif
 
     // Compute control bit correction
     control_bit_correction[kLeft]  = expanded_control_bit_0[kLeft] ^ expanded_control_bit_1[kLeft] ^ current_bit ^ 1;
     control_bit_correction[kRight] = expanded_control_bit_0[kRight] ^ expanded_control_bit_1[kRight] ^ current_bit;
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, level_str + "Correction control bit (L, R): " + std::to_string(control_bit_correction[kLeft]) + ", " + std::to_string(control_bit_correction[kRight]), debug_);
+
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
+    Logger::TraceLog(LOC, level_str + "Current bit: " + std::to_string(current_bit) + " (Keep: " + std::to_string(keep) + ", Lose: " + std::to_string(lose) + ")");
+    Logger::TraceLog(LOC, level_str + "Seed correction: " + ToString(seed_correction));
+    Logger::TraceLog(LOC, level_str + "Correction control bit (L, R): " + std::to_string(control_bit_correction[kLeft]) + ", " + std::to_string(control_bit_correction[kRight]));
 #endif
 
     // Set the correction word
@@ -195,11 +190,11 @@ void DpfKeyGenerator::GenerateNextSeed(const uint32_t current_level, const bool 
     current_control_bit_0 = expanded_control_bit_0[keep] ^ (current_control_bit_0 & control_bit_correction[keep]);
     current_control_bit_1 = expanded_control_bit_1[keep] ^ (current_control_bit_1 & control_bit_correction[keep]);
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, level_str + "[P0] Next seed: " + ToString(current_seed_0), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P0] Next control bit: " + std::to_string(current_control_bit_0), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P1] Next seed: " + ToString(current_seed_1), debug_);
-    utils::Logger::DebugLog(LOC, level_str + "[P1] Next control bit: " + std::to_string(current_control_bit_1), debug_);
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
+    Logger::TraceLog(LOC, level_str + "[P0] Next seed: " + ToString(current_seed_0));
+    Logger::TraceLog(LOC, level_str + "[P0] Next control bit: " + std::to_string(current_control_bit_0));
+    Logger::TraceLog(LOC, level_str + "[P1] Next seed: " + ToString(current_seed_1));
+    Logger::TraceLog(LOC, level_str + "[P1] Next control bit: " + std::to_string(current_control_bit_1));
 #endif
 }
 
@@ -208,7 +203,7 @@ void DpfKeyGenerator::SetOutput(uint32_t alpha, uint32_t beta,
                                 std::pair<DpfKey, DpfKey> &key_pair) const {
     // Compute the remaining bits and alpha_hat
     uint32_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
-    uint32_t alpha_hat     = utils::GetLowerNBits(alpha, remaining_bit);
+    uint32_t alpha_hat     = GetLowerNBits(alpha, remaining_bit);
     block    beta_block    = makeBlock(0, beta);
 
     // Shift the beta block
@@ -221,11 +216,11 @@ void DpfKeyGenerator::SetOutput(uint32_t alpha, uint32_t beta,
         beta_block = beta_block << shift_amount;
     }
 
-#ifdef LOG_LEVEL_DEBUG
-    utils::Logger::DebugLog(LOC, "Remaining bits: " + std::to_string(remaining_bit), debug_);
-    utils::Logger::DebugLog(LOC, "Alpha_hat: " + std::to_string(alpha_hat), debug_);
-    utils::Logger::DebugLog(LOC, "Shift amount: " + std::to_string(shift_amount), debug_);
-    utils::Logger::DebugLog(LOC, "Beta block: " + ToString(beta_block), debug_);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Remaining bits: " + std::to_string(remaining_bit));
+    Logger::DebugLog(LOC, "Alpha_hat: " + std::to_string(alpha_hat));
+    Logger::DebugLog(LOC, "Shift amount: " + std::to_string(shift_amount));
+    Logger::DebugLog(LOC, "Beta block: " + ToString(beta_block));
 #endif
 
     // Set the output block
@@ -248,8 +243,8 @@ void DpfKeyGenerator::SetOutput(uint32_t alpha, uint32_t beta,
         // Reduce 7 levels (2^7=128 nodes) of the tree (XOR share)
         output = beta_block ^ final_seed_0 ^ final_seed_1;
     } else {
-        utils::Logger::FatalLog(LOC, "Unsupported termination bitsize: " + std::to_string(remaining_bit));
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "Unsupported termination bitsize: " + std::to_string(remaining_bit));
+        std::exit(EXIT_FAILURE);
     }
     key_pair.first.output  = output;
     key_pair.second.output = output;

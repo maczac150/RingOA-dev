@@ -79,6 +79,8 @@ def Build(projectName, mainArgs, cmakeArgs, install, prefix, par):
 
     mkDirCmd = ["mkdir", "-p", buildDir]
     CMakeCmd = ["cmake", "-S", ".", "-B", buildDir] + cmakeArgs
+    CMakeCmd += ["-G", "Ninja",
+                 "-DCMAKE_CXX_FLAGS=-fdiagnostics-color=always"]
     BuildCmd = ["cmake", "--build", buildDir]
 
     if par != 1:

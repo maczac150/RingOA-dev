@@ -3,39 +3,32 @@
 #include "cryptoTools/Common/TestCollection.h"
 #include "tests_cryptoTools/UnitTests.h"
 
-#include "dpf_test.hpp"
-#include "prg_test.hpp"
-#include "timer_test.hpp"
+#include "FssWM_Bench/dpf_bench.h"
 
-namespace test_fsswm {
+namespace bench_fsswm {
 
 oc::TestCollection Tests([](oc::TestCollection &t) {
-    // t.add("Timer_Test", Timer_Test);
-    // t.add("Prg_Test", Prg_Test);
-    t.add("Dpf_Params_Test", Dpf_Params_Test);
-    t.add("Dpf_Fde_Type_Test", Dpf_Fde_Type_Test);
-    t.add("Dpf_Fde_Test", Dpf_Fde_Test);
-    t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
-    t.add("Dpf_Fde_Bench_Test", Dpf_Fde_Bench_Test);
-    t.add("Dpf_Fde_One_Bench_Test", Dpf_Fde_One_Bench_Test);
+    t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
+    t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
+    t.add("Dpf_Fde_TwoKey_Bench", Dpf_Fde_TwoKey_Bench);
 });
 
-}    // namespace test_fsswm
+}    // namespace bench_fsswm
 
 namespace {
 
 std::vector<std::string>
     helpTags{"h", "help"},
     listTags{"l", "list"},
-    testTags{"t", "test"},
+    benchTags{"b", "bench"},
     repeatTags{"repeat"},
     loopTags{"loop"};
 
 void PrintHelp() {
-    std::cout << "Usage: test_program [OPTIONS]\n";
+    std::cout << "Usage: bench_program [OPTIONS]\n";
     std::cout << "Options:\n";
-    std::cout << "  -list, -l           List all available tests with their indexes.\n";
-    std::cout << "  -test=<Index>, -t   Run the specified test by its index.\n";
+    std::cout << "  -list, -l           List all available benchmarks.\n";
+    std::cout << "  -bench=<Index>, -b   Run the specified test by its index.\n";
     std::cout << "  -repeat=<Count>     Specify the number of repetitions for the test (default: 1).\n";
     std::cout << "  -loop=<Count>       Repeat the entire test execution for the specified number of loops (default: 1).\n";
     std::cout << "  -help, -h           Display this help message.\n";
@@ -46,8 +39,7 @@ void PrintHelp() {
 int main(int argc, char **argv) {
     try {
         oc::CLP cmd(argc, argv);
-
-        auto tests = test_fsswm::Tests;
+        auto    tests = bench_fsswm::Tests;
 
         // Display help message
         if (cmd.isSet(helpTags)) {
@@ -62,8 +54,8 @@ int main(int argc, char **argv) {
         }
 
         // Handle test execution
-        if (cmd.hasValue(testTags)) {
-            auto testIdxs    = cmd.getMany<oc::u64>(testTags);
+        if (cmd.hasValue(benchTags)) {
+            auto testIdxs    = cmd.getMany<oc::u64>(benchTags);
             int  repeatCount = cmd.getOr(repeatTags, 1);
             int  loopCount   = cmd.getOr(loopTags, 1);
 
@@ -74,7 +66,7 @@ int main(int argc, char **argv) {
 
             // Execute tests in a loop
             for (int i = 0; i < loopCount; ++i) {
-                auto result = tests.run(testIdxs, repeatCount);
+                auto result = tests.run(testIdxs, repeatCount, &cmd);
                 if (result != osuCrypto::TestCollection::Result::passed) {
                     return 1;    // Exit on failure
                 }

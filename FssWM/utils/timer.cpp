@@ -1,27 +1,30 @@
-#include "timer.hpp"
+#include "timer.h"
 
 #include <chrono>
 
+#include "logger.h"
+
+namespace fsswm {
 namespace utils {
 
 int32_t TimerManager::CreateNewTimer(const std::string &name) {
     int32_t timer_id  = timer_count_++;
-    timers_[timer_id] = Timer{name, {}, {}};
+    timers_[timer_id] = Timer{name, {}, {}, {}, {}};
     return timer_id;
 }
 
 void TimerManager::SelectTimer(int32_t timer_id) {
     if (timers_.find(timer_id) == timers_.end()) {
-        utils::Logger::FatalLog(LOC, "Invalid timer ID.");
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "Invalid timer ID.");
+        std::exit(EXIT_FAILURE);
     }
     current_timer_id_ = timer_id;
 }
 
 void TimerManager::Start() {
     if (current_timer_id_ == -1) {
-        utils::Logger::FatalLog(LOC, "No timer selected.");
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "No timer selected.");
+        std::exit(EXIT_FAILURE);
     }
     auto &timer = timers_[current_timer_id_];
     timer.start_times.push_back(std::chrono::high_resolution_clock::now());
@@ -29,8 +32,8 @@ void TimerManager::Start() {
 
 void TimerManager::Stop(const std::string &msg) {
     if (current_timer_id_ == -1) {
-        utils::Logger::FatalLog(LOC, "No timer selected.");
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "No timer selected.");
+        std::exit(EXIT_FAILURE);
     }
     auto &timer     = timers_[current_timer_id_];
     auto  stop_time = std::chrono::high_resolution_clock::now();
@@ -44,15 +47,15 @@ void TimerManager::Stop(const std::string &msg) {
 
 void TimerManager::Mark(const std::string &msg) {
     if (current_timer_id_ == -1) {
-        utils::Logger::FatalLog(LOC, "No timer selected.");
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "No timer selected.");
+        std::exit(EXIT_FAILURE);
     }
 
     auto &timer = timers_[current_timer_id_];
 
     if (timer.start_times.empty()) {
-        utils::Logger::FatalLog(LOC, "Timer has not been started.");
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "Timer has not been started.");
+        std::exit(EXIT_FAILURE);
     }
 
     auto   now     = std::chrono::high_resolution_clock::now();
@@ -63,8 +66,8 @@ void TimerManager::Mark(const std::string &msg) {
 
 void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit unit, const bool show_details) const {
     if (current_timer_id_ == -1) {
-        utils::Logger::FatalLog(LOC, "No timer selected.");
-        exit(EXIT_FAILURE);
+        Logger::FatalLog(LOC, "No timer selected.");
+        std::exit(EXIT_FAILURE);
     }
 
     const auto &timer    = timers_.at(current_timer_id_);
@@ -75,7 +78,7 @@ void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit un
                    << " TimerName=\"" << timer.name << "\""
                    << " Unit=" << unit_str
                    << " Count=" << timer.elapsed_times.size();
-    utils::Logger::InfoLog("", header_message.str());
+    Logger::InfoLog("", header_message.str());
 
     double total_time = 0.0;
     double max_time   = 0.0;
@@ -93,7 +96,7 @@ void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit un
         log_message << "TimerName=\"" << timer.name << "\""
                     << " Message=\"" << timer.messages[i] << "\""
                     << " Elapsed=" << elapsed;
-        utils::Logger::InfoLog("", log_message.str());
+        Logger::InfoLog("", log_message.str());
     }
 
     double avg_time = timer.elapsed_times.empty() ? 0.0 : total_time / timer.elapsed_times.size();
@@ -114,27 +117,27 @@ void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit un
     std::ostringstream summary_total;
     summary_total << std::fixed << std::setprecision(3);
     summary_total << "Total=" << total_time;
-    utils::Logger::InfoLog("", summary_header.str() + " " + summary_total.str());
+    Logger::InfoLog("", summary_header.str() + " " + summary_total.str());
 
     std::ostringstream summary_avg;
     summary_avg << std::fixed << std::setprecision(3);
     summary_avg << "Avg=" << avg_time;
-    utils::Logger::InfoLog("", summary_header.str() + " " + summary_avg.str());
+    Logger::InfoLog("", summary_header.str() + " " + summary_avg.str());
 
     if (show_details) {
         std::ostringstream summary_details;
         summary_details << std::fixed << std::setprecision(3);
         summary_details << "Max=" << max_time << " Min=" << min_time << " Var=" << normalized_variance;
-        utils::Logger::InfoLog("", summary_header.str() + " " + summary_details.str());
+        Logger::InfoLog("", summary_header.str() + " " + summary_details.str());
     }
 }
 
-void TimerManager::PrintAllResults(const TimeUnit unit, const bool show_details) {
+void TimerManager::PrintAllResults(const std::string &msg, const TimeUnit unit, const bool show_details) {
     std::string unit_str = GetUnitString(unit);
 
     for (int32_t i = 0; i < timer_count_; ++i) {
         SelectTimer(i);
-        PrintCurrentResults("", unit, show_details);
+        PrintCurrentResults(msg, unit, show_details);
     }
 }
 
@@ -166,3 +169,4 @@ std::string TimerManager::GetUnitString(TimeUnit unit) const {
 }
 
 }    // namespace utils
+}    // namespace fsswm

@@ -1,14 +1,15 @@
 #ifndef FSS_DPF_KEY_H_
 #define FSS_DPF_KEY_H_
 
-#include "fss.hpp"
+#include <memory>
+
+#include "fss.h"
 
 namespace fsswm {
 namespace fss {
 namespace dpf {
 
 /**
- * @enum EvalType
  * @brief Enumeration for the evaluation types for DPF.
  */
 enum class EvalType
@@ -19,7 +20,8 @@ enum class EvalType
     kIterSingle,
     kIterDouble,
     kIterSingleBatch,
-    kIterDoubleBatch,    // ! This is working but too slow
+    kIterSingleBatch_2Keys,    // ! Slower than two separate calls of kIterSingleBatch
+    kIterDoubleBatch,          // ! This is working but too slow
 };
 
 const EvalType kDefaultEvalType   = EvalType::kIterSingle;
@@ -49,8 +51,8 @@ public:
      * @param enable_et Toggle this flag to enable/disable early termination.
      * @param eval_type The evaluation type for the DPF.
      */
-    DpfParameters(const uint32_t n, const uint32_t e,
-                  const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
+    explicit DpfParameters(const uint32_t n, const uint32_t e,
+                           const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
 
     /**
      * @brief Get the Input Bitsize object
@@ -64,7 +66,7 @@ public:
      * @brief Get the Element Bitsize object
      * @return uint32_t The size of each element in bits.
      */
-    uint32_t GetElementBitsize() const {
+    uint32_t GetOutputBitsize() const {
         return element_bitsize_;
     }
 
@@ -123,7 +125,13 @@ public:
      * @param enable_et Toggle this flag to enable/disable early termination.
      * @param eval_type The evaluation type for the DPF.
      */
-    void ReconfigureParameters(const uint32_t n, const uint32_t e, const bool enable_et, EvalType eval_type);
+    void ReconfigureParameters(const uint32_t n, const uint32_t e, const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
+
+    /**
+     * @brief Get the string representation of the DpfParameters.
+     * @return std::string The string representation of the DpfParameters.
+     */
+    std::string GetDpfParametersInfo() const;
 
     /**
      * @brief Print the details of the DpfParameters.
@@ -139,7 +147,6 @@ private:
 };
 
 /**
- * @struct DpfKey
  * @brief A struct representing a key for the Distributed Point Function (DPF).
  * @warning `DpfKey` must call initialize before use.
  */
@@ -162,7 +169,7 @@ struct DpfKey {
      * @param id The ID of the party associated with the key.
      * @param params DpfParameters for the DpfKey.
      */
-    DpfKey(const uint32_t id, const DpfParameters &params);
+    explicit DpfKey(const uint32_t id, const DpfParameters &params);
 
     /**
      * @brief Destructor for DpfKey.
@@ -195,9 +202,13 @@ struct DpfKey {
      * @return True if the DpfKey is equal, false otherwise.
      */
     bool operator==(const DpfKey &rhs) const {
-        bool result = (party_id == rhs.party_id) && (fss::Equal(init_seed, rhs.init_seed)) && (cw_length == rhs.cw_length);
-        for (uint32_t i = 0; i < cw_length; i++) {
-            result &= (fss::Equal(cw_seed[i], rhs.cw_seed[i])) && (cw_control_left[i] == rhs.cw_control_left[i]) && (cw_control_right[i] == rhs.cw_control_right[i]);
+        bool result = (party_id == rhs.party_id) &&
+                      (fss::Equal(init_seed, rhs.init_seed)) &&
+                      (cw_length == rhs.cw_length);
+        for (uint32_t i = 0; i < cw_length; ++i) {
+            result &= (fss::Equal(cw_seed[i], rhs.cw_seed[i])) &&
+                      (cw_control_left[i] == rhs.cw_control_left[i]) &&
+                      (cw_control_right[i] == rhs.cw_control_right[i]);
         }
         return result & (fss::Equal(output, rhs.output));
     }
@@ -207,15 +218,40 @@ struct DpfKey {
     }
 
     /**
-     * @brief Print the details of the DpfKey.
-     * @param n The size of input in bits.
-     * @param params DpfParameters for the DpfKey.
-     * @param debug Toggle this flag to enable/disable debugging.
+     * @brief Get the size of the serialized DpfKey.
+     * @return size_t The size of the serialized DpfKey.
      */
-    void PrintDpfKey(const bool debug) const;
+    size_t GetSerializedSize() const {
+        return serialized_size_;
+    }
+
+    /**
+     * @brief Calculate the size of the serialized DpfKey.
+     * @return size_t The size of the serialized DpfKey.
+     */
+    size_t CalculateSerializedSize() const;
+
+    /**
+     * @brief Serialize the DpfKey.
+     * @param buffer The buffer to store the serialized DpfKey.
+     */
+    void Serialize(std::vector<uint8_t> &buffer) const;
+
+    /**
+     * @brief Deserialize the DpfKey.
+     * @param data The serialized DpfKey.
+     */
+    void Deserialize(const std::vector<uint8_t> &buffer);
+
+    /**
+     * @brief Print the details of the DpfKey.
+     * @param detailed Flag to print detailed information.
+     */
+    void PrintDpfKey(const bool detailed = false) const;
 
 private:
-    DpfParameters params_;
+    DpfParameters params_;          /**< DpfParameters for the DpfKey. */
+    size_t        serialized_size_; /**< The size of the serialized DpfKey. */
 };
 
 }    // namespace dpf

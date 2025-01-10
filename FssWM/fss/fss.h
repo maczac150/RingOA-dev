@@ -1,15 +1,29 @@
 #ifndef FSS_FSS_H_
 #define FSS_FSS_H_
 
-#include <emp-tool/emp-tool.h>
-
-#include "utils/logger.hpp"
-
-using namespace emp;
+#include <array>
+#include <cstdint>
+#include <immintrin.h>
+#include <string>
+#include <vector>
 
 namespace fsswm {
 
 namespace fss {
+
+using block = __m128i;
+
+inline block makeBlock(uint64_t high, uint64_t low) {
+    return _mm_set_epi64x(high, low);
+}
+
+inline bool getLSB(const block &x) {
+    return (x[0] & 1) == 1;
+}
+
+inline int log2floor(uint32_t x) {
+    return x == 0 ? -1 : 31 - __builtin_clz(x);
+}
 
 const block                zero_block       = makeBlock(0, 0);
 const block                one_block        = makeBlock(0, 1);
@@ -28,6 +42,13 @@ enum class FormatType
     kHex,    // Hexadecimal
     kDec     // Decimal
 };
+
+/**
+ * @brief Get the least significant bit of a block.
+ * @param x The block to be checked.
+ * @return The least significant bit of the block.
+ */
+bool getLSB(const block &x);
 
 /**
  * @brief Converts a block to a std::string representation.
@@ -76,6 +97,13 @@ void ConvertVector(const block &b, const uint32_t split_bit, const uint32_t bits
  * @param output The vector to store the output values.
  */
 void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output);
+
+void ConvertVector(const std::vector<block> &b1,
+                   const std::vector<block> &b2,
+                   const uint32_t            split_bit,
+                   const uint32_t            bitsize,
+                   std::vector<uint32_t>    &out1,
+                   std::vector<uint32_t>    &out2);
 
 /**
  * @brief Split a block into some blocks and get the `idx`-th value.

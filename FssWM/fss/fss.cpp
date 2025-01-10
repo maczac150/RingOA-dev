@@ -1,12 +1,15 @@
-#include "fss.hpp"
+#include "fss.h"
 
-#include "utils/rng.hpp"
+#include <bitset>
+
+#include "FssWM/utils/logger.h"
+#include "FssWM/utils/rng.h"
 
 namespace fsswm {
 namespace fss {
 
 // Function to convert an emp::block to a string in the specified format
-std::string ToString(const emp::block &blk, FormatType format) {
+std::string ToString(const block &blk, FormatType format) {
     // Retrieve block data as two 64-bit values
     uint64_t *data = (uint64_t *)&blk;
     uint64_t  high = data[1];    // Higher 64 bits
@@ -56,13 +59,13 @@ void ConvertVector(const block &b, const uint32_t split_bit, const uint32_t bits
     if (split_bit == 2) {
         alignas(16) uint32_t data32[4];
         _mm_store_si128(reinterpret_cast<__m128i *>(data32), b);
-        for (uint32_t i = 0; i < 4; i++) {
+        for (uint32_t i = 0; i < 4; ++i) {
             output[i] = data32[i] & mask;
         }
     } else if (split_bit == 3) {
         alignas(16) uint16_t data16[8];
         _mm_store_si128(reinterpret_cast<__m128i *>(data16), b);
-        for (uint32_t i = 0; i < 8; i++) {
+        for (uint32_t i = 0; i < 8; ++i) {
             output[i] = data16[i] & mask;
         }
     } else if (split_bit == 7) {
@@ -74,7 +77,7 @@ void ConvertVector(const block &b, const uint32_t split_bit, const uint32_t bits
         }
     } else {
         utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -85,7 +88,7 @@ void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const 
 
     if (split_bit == 2) {
         alignas(16) uint32_t data32[4];
-        for (size_t i = 0; i < num_nodes; i++) {
+        for (size_t i = 0; i < num_nodes; ++i) {
             _mm_store_si128(reinterpret_cast<__m128i *>(data32), b[i]);
             output[i * remaining_nodes + 0] = data32[0] & mask;
             output[i * remaining_nodes + 1] = data32[1] & mask;
@@ -94,7 +97,7 @@ void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const 
         }
     } else if (split_bit == 3) {
         alignas(16) uint16_t data16[8];
-        for (size_t i = 0; i < num_nodes; i++) {
+        for (size_t i = 0; i < num_nodes; ++i) {
             _mm_store_si128(reinterpret_cast<__m128i *>(data16), b[i]);
             output[i * remaining_nodes + 0] = data16[0] & mask;
             output[i * remaining_nodes + 1] = data16[1] & mask;
@@ -107,7 +110,63 @@ void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const 
         }
     } else {
         utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
+    }
+}
+
+void ConvertVector(const std::vector<block> &b1,
+                   const std::vector<block> &b2,
+                   const uint32_t            split_bit,
+                   const uint32_t            bitsize,
+                   std::vector<uint32_t>    &out1,
+                   std::vector<uint32_t>    &out2) {
+    uint32_t mask            = (1U << bitsize) - 1U;
+    uint32_t num_nodes       = b1.size();
+    uint32_t remaining_nodes = 1U << split_bit;
+
+    if (split_bit == 2) {
+        alignas(16) uint32_t data32[4];
+        for (size_t i = 0; i < num_nodes; ++i) {
+            _mm_store_si128(reinterpret_cast<__m128i *>(data32), b1[i]);
+            out1[i * remaining_nodes + 0] = data32[0] & mask;
+            out1[i * remaining_nodes + 1] = data32[1] & mask;
+            out1[i * remaining_nodes + 2] = data32[2] & mask;
+            out1[i * remaining_nodes + 3] = data32[3] & mask;
+        }
+        for (size_t i = 0; i < num_nodes; ++i) {
+            _mm_store_si128(reinterpret_cast<__m128i *>(data32), b2[i]);
+            out2[i * remaining_nodes + 0] = data32[0] & mask;
+            out2[i * remaining_nodes + 1] = data32[1] & mask;
+            out2[i * remaining_nodes + 2] = data32[2] & mask;
+            out2[i * remaining_nodes + 3] = data32[3] & mask;
+        }
+    } else if (split_bit == 3) {
+        alignas(16) uint16_t data16[8];
+        for (size_t i = 0; i < num_nodes; ++i) {
+            _mm_store_si128(reinterpret_cast<__m128i *>(data16), b1[i]);
+            out1[i * remaining_nodes + 0] = data16[0] & mask;
+            out1[i * remaining_nodes + 1] = data16[1] & mask;
+            out1[i * remaining_nodes + 2] = data16[2] & mask;
+            out1[i * remaining_nodes + 3] = data16[3] & mask;
+            out1[i * remaining_nodes + 4] = data16[4] & mask;
+            out1[i * remaining_nodes + 5] = data16[5] & mask;
+            out1[i * remaining_nodes + 6] = data16[6] & mask;
+            out1[i * remaining_nodes + 7] = data16[7] & mask;
+        }
+        for (size_t i = 0; i < num_nodes; ++i) {
+            _mm_store_si128(reinterpret_cast<__m128i *>(data16), b2[i]);
+            out2[i * remaining_nodes + 0] = data16[0] & mask;
+            out2[i * remaining_nodes + 1] = data16[1] & mask;
+            out2[i * remaining_nodes + 2] = data16[2] & mask;
+            out2[i * remaining_nodes + 3] = data16[3] & mask;
+            out2[i * remaining_nodes + 4] = data16[4] & mask;
+            out2[i * remaining_nodes + 5] = data16[5] & mask;
+            out2[i * remaining_nodes + 6] = data16[6] & mask;
+            out2[i * remaining_nodes + 7] = data16[7] & mask;
+        }
+    } else {
+        utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -130,7 +189,7 @@ uint32_t GetValueFromSplitBlock(block &b, const uint32_t split_bit, const uint32
         }
     } else {
         utils::Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 }
 

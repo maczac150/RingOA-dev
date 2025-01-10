@@ -1,169 +1,28 @@
-#include "file_io.hpp"
+#include "file_io.h"
 
-#include <fstream>
-#include <sstream>
-
-#include "logger.hpp"
-
+namespace fsswm {
 namespace utils {
 
-FileIo::FileIo(const bool debug, const std::string ext)
-    : debug_(debug), ext_(ext) {
-}
-
-void FileIo::WriteValueToFile(const std::string &file_path, const uint32_t data, const bool append) {
-    // Open the file
-    std::ofstream file;
-    if (!OpenFile(file, file_path, LOC, append)) {
-        exit(EXIT_FAILURE);
-    }
-    // Write the value to the file
-    file << data << "\n";
-    // Close the file
-    file.close();
-    utils::Logger::DebugLog(LOC, "Value has been written to the file (" + file_path + this->ext_ + ")", this->debug_);
-}
-
-void FileIo::WriteVectorToFile(const std::string &file_path, const std::vector<uint32_t> &data, const bool append) {
-    // Open the file
-    std::ofstream file;
-    if (!OpenFile(file, file_path, LOC, append)) {
-        exit(EXIT_FAILURE);
-    }
-    // Write the vector to the file
-    file << data.size() << "\n";
-    for (size_t i = 0; i < data.size(); i++) {
-        file << data[i];
-        if (i < data.size() - 1) {
-            file << ",";
-        }
-    }
-    file << "\n";
-    // Close the file
-    file.close();
-    utils::Logger::DebugLog(LOC, "Numbers have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
-}
-
-void FileIo::WriteStringToFile(const std::string &file_path, const std::string &data, const bool append) {
-    // Open the file
-    std::ofstream file;
-    if (!OpenFile(file, file_path, LOC, append)) {
-        exit(EXIT_FAILURE);
-    }
-    // Write the string to the file
-    file << data << "\n";
-    // Close the file
-    file.close();
-    utils::Logger::DebugLog(LOC, "String have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
-}
-
-void FileIo::WriteStringVectorToFile(const std::string &file_path, const std::vector<std::string> &data, const bool append) {
-    // Open the file
-    std::ofstream file;
-    if (!OpenFile(file, file_path, LOC, append)) {
-        exit(EXIT_FAILURE);
-    }
-    // Write the string vector to the file
-    for (size_t i = 0; i < data.size(); i++) {
-        file << data[i] << "\n";
-    }
-    // Close the file
-    file.close();
-    utils::Logger::DebugLog(LOC, "Strings have been written to the file (" + file_path + this->ext_ + ")", this->debug_);
-}
-
-void FileIo::ReadValueFromFile(const std::string &file_path, uint32_t &data) {
-    // Open the file for reading
-    std::ifstream file;
-    if (OpenFile(file, file_path, LOC)) {
-        file >> data;
-    }
-    // Close the file
-    file.close();
-    utils::Logger::DebugLog(LOC, "Value read from file (" + file_path + this->ext_ + "): " + std::to_string(data), this->debug_);
-}
-
-void FileIo::ReadVectorFromFile(const std::string &file_path, std::vector<uint32_t> &data) {
-    // Open the file
-    std::ifstream file;
-    if (OpenFile(file, file_path, LOC)) {
-        // Read the number of elements from the first line of the file
-        uint32_t              size = ReadNumCountFromFile(file, LOC);
-        std::vector<uint32_t> vec;
-        vec.reserve(size);
-        std::string line;
-        if (std::getline(file, line)) {
-            SplitStringToUint32(line, vec);
-        }
-
-        // Close the file
-        file.close();
-        data = std::move(vec);
-    }
-}
-
-void FileIo::ReadStringFromFile(const std::string &file_path, std::string &data) {
-    // Open the file
-    std::ifstream file;
-    if (OpenFile(file, file_path, LOC)) {
-        std::string line;
-        std::getline(file, line);
-        // Close the file
-        file.close();
-        data = line;
-    }
-}
-
+// Clears the contents of the specified file
 void FileIo::ClearFileContents(const std::string &file_path) {
-    // Open and clear the file
-    std::ofstream file;
-    if (OpenFile(file, file_path, LOC)) {
-        // Close the file
-        file.close();
-    }
+    std::ofstream file(AddExtension(file_path), std::ios::trunc);    // Truncate mode clears the content
+    file.close();
 }
 
-bool FileIo::OpenFile(std::ofstream &file, const std::string &file_path, const std::string &location, const bool append) {
-    std::ios_base::openmode mode = append ? std::ios::app : std::ios::trunc;
-    file.open(file_path + this->ext_, mode);
-    if (!file.is_open()) {
-        utils::Logger::FatalLog(location, "Failed to open file for writing. (" + file_path + this->ext_ + ")");
-        return false;
-    }
-    return true;
+// Opens a file for writing
+bool FileIo::OpenFileForWrite(std::ofstream &file, const std::string &file_path, bool append) {
+    std::ios::openmode mode = std::ios::out;
+    if (append)
+        mode |= std::ios::app;    // Append mode
+    file.open(file_path, mode);
+    return file.is_open();
 }
 
-bool FileIo::OpenFile(std::ifstream &file, const std::string &file_path, const std::string &location) {
-    file.open(file_path + this->ext_);
-    if (!file.is_open()) {
-        utils::Logger::FatalLog(location, "Failed to open file for reading. (" + file_path + this->ext_ + ")");
-        return false;
-    }
-    return true;
-}
-
-uint32_t FileIo::ReadNumCountFromFile(std::ifstream &file, const std::string &location) {
-    uint32_t    count = 0;
-    std::string line;
-    // Read the number of elements from the first line of the file
-    if (std::getline(file, line)) {
-        std::istringstream iss(line);
-        if (!(iss >> count)) {
-            utils::Logger::FatalLog(location, "Invalid file format: Unable to read the number of elements");
-            return 0U;
-        }
-    }
-    return count;
-}
-
-void FileIo::SplitStringToUint32(const std::string &str, std::vector<uint32_t> &data) {
-    std::istringstream iss(str);
-    std::string        token;
-
-    while (std::getline(iss, token, ',')) {
-        uint32_t value = std::stoull(token);
-        data.push_back(value);
-    }
+// Opens a file for reading
+bool FileIo::OpenFileForRead(std::ifstream &file, const std::string &file_path) {
+    file.open(file_path, std::ios::in);    // Read mode
+    return file.is_open();
 }
 
 }    // namespace utils
+}    // namespace fsswm

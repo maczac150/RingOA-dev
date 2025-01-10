@@ -2,16 +2,11 @@
 #define UTILS_TIMER_H_
 
 #include <chrono>
-#include <fstream>
-#include <iostream>
-#include <list>
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "utils/logger.hpp"
-
+namespace fsswm {
 namespace utils {
 
 /**
@@ -81,7 +76,7 @@ public:
      * @brief Print all results of the timers.
      * @param unit The time unit to print.
      */
-    void PrintAllResults(const TimeUnit unit = MILLISECONDS, const bool show_details = false);
+    void PrintAllResults(const std::string &msg = "", const TimeUnit unit = MILLISECONDS, const bool show_details = false);
 
 private:
     /**
@@ -125,5 +120,6 @@ private:
 };
 
 }    // namespace utils
+}    // namespace fsswm
 
 #endif    // UTILS_TIMER_H_

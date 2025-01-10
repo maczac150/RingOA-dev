@@ -11,7 +11,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
-# Find dependencies
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
+
+# ############################
+# Dependencies
+# ############################
+
 # Set third-party directory
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
 
@@ -36,10 +43,9 @@ if(NOT emp-tool_FOUND)
     message(FATAL_ERROR "emp-tool library not found. Ensure it is installed on the system.")
 endif()
 
-# Set profile flags
-set(CMAKE_C_FLAGS_PROFILE "-pg -O2 -g")
-set(CMAKE_CXX_FLAGS_PROFILE "-pg -O2 -g")
-set(CMAKE_EXE_LINKER_FLAGS_PROFILE "-pg -O2 -g")
+# ############################
+# Build Settings
+# ############################
 
 # Check build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -49,6 +55,35 @@ endif()
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|Profile")
     message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Supported types are Debug and Release.")
 endif()
+
+# Set build flags
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -flto -funroll-loops")
+elseif(CMAKE_BUILD_TYPE MATCHES Debug)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og -g -Wall -Wextra")
+elseif(CMAKE_BUILD_TYPE MATCHES Profile)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -fno-omit-frame-pointer")
+endif()
+
+# ############################
+# Logging Level Settings
+# ############################
+
+# Set default log levels based on build type
+if(NOT DEFINED LOG_LEVEL) # LOG_LEVELがユーザーによって指定されていない場合のみ設定
+    if(CMAKE_BUILD_TYPE MATCHES Release)
+        set(LOG_LEVEL 4) # INFO
+        set(USE_FIXED_RANDOM_SEED 0)
+    elseif(CMAKE_BUILD_TYPE MATCHES Debug)
+        set(LOG_LEVEL 5) # DEBUG
+        add_compile_definitions(USE_FIXED_RANDOM_SEED)
+    elseif(CMAKE_BUILD_TYPE MATCHES Profile)
+        set(LOG_LEVEL 0) # NONE
+    endif()
+endif()
+
+# Pass the LOG_LEVEL definition to the compiler
+add_compile_definitions(LOG_LEVEL=${LOG_LEVEL})
 
 # Display project configuration info
 message(STATUS "--------------------------------------------")
@@ -71,10 +106,15 @@ message(STATUS "  Boost Version             : ${Boost_VERSION}")
 message(STATUS "  Boost Include Directories : ${Boost_INCLUDE_DIRS}")
 message(STATUS "  Boost Libraries           : ${Boost_LIBRARIES}")
 message(STATUS "  Boost Library Dirs        : ${Boost_LIBRARY_DIRS}")
+message(STATUS "[Settings]")
+message(STATUS "  LOG_LEVEL                 : ${LOG_LEVEL}")
 message(STATUS "--------------------------------------------")
 
+# ############################
 # Build FssWM
+# ############################
 
 # Add the source files
 add_subdirectory(FssWM)
 add_subdirectory(FssWM_Tests)
+add_subdirectory(FssWM_Bench)

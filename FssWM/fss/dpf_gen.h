@@ -1,13 +1,22 @@
 #ifndef FSS_DPF_GEN_H_
 #define FSS_DPF_GEN_H_
 
-#include "dpf_key.hpp"
-#include "prg.hpp"
+#include "dpf_key.h"
 
 namespace fsswm {
 namespace fss {
+
+namespace prg {
+
+class PseudoRandomGenerator;
+
+}    // namespace prg
+
 namespace dpf {
 
+/**
+ * @brief A class to generate a Distributed Point Function (DPF) key.
+ */
 class DpfKeyGenerator {
 public:
     /**
@@ -18,11 +27,8 @@ public:
     /**
      * @brief Parameterized constructor for DpfKeyGenerator.
      * @param params DpfParameters for the DpfKey.
-     * @param debug Toggle this flag to enable/disable debugging.
      */
-    DpfKeyGenerator(const DpfParameters &params, const bool debug = false)
-        : params_(params), debug_(debug) {
-    }
+    explicit DpfKeyGenerator(const DpfParameters &params);
 
     /**
      * @brief Generate a DPF key for the given alpha and beta values.
@@ -49,10 +55,8 @@ public:
     void GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
 
 private:
-    DpfParameters params_; /**< DPF parameters for the DPF key. */
-    bool          debug_;  /**< Flag to enable/disable debugging. */
-
-    prg::PseudoRandomGenerator &G_ = prg::PseudoRandomGeneratorSingleton::GetInstance(); /**< Pseudo-random generator for the DPF key. */
+    DpfParameters               params_; /**< DPF parameters for the DPF key. */
+    prg::PseudoRandomGenerator &G_;      /**< PseudoRandomGenerator for the DPF key. */
 
     /**
      * @brief Validate the input values.

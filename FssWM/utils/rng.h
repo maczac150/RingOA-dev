@@ -12,6 +12,7 @@ std::mt19937       mtrng(kFixedSeed);    // Mersenne Twister 19937 random number
 
 }    // namespace
 
+namespace fsswm {
 namespace utils {
 
 using byte = uint8_t;    // Alias for a byte
@@ -42,7 +43,7 @@ private:
     template <typename T>
     static T Rand() {
 
-#ifdef RANDOM_SEED_FIXED
+#ifdef USE_FIXED_RANDOM_SEED
         std::uniform_int_distribution<T> dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
         return dist(mtrng);
 #else
@@ -50,10 +51,10 @@ private:
         int                         success = RAND_bytes(rand.data(), rand.size());
         if (!success) {
             std::perror("failed to create randomness");
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         } else {
             T rand_num = rand[0];
-            for (int i = 1; i < static_cast<int>(sizeof(T)); i++) {
+            for (int i = 1; i < static_cast<int>(sizeof(T)); ++i) {
                 rand_num <<= 8;
                 rand_num |= static_cast<T>(rand[i]);
             }
@@ -64,5 +65,6 @@ private:
 };
 
 }    // namespace utils
+}    // namespace fsswm
 
 #endif    // RNG_RNG_H_

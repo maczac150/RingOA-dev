@@ -1,26 +1,29 @@
+# ############################
 # Build FssWM_Tests
+# ############################
 
-# Find all source files in the current directory
-file(GLOB_RECURSE TESTS_SOURCES *.cpp)
+# Set the project name
+project(FssWM_Tests)
 
-# Remove the main.cpp file from the list of source files
-list(REMOVE_ITEM TESTS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+# Add the test sources
+set(TEST_SOURCES
+    utils/timer_test.cpp
+    utils/network_test.cpp
+    utils/file_io_test.cpp
+    fss/prg_test.cpp
+    fss/dpf_test.cpp
+    sharing/additive_test.cpp
+    test_main.cpp
+)
 
-# Add the executables
-add_executable(test ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${TESTS_SOURCES})
+# Add the executable target
+add_executable(test_FssWM ${TEST_SOURCES})
 
-# Set compile options for executables
-target_compile_features(test PUBLIC cxx_std_20)
-target_compile_options(test PRIVATE -Wall -maes -msse4.1 -Wno-ignored-attributes)
+# Include directories
+target_include_directories(test_FssWM PRIVATE ${CMAKE_SOURCE_DIR})
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(test PRIVATE LOG_LEVEL_DEBUG RANDOM_SEED_FIXED)
-else()
-    target_compile_definitions(test PRIVATE LOGGING_ENABLED)
-endif()
-
-# Include directories for executables
-target_include_directories(test PRIVATE ${EMP-TOOL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/..)
-
-# Link libraries to the executables
-target_link_libraries(test PRIVATE fss -lcrypto ${EMP-TOOL_LIBRARIES} oc::cryptoTools oc::tests_cryptoTools)
+# Link the libraries
+target_link_libraries(test_FssWM
+    FssWM
+    oc::tests_cryptoTools
+)
