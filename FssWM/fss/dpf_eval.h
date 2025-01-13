@@ -181,18 +181,6 @@ private:
      * @return block The output block for the DPF key.
      */
     block ComputeOutputBlock(const block &final_seed, bool final_control_bit, const DpfKey &key) const;
-
-    /**
-     * @brief Compute the output blocks for the DPF key.
-     * @param final_seeds The final seeds for the DPF key.
-     * @param final_control_bits The final control bits for the DPF key.
-     * @param key The DPF key to evaluate.
-     * @param outputs The output blocks for the DPF key.
-     */
-    void ComputeOutputBlocks(const std::vector<block> &final_seeds,
-                             const std::vector<bool>  &final_control_bits,
-                             const DpfKey             &key,
-                             std::vector<block>       &outputs) const;
 };
 
 }    // namespace dpf

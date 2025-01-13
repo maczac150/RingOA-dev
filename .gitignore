@@ -1,6 +1,6 @@
 # Build files
 out/
-log/
+data/
 
 # Third party libraries
 thirdparty/*

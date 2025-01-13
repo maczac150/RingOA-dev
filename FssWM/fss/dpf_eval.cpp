@@ -340,9 +340,9 @@ void DpfEvaluator::EvaluateNextSeed(
 #endif
 
     // Apply correction word if control bit is true
-    const block mask = key.cw_seed[current_level] & zero_and_all_one[current_control_bit];
-    expanded_seeds[kLeft] ^= mask;
-    expanded_seeds[kRight] ^= mask;
+    const block mask       = key.cw_seed[current_level] & zero_and_all_one[current_control_bit];
+    expanded_seeds[kLeft]  = _mm_xor_si128(expanded_seeds[kLeft], mask);
+    expanded_seeds[kRight] = _mm_xor_si128(expanded_seeds[kRight], mask);
 
     const bool control_mask_left  = key.cw_control_left[current_level] & current_control_bit;
     const bool control_mask_right = key.cw_control_right[current_level] & current_control_bit;
@@ -361,15 +361,14 @@ void DpfEvaluator::FullDomainRecursion(const DpfKey &key, std::vector<block> &ou
 }
 
 void DpfEvaluator::FullDomainIterativeSingle(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu = params_.GetTerminateBitsize();
+    uint32_t nu            = params_.GetTerminateBitsize();
+    uint32_t remaining_bit = params_.GetInputBitsize() - nu;
 
     // Initialize the variables
-    uint32_t           current_level = 0;
-    uint32_t           current_idx   = 0;
-    uint32_t           last_depth    = nu;
-    uint32_t           last_idx      = 1U << last_depth;
-    std::vector<block> output_seeds(last_idx, zero_block);
-    std::vector<bool>  output_control_bits(last_idx, false);
+    uint32_t current_level = 0;
+    uint32_t current_idx   = 0;
+    uint32_t last_depth    = nu;
+    uint32_t last_idx      = 1U << last_depth;
 
     // Store the seeds and control bits
     block              expanded_seed;
@@ -402,7 +401,7 @@ void DpfEvaluator::FullDomainIterativeSingle(const DpfKey &key, std::vector<bloc
 
             // Apply correction word if control bit is true
             bool cw_control_bit = current_bit ? key.cw_control_right[current_level] : key.cw_control_left[current_level];
-            expanded_seed ^= (key.cw_seed[current_level] & zero_and_all_one[prev_control_bits[current_level]]);
+            expanded_seed       = _mm_xor_si128(expanded_seed, _mm_and_si128(key.cw_seed[current_level], zero_and_all_one[prev_control_bits[current_level]]));
             expanded_control_bit ^= (cw_control_bit & prev_control_bits[current_level]);
 
             // Update the current level
@@ -413,9 +412,24 @@ void DpfEvaluator::FullDomainIterativeSingle(const DpfKey &key, std::vector<bloc
             prev_control_bits[current_level] = expanded_control_bit;
         }
 
-        // Get the seed and control bit from prev_seeds and prev_control_bits
-        output_seeds[current_idx]        = prev_seeds[current_level];
-        output_control_bits[current_idx] = prev_control_bits[current_level];
+        if (remaining_bit == 2) {
+            if (key.party_id) {
+                outputs[current_idx] = _mm_sub_epi32(zero_block, _mm_add_epi32(prev_seeds[current_level], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level]], key.output)));
+            } else {
+                outputs[current_idx] = _mm_add_epi32(prev_seeds[current_level], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level]], key.output));
+            }
+        } else if (remaining_bit == 3) {
+            if (key.party_id) {
+                outputs[current_idx] = _mm_sub_epi16(zero_block, _mm_add_epi16(prev_seeds[current_level], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level]], key.output)));
+            } else {
+                outputs[current_idx] = _mm_add_epi16(prev_seeds[current_level], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level]], key.output));
+            }
+        } else if (remaining_bit == 7) {
+            outputs[current_idx] = _mm_xor_si128(prev_seeds[current_level], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level]], key.output));
+        } else {
+            Logger::FatalLog(LOC, "Invalid remaining bit: " + std::to_string(remaining_bit));
+            std::exit(EXIT_FAILURE);
+        }
 
         // Update the current index
         int shift = (current_idx + 1U) ^ current_idx;
@@ -424,29 +438,25 @@ void DpfEvaluator::FullDomainIterativeSingle(const DpfKey &key, std::vector<bloc
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    for (uint32_t i = 0; i < last_idx; ++i) {
-        Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(output_seeds[i]));
+    for (uint32_t i = 0; i < outputs.size(); ++i) {
+        Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(outputs[i]));
     }
 #endif
-
-    // Compute the output values
-    ComputeOutputBlocks(output_seeds, output_control_bits, key, outputs);
 }
 
 void DpfEvaluator::FullDomainIterativeDouble(const DpfKey &key, std::vector<block> &outputs) const {
-    uint32_t nu = params_.GetTerminateBitsize();
+    uint32_t nu            = params_.GetTerminateBitsize();
+    uint32_t remaining_bit = params_.GetInputBitsize() - nu;
 
     // Get the seed and control bit from the given DPF key
     block seed        = key.init_seed;
     bool  control_bit = key.party_id != 0;
 
     // Initialize the variables
-    uint32_t           current_level = 0;
-    uint32_t           current_idx   = 0;
-    uint32_t           last_depth    = nu;
-    uint32_t           last_idx      = 1U << last_depth;
-    std::vector<block> output_seeds(last_idx, zero_block);
-    std::vector<bool>  output_control_bits(last_idx, false);
+    uint32_t current_level = 0;
+    uint32_t current_idx   = 0;
+    uint32_t last_depth    = nu;
+    uint32_t last_idx      = 1U << last_depth;
 
     // Store the expanded seeds and control bits
     std::array<block, 2> expanded_seeds;
@@ -475,12 +485,48 @@ void DpfEvaluator::FullDomainIterativeDouble(const DpfKey &key, std::vector<bloc
             current_level++;
         }
 
-        // Get the seed and control bit from the queue
-        for (int i = 0; i < 2; ++i) {
-            output_seeds[current_idx + i]        = seed_stack.top();
-            output_control_bits[current_idx + i] = control_bit_stack.top();
+        if (remaining_bit == 2) {
+            if (key.party_id) {
+                outputs[current_idx + 0] = _mm_sub_epi32(zero_block, _mm_add_epi32(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output)));
+                seed_stack.pop();
+                control_bit_stack.pop();
+                outputs[current_idx + 1] = _mm_sub_epi32(zero_block, _mm_add_epi32(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output)));
+                seed_stack.pop();
+                control_bit_stack.pop();
+            } else {
+                outputs[current_idx + 0] = _mm_add_epi32(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output));
+                seed_stack.pop();
+                control_bit_stack.pop();
+                outputs[current_idx + 1] = _mm_add_epi32(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output));
+                seed_stack.pop();
+                control_bit_stack.pop();
+            }
+        } else if (remaining_bit == 3) {
+            if (key.party_id) {
+                outputs[current_idx + 0] = _mm_sub_epi16(zero_block, _mm_add_epi16(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output)));
+                seed_stack.pop();
+                control_bit_stack.pop();
+                outputs[current_idx + 1] = _mm_sub_epi16(zero_block, _mm_add_epi16(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output)));
+                seed_stack.pop();
+                control_bit_stack.pop();
+            } else {
+                outputs[current_idx] = _mm_add_epi16(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output));
+                seed_stack.pop();
+                control_bit_stack.pop();
+                outputs[current_idx + 1] = _mm_add_epi16(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output));
+                seed_stack.pop();
+                control_bit_stack.pop();
+            }
+        } else if (remaining_bit == 7) {
+            outputs[current_idx] = _mm_xor_si128(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output));
             seed_stack.pop();
             control_bit_stack.pop();
+            outputs[current_idx + 1] = _mm_xor_si128(seed_stack.top(), _mm_and_si128(zero_and_all_one[control_bit_stack.top()], key.output));
+            seed_stack.pop();
+            control_bit_stack.pop();
+        } else {
+            Logger::FatalLog(LOC, "Invalid remaining bit: " + std::to_string(remaining_bit));
+            std::exit(EXIT_FAILURE);
         }
 
         // Update the current index
@@ -490,13 +536,10 @@ void DpfEvaluator::FullDomainIterativeDouble(const DpfKey &key, std::vector<bloc
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    for (uint32_t i = 0; i < last_idx; ++i) {
-        Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(output_seeds[i]));
+    for (uint32_t i = 0; i < outputs.size(); ++i) {
+        Logger::DebugLog(LOC, "Output seed (" + std::to_string(i) + "): " + ToString(outputs[i]));
     }
 #endif
-
-    // Compute the output values
-    ComputeOutputBlocks(output_seeds, output_control_bits, key, outputs);
 }
 
 void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const {
@@ -593,26 +636,26 @@ void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector
         if (remaining_bit == 2) {
             if (key.party_id) {
                 for (uint32_t i = 0; i < 8; ++i) {
-                    outputs[i * last_idx + current_idx] = _mm_sub_epi32(zero_block, _mm_add_epi32(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output));
+                    outputs[i * last_idx + current_idx] = _mm_sub_epi32(zero_block, _mm_add_epi32(prev_seeds[current_level][i], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][i]], key.output)));
                 }
             } else {
                 for (uint32_t i = 0; i < 8; ++i) {
-                    outputs[i * last_idx + current_idx] = _mm_add_epi32(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output);
+                    outputs[i * last_idx + current_idx] = _mm_add_epi32(prev_seeds[current_level][i], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][i]], key.output));
                 }
             }
         } else if (remaining_bit == 3) {
             if (key.party_id) {
                 for (uint32_t i = 0; i < 8; ++i) {
-                    outputs[i * last_idx + current_idx] = _mm_sub_epi16(zero_block, _mm_add_epi16(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output));
+                    outputs[i * last_idx + current_idx] = _mm_sub_epi16(zero_block, _mm_add_epi16(prev_seeds[current_level][i], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][i]], key.output)));
                 }
             } else {
                 for (uint32_t i = 0; i < 8; ++i) {
-                    outputs[i * last_idx + current_idx] = _mm_add_epi16(prev_seeds[current_level][i], zero_and_all_one[prev_control_bits[current_level][i]] & key.output);
+                    outputs[i * last_idx + current_idx] = _mm_add_epi16(prev_seeds[current_level][i], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][i]], key.output));
                 }
             }
         } else if (remaining_bit == 7) {
             for (uint32_t i = 0; i < 8; ++i) {
-                outputs[i * last_idx + current_idx] = prev_seeds[current_level][i] ^ (zero_and_all_one[prev_control_bits[current_level][i]] & key.output);
+                outputs[i * last_idx + current_idx] = _mm_xor_si128(prev_seeds[current_level][i], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][i]], key.output));
             }
         } else {
             Logger::FatalLog(LOC, "Invalid remaining bit: " + std::to_string(remaining_bit));
@@ -877,8 +920,8 @@ void DpfEvaluator::FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector
 
             // Apply correction word if control bit is true
             for (uint32_t i = 0; i < 8; ++i) {
-                expanded_seeds[kLeft][i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[current_control_bits[i]]);
-                expanded_seeds[kRight][i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[current_control_bits[i]]);
+                expanded_seeds[kLeft][i]  = _mm_xor_si128(expanded_seeds[kLeft][i], _mm_and_si128(key.cw_seed[current_level + 3], zero_and_all_one[current_control_bits[i]]));
+                expanded_seeds[kRight][i] = _mm_xor_si128(expanded_seeds[kRight][i], _mm_and_si128(key.cw_seed[current_level + 3], zero_and_all_one[current_control_bits[i]]));
                 expanded_control_bits[kLeft][i] ^= (key.cw_control_left[current_level + 3] & current_control_bits[i]);
                 expanded_control_bits[kRight][i] ^= (key.cw_control_right[current_level + 3] & current_control_bits[i]);
             }
@@ -899,11 +942,11 @@ void DpfEvaluator::FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector
                 auto &tmp_control_bits = control_bit_stacks.top();
                 if (key.party_id) {
                     for (uint32_t j = 0; j < 8; j++) {
-                        outputs[j * last_idx + current_idx + i] = _mm_sub_epi32(zero_block, _mm_add_epi32(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output));
+                        outputs[j * last_idx + current_idx + i] = _mm_sub_epi32(zero_block, _mm_add_epi32(tmp_seeds[j], _mm_and_si128(zero_and_all_one[tmp_control_bits[j]], key.output)));
                     }
                 } else {
                     for (uint32_t j = 0; j < 8; j++) {
-                        outputs[j * last_idx + current_idx + i] = _mm_add_epi32(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output);
+                        outputs[j * last_idx + current_idx + i] = _mm_add_epi32(tmp_seeds[j], _mm_and_si128(zero_and_all_one[tmp_control_bits[j]], key.output));
                     }
                 }
                 seed_stacks.pop();
@@ -915,11 +958,11 @@ void DpfEvaluator::FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector
                 auto &tmp_control_bits = control_bit_stacks.top();
                 if (key.party_id) {
                     for (uint32_t j = 0; j < 8; j++) {
-                        outputs[j * last_idx + current_idx + i] = _mm_sub_epi16(zero_block, _mm_add_epi16(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output));
+                        outputs[j * last_idx + current_idx + i] = _mm_sub_epi16(zero_block, _mm_add_epi16(tmp_seeds[j], _mm_and_si128(zero_and_all_one[tmp_control_bits[j]], key.output)));
                     }
                 } else {
                     for (uint32_t j = 0; j < 8; j++) {
-                        outputs[j * last_idx + current_idx + i] = _mm_add_epi16(tmp_seeds[j], zero_and_all_one[tmp_control_bits[j]] & key.output);
+                        outputs[j * last_idx + current_idx + i] = _mm_add_epi16(tmp_seeds[j], _mm_and_si128(zero_and_all_one[tmp_control_bits[j]], key.output));
                     }
                 }
                 seed_stacks.pop();
@@ -930,7 +973,7 @@ void DpfEvaluator::FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector
                 auto &tmp_seeds        = seed_stacks.top();
                 auto &tmp_control_bits = control_bit_stacks.top();
                 for (uint32_t j = 0; j < 8; j++) {
-                    outputs[j * last_idx + current_idx + i] = tmp_seeds[j] ^ (zero_and_all_one[tmp_control_bits[j]] & key.output);
+                    outputs[j * last_idx + current_idx + i] = _mm_xor_si128(tmp_seeds[j], _mm_and_si128(zero_and_all_one[tmp_control_bits[j]], key.output));
                 }
                 seed_stacks.pop();
                 control_bit_stacks.pop();
@@ -989,66 +1032,25 @@ block DpfEvaluator::ComputeOutputBlock(const block &final_seed, bool final_contr
     if (remaining_bit == 2) {
         // Reduce 2 levels (2^2=4 nodes) of the tree (Additive share)
         if (key.party_id) {
-            output = _mm_sub_epi32(zero_block, _mm_add_epi32(final_seed, mask & key.output));
+            output = _mm_sub_epi32(zero_block, _mm_add_epi32(final_seed, _mm_and_si128(mask, key.output)));
         } else {
-            output = _mm_add_epi32(final_seed, mask & key.output);
+            output = _mm_add_epi32(final_seed, _mm_and_si128(mask, key.output));
         }
     } else if (remaining_bit == 3) {
         // Reduce 3 levels (2^3=8 nodes) of the tree (Additive share)
         if (key.party_id) {
-            output = _mm_sub_epi16(zero_block, _mm_add_epi16(final_seed, mask & key.output));
+            output = _mm_sub_epi16(zero_block, _mm_add_epi16(final_seed, _mm_and_si128(mask, key.output)));
         } else {
-            output = _mm_add_epi16(final_seed, mask & key.output);
+            output = _mm_add_epi16(final_seed, _mm_and_si128(mask, key.output));
         }
     } else if (remaining_bit == 7) {
         // Reduce 7 levels (2^7=128 nodes) of the tree (Additive share)
-        output = final_seed ^ (mask & key.output);
+        output = _mm_xor_si128(final_seed, _mm_and_si128(mask, key.output));
     } else {
         Logger::FatalLog(LOC, "Unsupported termination bitsize: " + std::to_string(remaining_bit));
         std::exit(EXIT_FAILURE);
     }
     return output;
-}
-
-void DpfEvaluator::ComputeOutputBlocks(const std::vector<block> &final_seeds,
-                                       const std::vector<bool>  &final_control_bits,
-                                       const DpfKey             &key,
-                                       std::vector<block>       &outputs) const {
-    // Compute the mask block and remaining bits
-    uint32_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
-
-    // Set the output block
-    if (remaining_bit == 2) {
-        if (key.party_id) {
-            // Reduce 2 levels (2^2=4 nodes) of the tree (Additive share)
-            for (uint32_t i = 0; i < final_seeds.size(); ++i) {
-                outputs[i] = _mm_sub_epi32(zero_block, _mm_add_epi32(final_seeds[i], zero_and_all_one[final_control_bits[i]] & key.output));
-            }
-        } else {
-            for (uint32_t i = 0; i < final_seeds.size(); ++i) {
-                outputs[i] = _mm_add_epi32(final_seeds[i], zero_and_all_one[final_control_bits[i]] & key.output);
-            }
-        }
-    } else if (remaining_bit == 3) {
-        // Reduce 3 levels (2^3=8 nodes) of the tree (Additive share)
-        if (key.party_id) {
-            for (uint32_t i = 0; i < final_seeds.size(); ++i) {
-                outputs[i] = _mm_sub_epi16(zero_block, _mm_add_epi16(final_seeds[i], zero_and_all_one[final_control_bits[i]] & key.output));
-            }
-        } else {
-            for (uint32_t i = 0; i < final_seeds.size(); ++i) {
-                outputs[i] = _mm_add_epi16(final_seeds[i], zero_and_all_one[final_control_bits[i]] & key.output);
-            }
-        }
-    } else if (remaining_bit == 7) {
-        // Reduce 7 levels (2^7=128 nodes) of the tree (Additive share)
-        for (uint32_t i = 0; i < final_seeds.size(); ++i) {
-            outputs[i] = final_seeds[i] ^ (zero_and_all_one[final_control_bits[i]] & key.output);
-        }
-    } else {
-        Logger::FatalLog(LOC, "Unsupported termination bitsize: " + std::to_string(remaining_bit));
-        std::exit(EXIT_FAILURE);
-    }
 }
 
 }    // namespace dpf

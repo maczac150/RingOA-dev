@@ -6,6 +6,7 @@
 #include "FssWM/fss/dpf_eval.h"
 #include "FssWM/fss/dpf_gen.h"
 #include "FssWM/fss/dpf_key.h"
+#include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/timer.h"
@@ -19,6 +20,7 @@ using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
 using fsswm::fss::dpf::DpfParameters;
 using fsswm::fss::dpf::EvalType;
+using fsswm::utils::FileIo;
 using fsswm::utils::Logger;
 using fsswm::utils::Mod;
 using fsswm::utils::SecureRng;
@@ -26,21 +28,23 @@ using fsswm::utils::TimerManager;
 using fsswm::utils::ToString;
 
 void Dpf_Fde_Bench() {
-    uint32_t              repeat     = 100;
+    uint32_t              repeat     = 500;
     std::vector<uint32_t> sizes      = {16, 20, 24, 27};
-    std::vector<uint32_t> sizes_all  = fsswm::utils::CreateSequence(10, 28);
+    std::vector<uint32_t> sizes_all  = fsswm::utils::CreateSequence(9, 30);
     std::vector<EvalType> eval_types = {
         // EvalType::kNaive,
         // EvalType::kRecursion,
-        // EvalType::kIterSingle,
-        // EvalType::kIterDouble,
+        EvalType::kIterSingle,
+        EvalType::kIterDouble,
         EvalType::kIterSingleBatch,
-        // EvalType::kIterDoubleBatch,
+        EvalType::kIterDoubleBatch,
     };
 
     Logger::InfoLog(LOC, "FDE Benchmark started");
     for (auto eval_type : eval_types) {
         for (auto size : sizes_all) {
+            // for (auto eval_type : eval_types) {
+            //     for (auto size : sizes) {
             DpfParameters   params(size, size, true, eval_type);
             uint32_t        n = params.GetInputBitsize();
             uint32_t        e = params.GetOutputBitsize();
@@ -58,7 +62,7 @@ void Dpf_Fde_Bench() {
             // Evaluate keys
             for (uint32_t i = 0; i < repeat; ++i) {
                 timer_mgr.Start();
-                std::vector<uint32_t> outputs_0;
+                std::vector<uint32_t> outputs_0(1U << size);
                 eval.EvaluateFullDomain(keys.first, outputs_0);
                 timer_mgr.Stop("n=" + std::to_string(size) + " (" + std::to_string(i) + ")");
             }
@@ -66,6 +70,8 @@ void Dpf_Fde_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
+    FileIo io(".log");
+    io.WriteToFile("./data/log/dpf_bench", Logger::GetLogList());
 }
 
 void Dpf_Fde_One_Bench() {
