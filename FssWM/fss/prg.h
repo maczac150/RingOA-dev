@@ -35,69 +35,15 @@ public:
      * @param seed_out The output blocks after encryption.
      * @param key_lr The AES key to be used.
      */
-    inline void Expand(std::array<block, 8> &seed_in, std::array<block, 8> &seed_out, bool key_lr) {
-        std::array<block, 8> tmp;
+    void Expand(std::array<block, 8> &seed_in, std::array<block, 8> &seed_out, bool key_lr);
 
-        tmp[0] = seed_in[0];
-        tmp[1] = seed_in[1];
-        tmp[2] = seed_in[2];
-        tmp[3] = seed_in[3];
-        tmp[4] = seed_in[4];
-        tmp[5] = seed_in[5];
-        tmp[6] = seed_in[6];
-        tmp[7] = seed_in[7];
-
-        emp::AES_ecb_encrypt_blks(tmp.data(), 8, &aes_key[key_lr]);
-
-        seed_out[0] = _mm_xor_si128(seed_in[0], tmp[0]);
-        seed_out[1] = _mm_xor_si128(seed_in[1], tmp[1]);
-        seed_out[2] = _mm_xor_si128(seed_in[2], tmp[2]);
-        seed_out[3] = _mm_xor_si128(seed_in[3], tmp[3]);
-        seed_out[4] = _mm_xor_si128(seed_in[4], tmp[4]);
-        seed_out[5] = _mm_xor_si128(seed_in[5], tmp[5]);
-        seed_out[6] = _mm_xor_si128(seed_in[6], tmp[6]);
-        seed_out[7] = _mm_xor_si128(seed_in[7], tmp[7]);
-    }
-
-    inline void Expand(std::array<block, 16> &seed_in, std::array<block, 16> &seed_out, bool key_lr) {
-        std::array<block, 16> tmp;
-
-        tmp[0]  = seed_in[0];
-        tmp[1]  = seed_in[1];
-        tmp[2]  = seed_in[2];
-        tmp[3]  = seed_in[3];
-        tmp[4]  = seed_in[4];
-        tmp[5]  = seed_in[5];
-        tmp[6]  = seed_in[6];
-        tmp[7]  = seed_in[7];
-        tmp[8]  = seed_in[8];
-        tmp[9]  = seed_in[9];
-        tmp[10] = seed_in[10];
-        tmp[11] = seed_in[11];
-        tmp[12] = seed_in[12];
-        tmp[13] = seed_in[13];
-        tmp[14] = seed_in[14];
-        tmp[15] = seed_in[15];
-
-        emp::AES_ecb_encrypt_blks(tmp.data(), 16, &aes_key[key_lr]);
-
-        seed_out[0]  = _mm_xor_si128(seed_in[0], tmp[0]);
-        seed_out[1]  = _mm_xor_si128(seed_in[1], tmp[1]);
-        seed_out[2]  = _mm_xor_si128(seed_in[2], tmp[2]);
-        seed_out[3]  = _mm_xor_si128(seed_in[3], tmp[3]);
-        seed_out[4]  = _mm_xor_si128(seed_in[4], tmp[4]);
-        seed_out[5]  = _mm_xor_si128(seed_in[5], tmp[5]);
-        seed_out[6]  = _mm_xor_si128(seed_in[6], tmp[6]);
-        seed_out[7]  = _mm_xor_si128(seed_in[7], tmp[7]);
-        seed_out[8]  = _mm_xor_si128(seed_in[8], tmp[8]);
-        seed_out[9]  = _mm_xor_si128(seed_in[9], tmp[9]);
-        seed_out[10] = _mm_xor_si128(seed_in[10], tmp[10]);
-        seed_out[11] = _mm_xor_si128(seed_in[11], tmp[11]);
-        seed_out[12] = _mm_xor_si128(seed_in[12], tmp[12]);
-        seed_out[13] = _mm_xor_si128(seed_in[13], tmp[13]);
-        seed_out[14] = _mm_xor_si128(seed_in[14], tmp[14]);
-        seed_out[15] = _mm_xor_si128(seed_in[15], tmp[15]);
-    }
+    /**
+     * @brief Encrypts an array of 16 input blocks using a single AES key.
+     * @param seed_in The input blocks to be encrypted.
+     * @param seed_out The output blocks after encryption.
+     * @param key_lr The AES key to be used.
+     */
+    void Expand(std::array<block, 16> &seed_in, std::array<block, 16> &seed_out, bool key_lr);
 
     /**
      * @brief Encrypts the input block using the PRG.

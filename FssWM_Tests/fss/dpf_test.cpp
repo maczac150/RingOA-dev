@@ -308,10 +308,8 @@ void Dpf_Fde_TwoKey_Test() {
 
             // Evaluate keys
             std::vector<uint32_t> out1_0, out1_1, out2_0, out2_1;
-            Logger::SetPrintLog(false);
             eval.EvaluateFullDomainTwoKeys(keys1.first, keys2.first, out1_0, out2_0);
             eval.EvaluateFullDomainTwoKeys(keys1.second, keys2.second, out1_1, out2_1);
-            Logger::SetPrintLog(true);
 
             std::vector<uint32_t> out1(out1_0.size()), out2(out2_0.size());
             for (uint32_t i = 0; i < out1_0.size(); ++i) {

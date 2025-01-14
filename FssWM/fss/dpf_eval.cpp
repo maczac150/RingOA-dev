@@ -62,8 +62,8 @@ uint32_t DpfEvaluator::EvaluateAtNaive(const DpfKey &key, uint32_t x) const {
     bool  control_bit = key.party_id != 0;
 
     // Evaluate the DPF key
-    std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
-    std::array<bool, 2>  expanded_control_bits;    // expanded_control_bits[keep or lose]
+    alignas(16) std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
+    std::array<bool, 2>              expanded_control_bits;    // expanded_control_bits[keep or lose]
 
     for (uint32_t i = 0; i < n; ++i) {
         EvaluateNextSeed(i, seed, control_bit, expanded_seeds, expanded_control_bits, key);
@@ -95,8 +95,8 @@ uint32_t DpfEvaluator::EvaluateAtOptimized(const DpfKey &key, uint32_t x) const 
     bool  control_bit = key.party_id != 0;
 
     // Evaluate the DPF key
-    std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
-    std::array<bool, 2>  expanded_control_bits;    // expanded_control_bits[keep or lose]
+    alignas(16) std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
+    std::array<bool, 2>              expanded_control_bits;    // expanded_control_bits[keep or lose]
 
     for (uint32_t i = 0; i < nu; ++i) {
         EvaluateNextSeed(i, seed, control_bit, expanded_seeds, expanded_control_bits, key);
@@ -459,10 +459,10 @@ void DpfEvaluator::FullDomainIterativeDouble(const DpfKey &key, std::vector<bloc
     uint32_t last_idx      = 1U << last_depth;
 
     // Store the expanded seeds and control bits
-    std::array<block, 2> expanded_seeds;
-    std::array<bool, 2>  expanded_control_bits;
-    std::stack<block>    seed_stack;
-    std::stack<bool>     control_bit_stack;
+    alignas(16) std::array<block, 2> expanded_seeds;
+    std::array<bool, 2>              expanded_control_bits;
+    std::stack<block>                seed_stack;
+    std::stack<bool>                 control_bit_stack;
 
     // Evaluate the DPF key
     seed_stack.push(seed);
@@ -551,8 +551,8 @@ void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector
     std::vector<bool>  start_control_bits{key.party_id != 0}, next_control_bits;
 
     for (uint32_t i = 0; i < 3; ++i) {
-        std::array<block, 2> expanded_seeds;
-        std::array<bool, 2>  expanded_control_bits;
+        alignas(16) std::array<block, 2> expanded_seeds;
+        std::array<bool, 2>              expanded_control_bits;
         next_seeds.resize(1U << (i + 1));
         next_control_bits.resize(1U << (i + 1));
         for (size_t j = 0; j < start_seeds.size(); j++) {
@@ -684,8 +684,8 @@ void DpfEvaluator::FullDomainIterativeSingleBatchTwoKeys(const DpfKey &key1, con
     std::vector<bool>  start_control_bits1{key1.party_id != 0}, start_control_bits2{key2.party_id != 0}, next_control_bits1, next_control_bits2;
 
     for (uint32_t i = 0; i < 3; ++i) {
-        std::array<block, 2> expanded_seeds1, expanded_seeds2;
-        std::array<bool, 2>  expanded_control_bits1, expanded_control_bits2;
+        alignas(16) std::array<block, 2> expanded_seeds1, expanded_seeds2;
+        std::array<bool, 2>              expanded_control_bits1, expanded_control_bits2;
         next_seeds1.resize(1U << (i + 1));
         next_control_bits1.resize(1U << (i + 1));
         next_seeds2.resize(1U << (i + 1));
@@ -1009,7 +1009,7 @@ void DpfEvaluator::Traverse(const block &current_seed, const bool current_contro
     if (i > 0) {
         // Evaluate the DPF key
         alignas(16) std::array<block, 2> expanded_seeds;           // expanded_seeds[keep or lose]
-        alignas(16) std::array<bool, 2>  expanded_control_bits;    // expanded_control_bits[keep or lose]
+        std::array<bool, 2>              expanded_control_bits;    // expanded_control_bits[keep or lose]
 
         EvaluateNextSeed(nu - i, current_seed, current_control_bit, expanded_seeds, expanded_control_bits, key);
 
