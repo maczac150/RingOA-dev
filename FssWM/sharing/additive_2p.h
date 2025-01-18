@@ -1,5 +1,5 @@
-#ifndef SHARING_ADDITIVE_H_
-#define SHARING_ADDITIVE_H_
+#ifndef SHARING_ADDITIVE_2P_H_
+#define SHARING_ADDITIVE_2P_H_
 
 #include <array>
 #include <cstdint>

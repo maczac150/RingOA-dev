@@ -1,4 +1,4 @@
-#include "additive_test.h"
+#include "additive_2p_test.h"
 
 #include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
@@ -31,8 +31,8 @@ const std::vector<uint32_t> kBitsizes = {
     20,
 };
 
-void Additive_EvaluateAdd_Offline_Test() {
-    Logger::DebugLog(LOC, "Additive_EvaluateAdd_Offline_Test...");
+void Additive2P_EvaluateAdd_Offline_Test() {
+    Logger::DebugLog(LOC, "Additive2P_EvaluateAdd_Offline_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         AdditiveSharing2P ss(bitsize);
@@ -113,18 +113,18 @@ void Additive_EvaluateAdd_Offline_Test() {
         Logger::DebugLog(LOC, "x_vec_rec: " + ToString(x_vec_rec) + ", y_vec_rec: " + ToString(y_vec_rec));
     }
 
-    Logger::DebugLog(LOC, "Additive_EvaluateAdd_Offline_Test - Passed");
+    Logger::DebugLog(LOC, "Additive2P_EvaluateAdd_Offline_Test - Passed");
 }
 
-void Additive_EvaluateAdd_Online_Test() {
-    Logger::DebugLog(LOC, "Additive_EvaluateAdd_Online_Test...");
+void Additive2P_EvaluateAdd_Online_Test() {
+    Logger::DebugLog(LOC, "Additive2P_EvaluateAdd_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         AdditiveSharing2P ss(bitsize);
         FileIo            file_io;
 
         // Start network communication
-        TwoPartyNetworkManager net_mgr("Additive_EvaluateAdd_Online_Test");
+        TwoPartyNetworkManager net_mgr("Additive2P_EvaluateAdd_Online_Test");
 
         uint32_t                z_0, z_1, z;
         std::array<uint32_t, 2> z_arr_0, z_arr_1, z_arr;
@@ -202,12 +202,12 @@ void Additive_EvaluateAdd_Online_Test() {
         if (z != 9 || z_arr != std::array<uint32_t, 2>{6, 6} || z_vec != std::vector<uint32_t>{6, 6, 6, 6, 6})
             throw oc::UnitTestFail("EvaluateAdd failed.");
 
-        Logger::DebugLog(LOC, "Additive_EvaluateAdd_Online_Test - Passed");
+        Logger::DebugLog(LOC, "Additive2P_EvaluateAdd_Online_Test - Passed");
     }
 }
 
-void Additive_EvaluateMult_Offline_Test() {
-    Logger::DebugLog(LOC, "Additive_EvaluateMult_Offline_Test...");
+void Additive2P_EvaluateMult_Offline_Test() {
+    Logger::DebugLog(LOC, "Additive2P_EvaluateMult_Offline_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         AdditiveSharing2P ss(bitsize);
@@ -223,17 +223,17 @@ void Additive_EvaluateMult_Offline_Test() {
         ss.OnlineSetUp(1, triple_path);
         ss.PrintTriples();
     }
-    Logger::DebugLog(LOC, "Additive_EvaluateMult_Offline_Test - Passed");
+    Logger::DebugLog(LOC, "Additive2P_EvaluateMult_Offline_Test - Passed");
 }
 
-void Additive_EvaluateMult_Online_Test() {
-    Logger::DebugLog(LOC, "Additive_EvaluateMult_Online_Test...");
+void Additive2P_EvaluateMult_Online_Test() {
+    Logger::DebugLog(LOC, "Additive2P_EvaluateMult_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         FileIo file_io;
 
         // Start network communication
-        TwoPartyNetworkManager net_mgr("Additive_EvaluateMult_Test");
+        TwoPartyNetworkManager net_mgr("Additive2P_EvaluateMult_Test");
 
         uint32_t                z_0, z_1, z;
         std::array<uint32_t, 2> z_arr_0, z_arr_1, z_arr;
@@ -311,11 +311,11 @@ void Additive_EvaluateMult_Online_Test() {
         if (z != 20 || z_arr != std::array<uint32_t, 2>{5, 8})
             throw oc::UnitTestFail("EvaluateMult failed.");
     }
-    Logger::DebugLog(LOC, "Additive_EvaluateMult_Online_Test - Passed");
+    Logger::DebugLog(LOC, "Additive2P_EvaluateMult_Online_Test - Passed");
 }
 
-void Additive_EvaluateSelect_Offline_Test() {
-    Logger::DebugLog(LOC, "Additive_EvaluateSelect_Offline_Test...");
+void Additive2P_EvaluateSelect_Offline_Test() {
+    Logger::DebugLog(LOC, "Additive2P_EvaluateSelect_Offline_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         AdditiveSharing2P ss(bitsize);
@@ -341,17 +341,17 @@ void Additive_EvaluateSelect_Offline_Test() {
         file_io.WriteToFile(c_path + "_arr_0", c_arr_sh.first);
         file_io.WriteToFile(c_path + "_arr_1", c_arr_sh.second);
     }
-    Logger::DebugLog(LOC, "Additive_EvaluateSelect_Offline_Test - Passed");
+    Logger::DebugLog(LOC, "Additive2P_EvaluateSelect_Offline_Test - Passed");
 }
 
-void Additive_EvaluateSelect_Online_Test() {
-    Logger::DebugLog(LOC, "Additive_EvaluateSelect_Online_Test...");
+void Additive2P_EvaluateSelect_Online_Test() {
+    Logger::DebugLog(LOC, "Additive2P_EvaluateSelect_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         FileIo file_io;
 
         // Start network communication
-        TwoPartyNetworkManager net_mgr("Additive_EvaluateSelect_Test");
+        TwoPartyNetworkManager net_mgr("Additive2P_EvaluateSelect_Test");
 
         uint32_t                z_0, z_1, z;
         std::array<uint32_t, 2> z_arr_0, z_arr_1, z_arr;
@@ -435,7 +435,7 @@ void Additive_EvaluateSelect_Online_Test() {
             throw oc::UnitTestFail("EvaluateSelect failed.");
     }
 
-    Logger::DebugLog(LOC, "Additive_EvaluateSelect_Online_Test - Passed");
+    Logger::DebugLog(LOC, "Additive2P_EvaluateSelect_Online_Test - Passed");
 }
 
 }    // namespace test_fsswm

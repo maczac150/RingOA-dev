@@ -6,6 +6,8 @@
 add_library(sharing STATIC
     beaver_triples.cpp
     additive_2p.cpp
+    share3_types.cpp
+    additive_3p.cpp
 )
 
 # Include directories

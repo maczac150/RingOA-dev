@@ -6,7 +6,8 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM_Tests/fss/dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
-#include "FssWM_Tests/sharing/additive_test.h"
+#include "FssWM_Tests/sharing/additive_2p_test.h"
+#include "FssWM_Tests/sharing/additive_3p_test.h"
 #include "FssWM_Tests/utils/file_io_test.h"
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
@@ -15,7 +16,8 @@ namespace test_fsswm {
 
 oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Timer_Test", Timer_Test);
-    t.add("Network_Manager_Test", Network_Manager_Test);
+    t.add("Network_TwoPartyManager_Test", Network_TwoPartyManager_Test);
+    t.add("Network_ThreePartyManager_Test", Network_ThreePartyManager_Test);
     t.add("File_Io_Test", File_Io_Test);
     t.add("Prg_Test", Prg_Test);
     t.add("Dpf_Params_Test", Dpf_Params_Test);
@@ -24,12 +26,14 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Dpf_Fde_Test", Dpf_Fde_Test);
     t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
     t.add("Dpf_Fde_TwoKey_Test", Dpf_Fde_TwoKey_Test);
-    t.add("Additive_EvaluateAdd_Offline_Test", Additive_EvaluateAdd_Offline_Test);
-    t.add("Additive_EvaluateAdd_Online_Test", Additive_EvaluateAdd_Online_Test);
-    t.add("Additive_EvaluateMult_Offline_Test", Additive_EvaluateMult_Offline_Test);
-    t.add("Additive_EvaluateMult_Online_Test", Additive_EvaluateMult_Online_Test);
-    t.add("Additive_EvaluateSelect_Offline_Test", Additive_EvaluateSelect_Offline_Test);
-    t.add("Additive_EvaluateSelect_Online_Test", Additive_EvaluateSelect_Online_Test);
+    t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
+    t.add("Additive2P_EvaluateAdd_Online_Test", Additive2P_EvaluateAdd_Online_Test);
+    t.add("Additive2P_EvaluateMult_Offline_Test", Additive2P_EvaluateMult_Offline_Test);
+    t.add("Additive2P_EvaluateMult_Online_Test", Additive2P_EvaluateMult_Online_Test);
+    t.add("Additive2P_EvaluateSelect_Offline_Test", Additive2P_EvaluateSelect_Offline_Test);
+    t.add("Additive2P_EvaluateSelect_Online_Test", Additive2P_EvaluateSelect_Online_Test);
+    t.add("Additive3P_Open_Offline_Test", Additive3P_Open_Offline_Test);
+    t.add("Additive3P_Open_Online_Test", Additive3P_Open_Online_Test);
 });
 
 }    // namespace test_fsswm

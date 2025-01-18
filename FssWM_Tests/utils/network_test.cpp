@@ -10,10 +10,11 @@
 namespace test_fsswm {
 
 using fsswm::utils::Logger;
+using fsswm::utils::ThreePartyNetworkManager;
 using fsswm::utils::ToString;
 using fsswm::utils::TwoPartyNetworkManager;
 
-void Network_Manager_Test(const oc::CLP &cmd) {
+void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
     Logger::DebugLog(LOC, "Network_Manager_Test...");
 
     // Create NetworkManager
@@ -135,6 +136,189 @@ void Network_Manager_Test(const oc::CLP &cmd) {
     }
 
     Logger::DebugLog(LOC, "Network_Manager_Test - Passed");
+}
+
+void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
+    Logger::DebugLog(LOC, "Network_ThreePartyManager_Test...");
+
+    // Create NetworkManager
+    ThreePartyNetworkManager net_mgr;
+
+    // Data for communication
+    std::string           str_p0 = "Hello from Party 0!";
+    std::string           str_p1 = "Hello from Party 1!";
+    std::string           str_p2 = "Hello from Party 2!";
+    std::string           str_p0_from_p1, str_p0_from_p2, str_p1_from_p0, str_p1_from_p2, str_p2_from_p0, str_p2_from_p1;
+    uint32_t              val_p0 = 100;
+    uint32_t              val_p1 = 200;
+    uint32_t              val_p2 = 300;
+    uint32_t              val_p0_from_p1, val_p0_from_p2, val_p1_from_p0, val_p1_from_p2, val_p2_from_p0, val_p2_from_p1;
+    std::vector<uint32_t> vec_p0 = {10, 20, 30};
+    std::vector<uint32_t> vec_p1 = {40, 50, 60};
+    std::vector<uint32_t> vec_p2 = {70, 80, 90};
+    std::vector<uint32_t> vec_p0_from_p1, vec_p0_from_p2, vec_p1_from_p0, vec_p1_from_p2, vec_p2_from_p0, vec_p2_from_p1;
+
+    // Party 0 task
+    auto task_p0 = [&](oc::Channel &chl_next, oc::Channel &chl_prev) {
+        chl_next.send(str_p0);
+        chl_prev.send(str_p0);
+        chl_next.recv(str_p0_from_p1);
+        chl_prev.recv(str_p0_from_p2);
+        Logger::DebugLog(LOC, "[Party 0] received string from Party 1: " + str_p0_from_p1);
+        Logger::DebugLog(LOC, "[Party 0] received string from Party 2: " + str_p0_from_p2);
+
+        chl_next.send(val_p0);
+        chl_prev.send(val_p0);
+        chl_next.recv(val_p0_from_p1);
+        chl_prev.recv(val_p0_from_p2);
+        Logger::DebugLog(LOC, "[Party 0] received value from Party 1: " + std::to_string(val_p0_from_p1));
+        Logger::DebugLog(LOC, "[Party 0] received value from Party 2: " + std::to_string(val_p0_from_p2));
+
+        chl_next.send(vec_p0);
+        chl_prev.send(vec_p0);
+        chl_next.recv(vec_p0_from_p1);
+        chl_prev.recv(vec_p0_from_p2);
+        Logger::DebugLog(LOC, "[Party 0] received vector from Party 1: " + ToString(vec_p0_from_p1));
+        Logger::DebugLog(LOC, "[Party 0] received vector from Party 2: " + ToString(vec_p0_from_p2));
+    };
+
+    // Party 1 task
+    auto task_p1 = [&](oc::Channel &chl_next, oc::Channel &chl_prev) {
+        chl_prev.recv(str_p1_from_p0);
+        chl_next.send(str_p1);
+        chl_prev.send(str_p1);
+        chl_next.recv(str_p1_from_p2);
+        Logger::DebugLog(LOC, "[Party 1] received string from Party 0: " + str_p1_from_p0);
+        Logger::DebugLog(LOC, "[Party 1] received string from Party 2: " + str_p1_from_p2);
+
+        chl_prev.recv(val_p1_from_p0);
+        chl_next.send(val_p1);
+        chl_prev.send(val_p1);
+        chl_next.recv(val_p1_from_p2);
+        Logger::DebugLog(LOC, "[Party 1] received value from Party 0: " + std::to_string(val_p1_from_p0));
+        Logger::DebugLog(LOC, "[Party 1] received value from Party 2: " + std::to_string(val_p1_from_p2));
+
+        chl_prev.recv(vec_p1_from_p0);
+        chl_next.send(vec_p1);
+        chl_prev.send(vec_p1);
+        chl_next.recv(vec_p1_from_p2);
+        Logger::DebugLog(LOC, "[Party 1] received vector from Party 0: " + ToString(vec_p1_from_p0));
+        Logger::DebugLog(LOC, "[Party 1] received vector from Party 2: " + ToString(vec_p1));
+    };
+
+    // Party 2 task
+    auto task_p2 = [&](oc::Channel &chl_next, oc::Channel &chl_prev) {
+        chl_prev.recv(str_p2_from_p1);
+        chl_next.recv(str_p2_from_p0);
+        chl_prev.send(str_p2);
+        chl_next.send(str_p2);
+        Logger::DebugLog(LOC, "[Party 2] received string from Party 0: " + str_p2_from_p0);
+        Logger::DebugLog(LOC, "[Party 2] received string from Party 1: " + str_p2_from_p1);
+
+        chl_prev.recv(val_p2_from_p1);
+        chl_next.recv(val_p2_from_p0);
+        chl_prev.send(val_p2);
+        chl_next.send(val_p2);
+        Logger::DebugLog(LOC, "[Party 2] received value from Party 0: " + std::to_string(val_p2_from_p0));
+        Logger::DebugLog(LOC, "[Party 2] received value from Party 1: " + std::to_string(val_p2_from_p1));
+
+        chl_prev.recv(vec_p2_from_p1);
+        chl_next.recv(vec_p2_from_p0);
+        chl_prev.send(vec_p2);
+        chl_next.send(vec_p2);
+        Logger::DebugLog(LOC, "[Party 2] received vector from Party 0: " + ToString(vec_p2_from_p0));
+        Logger::DebugLog(LOC, "[Party 2] received vector from Party 1: " + ToString(vec_p2_from_p1));
+    };
+
+    // Run tasks for all parties
+    int party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+
+    // Configure based on party ID
+    net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+
+    // Wait for completion
+    net_mgr.WaitForCompletion();
+
+    // Assertions
+    if (party_id == 0) {
+        if (str_p0_from_p1 != str_p1)
+            throw oc::UnitTestFail("Party 0 received wrong message from Party 1");
+        if (str_p0_from_p2 != str_p2)
+            throw oc::UnitTestFail("Party 0 received wrong message from Party 2");
+        if (val_p0_from_p1 != val_p1)
+            throw oc::UnitTestFail("Party 0 received wrong value from Party 1");
+        if (val_p0_from_p2 != val_p2)
+            throw oc::UnitTestFail("Party 0 received wrong value from Party 2");
+        if (vec_p0_from_p1 != vec_p1)
+            throw oc::UnitTestFail("Party 0 received wrong vector from Party 1");
+        if (vec_p0_from_p2 != vec_p2)
+            throw oc::UnitTestFail("Party 0 received wrong vector from Party 2");
+    } else if (party_id == 1) {
+        if (str_p1_from_p0 != str_p0)
+            throw oc::UnitTestFail("Party 1 received wrong message from Party 0");
+        if (str_p1_from_p2 != str_p2)
+            throw oc::UnitTestFail("Party 1 received wrong message from Party 2");
+        if (val_p1_from_p0 != val_p0)
+            throw oc::UnitTestFail("Party 1 received wrong value from Party 0");
+        if (val_p1_from_p2 != val_p2)
+            throw oc::UnitTestFail("Party 1 received wrong value from Party 2");
+        if (vec_p1_from_p0 != vec_p0)
+            throw oc::UnitTestFail("Party 1 received wrong vector from Party 0");
+        if (vec_p1_from_p2 != vec_p2)
+            throw oc::UnitTestFail("Party 1 received wrong vector from Party 2");
+    } else if (party_id == 2) {
+        if (str_p2_from_p0 != str_p0)
+            throw oc::UnitTestFail("Party 2 received wrong message from Party 0");
+        if (str_p2_from_p1 != str_p1)
+            throw oc::UnitTestFail("Party 2 received wrong message from Party 1");
+        if (val_p2_from_p0 != val_p0)
+            throw oc::UnitTestFail("Party 2 received wrong value from Party 0");
+        if (val_p2_from_p1 != val_p1)
+            throw oc::UnitTestFail("Party 2 received wrong value from Party 1");
+        if (vec_p2_from_p0 != vec_p0)
+            throw oc::UnitTestFail("Party 2 received wrong vector from Party 0");
+        if (vec_p2_from_p1 != vec_p1)
+            throw oc::UnitTestFail("Party 2 received wrong vector from Party 1");
+    } else {
+        if (str_p0_from_p1 != str_p1)
+            throw oc::UnitTestFail("Party 0 received wrong message from Party 1");
+        if (str_p0_from_p2 != str_p2)
+            throw oc::UnitTestFail("Party 0 received wrong message from Party 2");
+        if (str_p1_from_p0 != str_p0)
+            throw oc::UnitTestFail("Party 1 received wrong message from Party 0");
+        if (str_p1_from_p2 != str_p2)
+            throw oc::UnitTestFail("Party 1 received wrong message from Party 2");
+        if (str_p2_from_p0 != str_p0)
+            throw oc::UnitTestFail("Party 2 received wrong message from Party 0");
+        if (str_p2_from_p1 != str_p1)
+            throw oc::UnitTestFail("Party 2 received wrong message from Party 1");
+        if (val_p0_from_p1 != val_p1)
+            throw oc::UnitTestFail("Party 0 received wrong value from Party 1");
+        if (val_p0_from_p2 != val_p2)
+            throw oc::UnitTestFail("Party 0 received wrong value from Party 2");
+        if (val_p1_from_p0 != val_p0)
+            throw oc::UnitTestFail("Party 1 received wrong value from Party 0");
+        if (val_p1_from_p2 != val_p2)
+            throw oc::UnitTestFail("Party 1 received wrong value from Party 2");
+        if (val_p2_from_p0 != val_p0)
+            throw oc::UnitTestFail("Party 2 received wrong value from Party 0");
+        if (val_p2_from_p1 != val_p1)
+            throw oc::UnitTestFail("Party 2 received wrong value from Party 1");
+        if (vec_p0_from_p1 != vec_p1)
+            throw oc::UnitTestFail("Party 0 received wrong vector from Party 1");
+        if (vec_p0_from_p2 != vec_p2)
+            throw oc::UnitTestFail("Party 0 received wrong vector from Party 2");
+        if (vec_p1_from_p0 != vec_p0)
+            throw oc::UnitTestFail("Party 1 received wrong vector from Party 0");
+        if (vec_p1_from_p2 != vec_p2)
+            throw oc::UnitTestFail("Party 1 received wrong vector from Party 2");
+        if (vec_p2_from_p0 != vec_p0)
+            throw oc::UnitTestFail("Party 2 received wrong vector from Party 0");
+        if (vec_p2_from_p1 != vec_p1)
+            throw oc::UnitTestFail("Party 2 received wrong vector from Party 1");
+    }
+
+    Logger::DebugLog(LOC, "Network_ThreePartyManager_Test - Passed");
 }
 
 }    // namespace test_fsswm

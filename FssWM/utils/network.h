@@ -12,9 +12,6 @@ namespace utils {
 
 /**
  * @brief Two-Party Network Manager
- *
- * Utility class to manage communication between server and client.
- * Simplifies communication setup, data exchange, and thread management for two-party protocols.
  */
 class TwoPartyNetworkManager {
 public:
@@ -59,12 +56,6 @@ public:
      */
     void WaitForCompletion();
 
-    /**
-     * @brief Get statistics about the communication.
-     * @return A string containing data sent and data received.
-     */
-    std::string GetStatistics(int party_id) const;
-
 private:
     std::string   channel_name_;
     std::string   ip_address_;
@@ -72,10 +63,41 @@ private:
     oc::IOService ios_;
     std::thread   server_thread_;
     std::thread   client_thread_;
+};
 
-    // Statistics
-    size_t server_sent_;
-    size_t client_sent_;
+/**
+ * @brief Three-Party Network Manager
+ */
+class ThreePartyNetworkManager {
+public:
+    // Default IP address and port
+    static constexpr const char *DEFAULT_IP   = "127.0.0.1";
+    static constexpr uint16_t    DEFAULT_PORT = 55555;
+
+    /**
+     * @brief Constructor: Sets default or user-specified values
+     * @param ip_address IP address for communication (default: 127.0.0.1)
+     * @param port Port number for communication (default: 54321)
+     */
+    ThreePartyNetworkManager(const std::string &ip_address = DEFAULT_IP,
+                             uint16_t           port       = DEFAULT_PORT);
+
+    void Start(const uint32_t party_id, std::function<void(oc::Channel &, oc::Channel &)> task);
+
+    void AutoConfigure(int                                party_id,
+                       std::function<void(oc::Channel &, oc::Channel &)> party0_task,
+                       std::function<void(oc::Channel &, oc::Channel &)> party1_task,
+                       std::function<void(oc::Channel &, oc::Channel &)> party2_task);
+
+    void WaitForCompletion();
+
+private:
+    std::string   ip_address_;
+    uint16_t      port_;
+    oc::IOService ios_;
+    std::thread   party0_thread_;
+    std::thread   party1_thread_;
+    std::thread   party2_thread_;
 };
 
 }    // namespace utils
