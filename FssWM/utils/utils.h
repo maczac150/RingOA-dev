@@ -1,6 +1,7 @@
 #ifndef UTILS_UTILS_H_
 #define UTILS_UTILS_H_
 
+#include <bitset>
 #include <cmath>
 #include <cstdint>
 #include <sstream>
@@ -8,7 +9,6 @@
 #include <vector>
 
 namespace fsswm {
-namespace utils {
 
 /**
  * @brief Get the Current Date Time As String object
@@ -37,11 +37,45 @@ std::vector<uint32_t> CreateSequence(const uint32_t start, const uint32_t end);
  * @param del The delimiter string used to separate elements in the output string.
  * @return A string representation of the container elements separated by 'del'.
  */
+
+// Define format types
+enum class FormatType
+{
+    kBin,    // Binary
+    kHex,    // Hexadecimal
+    kDec     // Decimal
+};
+
 template <typename Container>
 std::string ToString(const Container &container, const std::string &del = " ") {
     std::stringstream ss;
     for (std::size_t i = 0; i < container.size(); ++i) {
         ss << container[i];
+        if (i != container.size() - 1) {
+            ss << del;
+        }
+    }
+    return ss.str();
+}
+
+template <typename Container>
+std::string ToString(const Container &container, const FormatType format, const std::string &del = "") {
+    std::stringstream ss;
+    for (std::size_t i = 0; i < container.size(); ++i) {
+        switch (format) {
+            case FormatType::kBin:
+                // Adjust binary width dynamically based on the type of the element
+                using ValueType                 = typename Container::value_type;
+                constexpr std::size_t bit_width = std::numeric_limits<ValueType>::digits;
+                ss << std::bitset<bit_width>(container[i]);
+                break;
+            case FormatType::kHex:
+                ss << std::hex << std::uppercase << container[i];
+                break;
+            case FormatType::kDec:
+                ss << container[i];
+                break;
+        }
         if (i != container.size() - 1) {
             ss << del;
         }
@@ -104,7 +138,6 @@ inline uint32_t Mod(const uint32_t value, const uint32_t bitsize) {
  */
 uint32_t GetLowerNBits(const uint32_t value, const uint32_t n);
 
-}    // namespace utils
 }    // namespace fsswm
 
 #endif    // UTILS_UTILS_H_

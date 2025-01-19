@@ -11,6 +11,7 @@
 #include "FssWM_Tests/utils/file_io_test.h"
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
+#include "FssWM_Tests/wm/wm_test.h"
 
 namespace test_fsswm {
 
@@ -34,6 +35,9 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Additive2P_EvaluateSelect_Online_Test", Additive2P_EvaluateSelect_Online_Test);
     t.add("Additive3P_Open_Offline_Test", Additive3P_Open_Offline_Test);
     t.add("Additive3P_Open_Online_Test", Additive3P_Open_Online_Test);
+    t.add("BitVector_Test", BitVector_Test);
+    t.add("WaveletMatrix_Test", WaveletMatrix_Test);
+    t.add("FMIndex_Test", FMIndex_Test);
 });
 
 }    // namespace test_fsswm
@@ -101,7 +105,7 @@ int main(int argc, char **argv) {
 
         // Unit test execution
         if (cmd.isSet(unitTags)) {
-            fsswm::utils::Logger::SetPrintLog(false);
+            fsswm::Logger::SetPrintLog(false);
             auto result = tests.runIf(cmd);
             if (result != osuCrypto::TestCollection::Result::passed) {
                 return 1;    // Exit on failure

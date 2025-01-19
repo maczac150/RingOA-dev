@@ -14,23 +14,22 @@
 
 namespace bench_fsswm {
 
-using fsswm::fss::block;
+using fsswm::block;
+using fsswm::FileIo;
+using fsswm::Logger;
+using fsswm::Mod;
+using fsswm::SecureRng;
+using fsswm::TimerManager;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
 using fsswm::fss::dpf::DpfParameters;
 using fsswm::fss::dpf::EvalType;
-using fsswm::utils::FileIo;
-using fsswm::utils::Logger;
-using fsswm::utils::Mod;
-using fsswm::utils::SecureRng;
-using fsswm::utils::TimerManager;
-using fsswm::utils::ToString;
 
 void Dpf_Fde_Bench() {
     uint32_t              repeat     = 500;
     std::vector<uint32_t> sizes      = {16, 20, 24, 27};
-    std::vector<uint32_t> sizes_all  = fsswm::utils::CreateSequence(9, 30);
+    std::vector<uint32_t> sizes_all  = fsswm::CreateSequence(9, 30);
     std::vector<EvalType> eval_types = {
         // EvalType::kNaive,
         // EvalType::kRecursion,
@@ -66,7 +65,7 @@ void Dpf_Fde_Bench() {
                 eval.EvaluateFullDomain(keys.first, outputs_0);
                 timer_mgr.Stop("n=" + std::to_string(size) + " (" + std::to_string(i) + ")");
             }
-            timer_mgr.PrintCurrentResults("n=" + std::to_string(size), fsswm::utils::TimeUnit::MICROSECONDS, true);
+            timer_mgr.PrintCurrentResults("n=" + std::to_string(size), fsswm::TimeUnit::MICROSECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
@@ -107,7 +106,7 @@ void Dpf_Fde_One_Bench() {
                 eval.EvaluateFullDomainOneBit(keys.first, outputs_0);
                 timer_mgr.Stop("n=" + std::to_string(size) + " (" + std::to_string(i) + ")");
             }
-            timer_mgr.PrintCurrentResults("n=" + std::to_string(size), fsswm::utils::TimeUnit::MICROSECONDS, true);
+            timer_mgr.PrintCurrentResults("n=" + std::to_string(size), fsswm::TimeUnit::MICROSECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
@@ -116,7 +115,7 @@ void Dpf_Fde_One_Bench() {
 void Dpf_Fde_TwoKey_Bench() {
     uint32_t              repeat    = 10;
     std::vector<uint32_t> sizes     = {16, 20, 24, 27};
-    std::vector<uint32_t> sizes_all = fsswm::utils::CreateSequence(10, 29);
+    std::vector<uint32_t> sizes_all = fsswm::CreateSequence(10, 29);
 
     Logger::InfoLog(LOC, "FDE Benchmark started");
     for (auto eval_type : {
@@ -156,7 +155,7 @@ void Dpf_Fde_TwoKey_Bench() {
                     timer_mgr.Stop("n=" + std::to_string(size) + " (" + std::to_string(i) + ")");
                 }
             }
-            timer_mgr.PrintCurrentResults("n=" + std::to_string(size), fsswm::utils::TimeUnit::MICROSECONDS, true);
+            timer_mgr.PrintCurrentResults("n=" + std::to_string(size), fsswm::TimeUnit::MICROSECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");

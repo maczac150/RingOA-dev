@@ -4,18 +4,11 @@
 
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/timer.h"
-#include "FssWM/utils/utils.h"
 #include "prg.h"
 
 namespace fsswm {
 namespace fss {
 namespace dpf {
-
-using utils::GetLowerNBits;
-using utils::Logger;
-using utils::Mod;
-using utils::Pow;
-using utils::TimerManager;
 
 DpfEvaluator::DpfEvaluator(const DpfParameters &params)
     : params_(params),

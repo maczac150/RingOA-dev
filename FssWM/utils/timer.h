@@ -7,7 +7,6 @@
 #include <vector>
 
 namespace fsswm {
-namespace utils {
 
 /**
  * @brief Enumeration of time units.
@@ -119,7 +118,6 @@ private:
     std::string GetUnitString(TimeUnit unit) const;
 };
 
-}    // namespace utils
 }    // namespace fsswm
 
 #endif    // UTILS_TIMER_H_

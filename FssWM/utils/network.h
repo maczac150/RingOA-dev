@@ -8,7 +8,6 @@
 #include "cryptoTools/Network/IOService.h"
 
 namespace fsswm {
-namespace utils {
 
 /**
  * @brief Two-Party Network Manager
@@ -100,7 +99,6 @@ private:
     std::thread   party2_thread_;
 };
 
-}    // namespace utils
 }    // namespace fsswm
 
 #endif    // UTILS_NETWORK_H_

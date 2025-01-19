@@ -10,8 +10,8 @@
 
 namespace test_fsswm {
 
-using fsswm::utils::Logger;
-using fsswm::utils::TimerManager;
+using fsswm::Logger;
+using fsswm::TimerManager;
 
 void Timer_Test() {
     Logger::DebugLog(LOC, "Timer_Test ...");
@@ -62,7 +62,7 @@ void Timer_Test() {
     timer_mgr.Stop("Process B finished");
 
     // Print the results for the selected timer with details
-    timer_mgr.PrintCurrentResults("", fsswm::utils::TimeUnit::MICROSECONDS, true);
+    timer_mgr.PrintCurrentResults("", fsswm::TimeUnit::MICROSECONDS, true);
 
     Logger::DebugLog(LOC, "Timer_Test - Passed");
 }

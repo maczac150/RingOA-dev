@@ -5,6 +5,7 @@
 # Add library
 add_library(utils STATIC
     utils.cpp
+    block.cpp
     logger.cpp
     timer.cpp
     file_io.cpp

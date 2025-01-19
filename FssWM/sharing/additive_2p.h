@@ -2,9 +2,7 @@
 #define SHARING_ADDITIVE_2P_H_
 
 #include <array>
-#include <cstdint>
 #include <string>
-#include <vector>
 
 #include "beaver_triples.h"
 

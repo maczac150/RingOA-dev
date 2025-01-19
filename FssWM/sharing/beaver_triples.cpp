@@ -21,7 +21,7 @@ BeaverTriples::BeaverTriples(const uint32_t num_triples)
 
 void BeaverTriples::DebugLog() const {
     for (uint32_t i = 0; i < num_triples; ++i) {
-        utils::Logger::DebugLog(LOC, "BTs[" + std::to_string(i) + "]: a = " + std::to_string(triples[i].a) +
+        Logger::DebugLog(LOC, "BTs[" + std::to_string(i) + "]: a = " + std::to_string(triples[i].a) +
                                          ", b = " + std::to_string(triples[i].b) +
                                          ", c = " + std::to_string(triples[i].c));
     }
@@ -41,11 +41,11 @@ bool BeaverTriples::Serialize(std::vector<uint8_t> &buffer) const {
             buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&triple.c), reinterpret_cast<const uint8_t *>(&triple.c) + sizeof(uint32_t));
         }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        utils::Logger::DebugLog(LOC, "Successfully serialized BeaverTriples");
+        Logger::DebugLog(LOC, "Successfully serialized BeaverTriples");
 #endif
         return true;
     } catch (...) {
-        utils::Logger::ErrorLog(LOC, "Failed to serialize BeaverTriples");
+        Logger::ErrorLog(LOC, "Failed to serialize BeaverTriples");
         return false;
     }
 }
@@ -64,7 +64,7 @@ bool BeaverTriples::Deserialize(const std::vector<uint8_t> &buffer) {
         // Calculate expected size
         size_t expected_size = sizeof(uint32_t) + size * 3 * sizeof(uint32_t);
         if (buffer.size() < expected_size) {
-            utils::Logger::ErrorLog(LOC, "Failed to deserialize BeaverTriples: buffer size is too small");
+            Logger::ErrorLog(LOC, "Failed to deserialize BeaverTriples: buffer size is too small");
             return false;
         }
 
@@ -83,11 +83,11 @@ bool BeaverTriples::Deserialize(const std::vector<uint8_t> &buffer) {
         }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        utils::Logger::DebugLog(LOC, "Successfully deserialized BeaverTriples");
+        Logger::DebugLog(LOC, "Successfully deserialized BeaverTriples");
 #endif
         return true;
     } catch (...) {
-        utils::Logger::ErrorLog(LOC, "Failed to deserialize BeaverTriples");
+        Logger::ErrorLog(LOC, "Failed to deserialize BeaverTriples");
         return false;
     }
 }

@@ -4,7 +4,6 @@
 #include <filesystem>
 
 namespace fsswm {
-namespace utils {
 
 std::string GetCurrentDateTimeAsString() {
     auto              now         = std::chrono::system_clock::now();
@@ -64,5 +63,4 @@ uint32_t GetLowerNBits(const uint32_t value, const uint32_t n) {
     return value & ((1U << n) - 1U);
 }
 
-}    // namespace utils
 }    // namespace fsswm

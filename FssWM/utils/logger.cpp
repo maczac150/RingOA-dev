@@ -60,7 +60,6 @@ void PrintTraceMessage(const std::string &location, const std::string &msg_body)
 }    // namespace
 
 namespace fsswm {
-namespace utils {
 
 LogFormat                Logger::log_format_;
 std::mutex               Logger::log_mutex_;
@@ -174,5 +173,4 @@ void Logger::SetLogFormat(const std::string &log_level, const std::string &func_
     log_list_.push_back(log_format_.Format());
 }
 
-}    // namespace utils
 }    // namespace fsswm

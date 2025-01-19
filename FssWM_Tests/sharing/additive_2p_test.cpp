@@ -11,7 +11,7 @@
 
 namespace {
 
-const std::string kCurrentPath      = fsswm::utils::GetCurrentDirectory();
+const std::string kCurrentPath      = fsswm::GetCurrentDirectory();
 const std::string kTestAdditivePath = kCurrentPath + "/data/test/ss/";
 
 }    // namespace
@@ -19,10 +19,10 @@ const std::string kTestAdditivePath = kCurrentPath + "/data/test/ss/";
 namespace test_fsswm {
 
 using fsswm::sharing::AdditiveSharing2P;
-using fsswm::utils::FileIo;
-using fsswm::utils::Logger;
-using fsswm::utils::ToString;
-using fsswm::utils::TwoPartyNetworkManager;
+using fsswm::FileIo;
+using fsswm::Logger;
+using fsswm::ToString;
+using fsswm::TwoPartyNetworkManager;
 
 const std::vector<uint32_t> kBitsizes = {
     5,

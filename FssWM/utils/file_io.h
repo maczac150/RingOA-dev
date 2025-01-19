@@ -7,12 +7,10 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
-#include <vector>
 
 #include "logger.h"
 
 namespace fsswm {
-namespace utils {
 
 /**
  * @brief A class for file I/O operations.
@@ -404,7 +402,6 @@ private:
     }
 };
 
-}    // namespace utils
 }    // namespace fsswm
 
 #endif    // UTILS_FILE_IO_H_

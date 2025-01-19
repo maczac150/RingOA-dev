@@ -3,7 +3,6 @@
 #include "logger.h"
 
 namespace fsswm {
-namespace utils {
 
 TwoPartyNetworkManager::TwoPartyNetworkManager(const std::string &channel_name,
                                                const std::string &ip_address,
@@ -168,7 +167,6 @@ void ThreePartyNetworkManager::AutoConfigure(int                                
     } else if (party_id == 2) {
         Start(2, party2_task);
     } else {
-        utils::Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
         Start(0, party0_task);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));    // Ensure party 0 starts first
         Start(1, party1_task);
@@ -187,5 +185,4 @@ void ThreePartyNetworkManager::WaitForCompletion() {
     ios_.stop();
 }
 
-}    // namespace utils
 }    // namespace fsswm

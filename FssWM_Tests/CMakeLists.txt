@@ -14,6 +14,7 @@ set(TEST_SOURCES
     fss/dpf_test.cpp
     sharing/additive_2p_test.cpp
     sharing/additive_3p_test.cpp
+    wm/wm_test.cpp
     test_main.cpp
 )
 
@@ -27,4 +28,7 @@ target_include_directories(test_FssWM PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(test_FssWM
     FssWM
     oc::tests_cryptoTools
+    sdsl
+    divsufsort
+    divsufsort64
 )

@@ -36,17 +36,17 @@ public:
         share.Serialize(buffer);
         try {
             std::string ext = binary_mode_ ? ".sh.bin" : ".sh.dat";
-            utils::FileIo io(ext);
+            FileIo io(ext);
             if (binary_mode_) {
                 io.WriteToFileBinary(file_path, buffer);
             } else {
-                utils::FileIo io(".sh.dat");
+                FileIo io(".sh.dat");
             }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            utils::Logger::DebugLog(LOC, "Saved share to file: " + file_path + ext);
+            Logger::DebugLog(LOC, "Saved share to file: " + file_path + ext);
 #endif
         } catch (const std::exception &e) {
-            utils::Logger::FatalLog(LOC, "Error saving share to file: " + std::string(e.what()));
+            Logger::FatalLog(LOC, "Error saving share to file: " + std::string(e.what()));
             exit(EXIT_FAILURE);
         }
     }
@@ -62,18 +62,18 @@ public:
         std::vector<uint8_t> buffer;
         try {
             if (binary_mode_) {
-                utils::FileIo io(".sh.bin");
+                FileIo io(".sh.bin");
                 io.ReadFromFileBinary(file_path, buffer);
             } else {
-                utils::FileIo io(".sh.dat");
+                FileIo io(".sh.dat");
                 io.ReadFromFile(file_path, buffer);
             }
             share.Deserialize(buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            utils::Logger::DebugLog(LOC, "Loaded share from file: " + file_path);
+            Logger::DebugLog(LOC, "Loaded share from file: " + file_path);
 #endif
         } catch (const std::exception &e) {
-            utils::Logger::FatalLog(LOC, "Error loading share from file: " + std::string(e.what()));
+            Logger::FatalLog(LOC, "Error loading share from file: " + std::string(e.what()));
             exit(EXIT_FAILURE);
         }
     }

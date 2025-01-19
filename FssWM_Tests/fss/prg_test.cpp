@@ -8,10 +8,10 @@
 
 namespace test_fsswm {
 
-using fsswm::fss::block;
-using fsswm::fss::Equal;
-using fsswm::fss::ToString;
-using fsswm::utils::Logger;
+using fsswm::block;
+using fsswm::Equal;
+using fsswm::ToString;
+using fsswm::Logger;
 
 void Prg_Test() {
     Logger::DebugLog(LOC, "Prg_Test...");
@@ -19,7 +19,7 @@ void Prg_Test() {
     fsswm::fss::prg::PseudoRandomGenerator prg = fsswm::fss::prg::PseudoRandomGeneratorSingleton::GetInstance();
     Logger::DebugLog(LOC, "PseudoRandomGenerator created successfully");
 
-    block                seed_in = fsswm::fss::makeBlock(0x1234567890abcdef, 0x1234567890abcdef);
+    block                seed_in = fsswm::makeBlock(0x1234567890abcdef, 0x1234567890abcdef);
     std::array<block, 2> seed_out;
     prg.DoubleExpand(seed_in, seed_out);
 
@@ -44,7 +44,7 @@ void Prg_Test() {
 
     std::array<block, 8> seed_in_array;
     for (size_t i = 0; i < 8; ++i) {
-        seed_in_array[i] = fsswm::fss::makeBlock(0x1234567890abcdef, 0x1234567890abcdef);
+        seed_in_array[i] = fsswm::makeBlock(0x1234567890abcdef, 0x1234567890abcdef);
     }
     std::array<std::array<block, 8>, 2> seed_out_array;
     prg.DoubleExpand(seed_in_array, seed_out_array);

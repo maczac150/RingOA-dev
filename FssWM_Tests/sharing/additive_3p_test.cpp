@@ -11,7 +11,7 @@
 
 namespace {
 
-const std::string kCurrentPath      = fsswm::utils::GetCurrentDirectory();
+const std::string kCurrentPath      = fsswm::GetCurrentDirectory();
 const std::string kTestAdditivePath = kCurrentPath + "/data/test/ss3/";
 
 }    // namespace
@@ -22,8 +22,8 @@ using fsswm::sharing::Channels;
 using fsswm::sharing::ReplicatedSharing3P;
 using fsswm::sharing::ShareIo;
 using fsswm::sharing::SharePair, fsswm::sharing::SharesPair;
-using fsswm::utils::FileIo, fsswm::utils::Logger, fsswm::utils::ToString;
-using fsswm::utils::ThreePartyNetworkManager;
+using fsswm::FileIo, fsswm::Logger, fsswm::ToString;
+using fsswm::ThreePartyNetworkManager;
 
 const std::vector<uint32_t> kBitsizes = {
     5,
@@ -147,7 +147,6 @@ void Additive3P_EvaluateMult_Offline_Test() {
 
     for (const uint32_t bitsize : kBitsizes) {
         ReplicatedSharing3P rss(bitsize);
-        rss.OfflineSetUp();
     }
 }
 

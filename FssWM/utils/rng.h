@@ -13,7 +13,6 @@ std::mt19937       mtrng(kFixedSeed);    // Mersenne Twister 19937 random number
 }    // namespace
 
 namespace fsswm {
-namespace utils {
 
 using byte = uint8_t;    // Alias for a byte
 
@@ -64,7 +63,6 @@ private:
     }
 };
 
-}    // namespace utils
 }    // namespace fsswm
 
 #endif    // RNG_RNG_H_

@@ -9,10 +9,10 @@
 
 namespace test_fsswm {
 
-using fsswm::utils::Logger;
-using fsswm::utils::ThreePartyNetworkManager;
-using fsswm::utils::ToString;
-using fsswm::utils::TwoPartyNetworkManager;
+using fsswm::Logger;
+using fsswm::ThreePartyNetworkManager;
+using fsswm::ToString;
+using fsswm::TwoPartyNetworkManager;
 
 void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
     Logger::DebugLog(LOC, "Network_Manager_Test...");

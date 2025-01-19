@@ -9,20 +9,20 @@
 
 namespace {
 
-const std::string kCurrentPath    = fsswm::utils::GetCurrentDirectory();
+const std::string kCurrentPath    = fsswm::GetCurrentDirectory();
 const std::string kTestFileIoPath = kCurrentPath + "/data/test/fileio/";
 
 }    // namespace
 
 namespace test_fsswm {
 
-using fsswm::utils::Logger;
-using fsswm::utils::ToString;
+using fsswm::Logger;
+using fsswm::ToString;
 
 void File_Io_Test() {
     Logger::InfoLog(LOC, "File_Io_Test...");
 
-    fsswm::utils::FileIo io;
+    fsswm::FileIo io;
     // Write data to files
     uint32_t                 val     = 123;
     std::string              str     = "test";

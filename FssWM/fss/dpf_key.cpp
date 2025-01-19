@@ -4,13 +4,10 @@
 
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
-#include "FssWM/utils/utils.h"
 
 namespace fsswm {
 namespace fss {
 namespace dpf {
-
-using namespace utils;
 
 std::string GetEvalTypeString(const EvalType eval_type) {
     switch (eval_type) {

@@ -9,10 +9,6 @@
 namespace fsswm {
 namespace sharing {
 
-using fsswm::utils::Logger;
-using fsswm::utils::Mod;
-using fsswm::utils::SecureRng;
-
 AdditiveSharing2P::AdditiveSharing2P(const uint32_t bitsize)
     : bitsize_(bitsize), triples_(0), triple_index_(0) {
 }
@@ -204,7 +200,7 @@ void AdditiveSharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::
         chl.send(x_1[1]);
     }
     if (x_0[0].size() != x_1[0].size() || x_0[1].size() != x_1[1].size()) {
-        utils::Logger::ErrorLog(LOC, "Size mismatch between x_0 and x_1.");
+        Logger::ErrorLog(LOC, "Size mismatch between x_0 and x_1.");
         return;
     }
     // Resize x if necessary
@@ -213,8 +209,8 @@ void AdditiveSharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::
         x[1].resize(x_0[1].size());
     }
     for (size_t i = 0; i < x[0].size(); ++i) {
-        x[0][i] = utils::Mod(x_0[0][i] + x_1[0][i], bitsize_);
-        x[1][i] = utils::Mod(x_0[1][i] + x_1[1][i], bitsize_);
+        x[0][i] = Mod(x_0[0][i] + x_1[0][i], bitsize_);
+        x[1][i] = Mod(x_0[1][i] + x_1[1][i], bitsize_);
     }
 }
 
@@ -468,7 +464,7 @@ void AdditiveSharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, c
     triples_0.Serialize(buffer_0);
     triples_1.Serialize(buffer_1);
 
-    utils::FileIo io(".bt.bin");
+    FileIo io(".bt.bin");
     io.WriteToFileBinary(file_path + "_0", buffer_0);
     io.WriteToFileBinary(file_path + "_1", buffer_1);
 
@@ -479,7 +475,7 @@ void AdditiveSharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, c
 
 void AdditiveSharing2P::LoadTriplesShareFromFile(const uint32_t party_id, const std::string &file_path) {
     std::vector<uint8_t> buffer;
-    utils::FileIo        io(".bt.bin");
+    FileIo        io(".bt.bin");
     io.ReadFromFileBinary(file_path + "_" + std::to_string(party_id), buffer);
 
     BeaverTriples triples;

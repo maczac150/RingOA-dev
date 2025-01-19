@@ -1,18 +1,12 @@
 #include "dpf_gen.h"
 
 #include "FssWM/utils/logger.h"
-#include "FssWM/utils/utils.h"
 #include "fss.h"
 #include "prg.h"
 
 namespace fsswm {
 namespace fss {
 namespace dpf {
-
-using utils::GetLowerNBits;
-using utils::Logger;
-using utils::Mod;
-using utils::Pow;
 
 DpfKeyGenerator::DpfKeyGenerator(const DpfParameters &params)
     : params_(params),

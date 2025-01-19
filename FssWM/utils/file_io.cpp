@@ -1,7 +1,6 @@
 #include "file_io.h"
 
 namespace fsswm {
-namespace utils {
 
 // Clears the contents of the specified file
 void FileIo::ClearFileContents(const std::string &file_path) {
@@ -24,5 +23,4 @@ bool FileIo::OpenFileForRead(std::ifstream &file, const std::string &file_path) 
     return file.is_open();
 }
 
-}    // namespace utils
 }    // namespace fsswm

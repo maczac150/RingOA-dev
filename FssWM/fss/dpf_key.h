@@ -203,14 +203,14 @@ struct DpfKey {
      */
     bool operator==(const DpfKey &rhs) const {
         bool result = (party_id == rhs.party_id) &&
-                      (fss::Equal(init_seed, rhs.init_seed)) &&
+                      (Equal(init_seed, rhs.init_seed)) &&
                       (cw_length == rhs.cw_length);
         for (uint32_t i = 0; i < cw_length; ++i) {
-            result &= (fss::Equal(cw_seed[i], rhs.cw_seed[i])) &&
+            result &= (Equal(cw_seed[i], rhs.cw_seed[i])) &&
                       (cw_control_left[i] == rhs.cw_control_left[i]) &&
                       (cw_control_right[i] == rhs.cw_control_right[i]);
         }
-        return result & (fss::Equal(output, rhs.output));
+        return result & (Equal(output, rhs.output));
     }
 
     bool operator!=(const DpfKey &rhs) const {

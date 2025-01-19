@@ -9,7 +9,6 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/timer.h"
-#include "FssWM/utils/utils.h"
 
 namespace {
 
@@ -20,21 +19,21 @@ bool DpfFullDomainCheck(const uint32_t alpha, const uint32_t beta, const std::ve
             check &= true;
         } else {
             check &= false;
-            fsswm::utils::Logger::DebugLog(LOC, "FDE check failed at x=" + std::to_string(i) + " -> Result: " + std::to_string(res[i]));
+            fsswm::Logger::DebugLog(LOC, "FDE check failed at x=" + std::to_string(i) + " -> Result: " + std::to_string(res[i]));
         }
     }
     return check;
 }
 
 // Check if the XOR sum of all blocks matches the expected block (Note: Can detect only error exists, not the position)
-bool DpfFullDomainCheckOneBit(const uint32_t alpha, const uint32_t beta, const std::vector<fsswm::fss::block> &res) {
+bool DpfFullDomainCheckOneBit(const uint32_t alpha, const uint32_t beta, const std::vector<fsswm::block> &res) {
     // Compute XOR sum of all blocks
-    fsswm::fss::block xor_sum = fsswm::fss::zero_block;
+    fsswm::block xor_sum = fsswm::zero_block;
     for (const auto &r : res) {
         xor_sum = xor_sum ^ r;
     }
     // Calculate bit position
-    uint32_t bit_position = alpha % (sizeof(fsswm::fss::block) * 8);
+    uint32_t bit_position = alpha % (sizeof(fsswm::block) * 8);
     // Generate block with only the bit_position set to 1
     uint64_t high = 0, low = 0;
     // Set the bit_position to 1
@@ -43,11 +42,11 @@ bool DpfFullDomainCheckOneBit(const uint32_t alpha, const uint32_t beta, const s
     } else {
         high = 1ULL << (bit_position - 64);
     }
-    fsswm::fss::block expected_block = fsswm::fss::makeBlock(high, low);
+    fsswm::block expected_block = fsswm::makeBlock(high, low);
     // Check if XOR sum matches the expected block
-    bool is_match = fsswm::fss::Equal(xor_sum, expected_block);
+    bool is_match = fsswm::Equal(xor_sum, expected_block);
     if (!is_match) {
-        fsswm::utils::Logger::DebugLog(LOC, "FDE check failed for alpha=" + std::to_string(alpha) + " and beta=" + std::to_string(beta));
+        fsswm::Logger::DebugLog(LOC, "FDE check failed for alpha=" + std::to_string(alpha) + " and beta=" + std::to_string(beta));
     }
     return is_match;
 }
@@ -56,17 +55,18 @@ bool DpfFullDomainCheckOneBit(const uint32_t alpha, const uint32_t beta, const s
 
 namespace test_fsswm {
 
-using fsswm::fss::block;
+using fsswm::block;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
 using fsswm::fss::dpf::DpfParameters;
 using fsswm::fss::dpf::EvalType;
-using fsswm::utils::Logger;
-using fsswm::utils::Mod;
-using fsswm::utils::SecureRng;
-using fsswm::utils::TimerManager;
-using fsswm::utils::ToString;
+using fsswm::Logger;
+using fsswm::Mod;
+using fsswm::SecureRng;
+using fsswm::TimerManager;
+using fsswm::ToString;
+using fsswm::FormatType;
 
 void Dpf_Params_Test() {
     // Test parameters
@@ -267,7 +267,7 @@ void Dpf_Fde_One_Test() {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             for (uint32_t i = 0; i < outputs.size(); ++i) {
-                Logger::InfoLog(LOC, "Outputs[" + std::to_string(i) + "]=" + fsswm::fss::ToString(outputs[i], fsswm::fss::FormatType::kBin));
+                Logger::InfoLog(LOC, "Outputs[" + std::to_string(i) + "]=" + fsswm::ToString(outputs[i], FormatType::kBin));
             }
 #endif
 

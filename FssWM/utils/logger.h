@@ -31,7 +31,6 @@
 #endif
 
 namespace fsswm {
-namespace utils {
 
 constexpr int     kMsgMaxLength = 70;
 const std::string kDash         = "---------------------------------------------------------------------";
@@ -157,7 +156,6 @@ private:
     static void SetLogFormat(const std::string &log_level, const std::string &func_name, const std::string &message);
 };
 
-}    // namespace utils
 }    // namespace fsswm
 
 #endif    // UTILS_LOGGER_H_

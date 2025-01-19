@@ -8,9 +8,6 @@
 namespace fsswm {
 namespace sharing {
 
-using fsswm::utils::Logger;
-using fsswm::utils::ToString;
-
 void SharePair::DebugLog(const uint32_t party_id) const {
     Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (x_" + std::to_string(party_id) + ", x_" + std::to_string((party_id + 1) % 3) + ") = (" + std::to_string(data[0]) + ", " + std::to_string(data[1]) + ")");
 }

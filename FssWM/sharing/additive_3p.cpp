@@ -1,7 +1,6 @@
 #include "additive_3p.h"
 
 #include "cryptoTools/Crypto/PRNG.h"
-#include "cryptoTools/Common/block.h"
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
@@ -9,11 +8,6 @@
 
 namespace fsswm {
 namespace sharing {
-
-using fsswm::utils::Logger;
-using fsswm::utils::Mod;
-using fsswm::utils::SecureRng;
-using fsswm::utils::ToString;
 
 ReplicatedSharing3P::ReplicatedSharing3P(const uint32_t bitsize)
     : bitsize_(bitsize) {

@@ -2,10 +2,12 @@
 
 #include <emp-tool/utils/aes_opt.h>
 
+#include "FssWM/utils/block.h"
+
 namespace {
 
-const fsswm::fss::block kPrgKeySeedLeft  = fsswm::fss::makeBlock(0xf2416bf54f02e446, 0xcc2ce93fdbcccc28);    // First half of the SHA256 hash for `dpf::kPrgKeySeedLeft`
-const fsswm::fss::block kPrgKeySeedRight = fsswm::fss::makeBlock(0x65776b0991b8d225, 0xdac18583c2123349);    // First half of the SHA256 hash for `dpf::kPrgKeySeedRight`
+const fsswm::block kPrgKeySeedLeft  = fsswm::makeBlock(0xf2416bf54f02e446, 0xcc2ce93fdbcccc28);    // First half of the SHA256 hash for `dpf::kPrgKeySeedLeft`
+const fsswm::block kPrgKeySeedRight = fsswm::makeBlock(0x65776b0991b8d225, 0xdac18583c2123349);    // First half of the SHA256 hash for `dpf::kPrgKeySeedRight`
 
 }    // namespace
 
