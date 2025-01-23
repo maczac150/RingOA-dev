@@ -1,27 +1,47 @@
 #include "wm_test.h"
 
-#include <sdsl/rank_support.hpp>
-#include <sdsl/wavelet_trees.hpp>
+#include <sdsl/csa_wt.hpp>
+#include <sdsl/suffix_arrays.hpp>
+
+#include "cryptoTools/Common/Defines.h"
+#include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/timer.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/bit_vector.h"
 #include "FssWM/wm/fmindex.h"
 #include "FssWM/wm/wavelet_matrix.h"
 
 namespace {
 
-// This function counts how many times 'c' appears in [0, pos).
-static uint32_t naiveRank(const std::vector<uint32_t> &data, uint32_t c, size_t pos) {
-    if (pos > data.size())
-        pos = data.size();
-    uint32_t count = 0;
-    for (size_t i = 0; i < pos; i++) {
-        if (data[i] == c)
-            count++;
+uint32_t ComputeLPMwithSDSL(const std::string &text, const std::string &query) {
+    sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024> fm_sdsl;
+    sdsl::construct_im(fm_sdsl, text, 1);
+
+    typename sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024>::size_type l = 0, r = fm_sdsl.size() - 1;
+
+    std::vector<uint32_t> intervals;
+    uint32_t              lpm_len = 0;
+
+    for (auto c : query) {
+        typename sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024>::char_type c_sdsl = c;
+        typename sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024>::size_type nl = 0, nr = 0;
+
+        sdsl::backward_search(fm_sdsl, l, r, c_sdsl, nl, nr);
+
+        l = nl;
+        r = nr;
+
+        if (l <= r) {
+            lpm_len++;
+        } else {
+            break;
+        }
+        intervals.push_back(r + 1 - l);
     }
-    return count;
+
+    fsswm::Logger::DebugLog(LOC, "Intervals: " + fsswm::ToString(intervals));
+    return lpm_len;
 }
 
 }    // namespace
@@ -30,71 +50,25 @@ namespace test_fsswm {
 
 using fsswm::Logger;
 using fsswm::ToString;
-using fsswm::wm::BitVector;
 using fsswm::wm::FMIndex;
 using fsswm::wm::WaveletMatrix;
-
-void BitVector_Test() {
-    Logger::DebugLog(LOC, "BitVector_Test...");
-
-    size_t    n = 20;
-    BitVector bv(n);
-
-    std::vector<size_t> set_positions = {2, 5, 7, 10, 15};
-    for (auto pos : set_positions) {
-        bv.set(pos);
-    }
-
-    bv.build();
-
-    std::vector<bool> values;
-    for (size_t i = 0; i < n; i++) {
-        values.push_back(bv[i]);
-    }
-
-    Logger::DebugLog(LOC, "values: " + ToString(values));
-
-    std::vector<size_t> test_positions = {0, 5, 10, 20};
-    for (auto pos : test_positions) {
-        uint32_t r1 = bv.rank1(pos);
-        uint32_t r0 = bv.rank0(pos);
-        Logger::DebugLog(LOC, "rank1(" + std::to_string(pos) + "): " + std::to_string(r1));
-        Logger::DebugLog(LOC, "rank0(" + std::to_string(pos) + "): " + std::to_string(r0));
-    }
-
-    Logger::DebugLog(LOC, "BitVector_Test - Passed");
-}
 
 void WaveletMatrix_Test() {
     Logger::DebugLog(LOC, "WaveletMatrix_Test...");
 
-    std::vector<uint32_t> data = {5, 2, 2, 7, 5, 9};
+    std::vector<uint32_t> data = {3, 4, 0, 0, 7, 6, 1, 2, 2, 0, 1, 6, 5};
 
     // Build wavelet matrix
     WaveletMatrix wm(data);
 
-    // Check access
-    for (size_t i = 0; i < data.size(); i++) {
-        uint32_t val_wm    = wm.access(i);
-        uint32_t val_naive = data[i];
-        Logger::DebugLog(LOC, "val_wm: " + std::to_string(val_wm) + ", val_naive: " + std::to_string(val_naive));
-        if (val_wm != val_naive) {
-            Logger::ErrorLog(LOC, "val_wm != val_naive");
-        }
-    }
+    // Check RankCF
+    size_t   position = 8;
+    uint32_t c        = 6;
+    uint32_t count    = wm.RankCF(c, position);
+    Logger::DebugLog(LOC, "RankCF(" + std::to_string(c) + "): " + std::to_string(count));
 
-    // Check rank
-    uint32_t c = 5;
-    for (size_t i = 0; i <= data.size(); i++) {
-        uint32_t rank_wm    = wm.rank(c, i);
-        uint32_t rank_naive = naiveRank(data, c, i);
-        Logger::DebugLog(LOC, "rank_wm: " + std::to_string(rank_wm) + ", rank_naive: " + std::to_string(rank_naive));
-        if (rank_wm != rank_naive) {
-            Logger::ErrorLog(LOC, "rank_wm != rank_naive");
-        }
-    }
-
-    Logger::DebugLog(LOC, "data: " + ToString(data));
+    if (count != 11)
+        throw oc::UnitTestFail("count != 11");
 
     Logger::DebugLog(LOC, "WaveletMatrix_Test - Passed");
 }
@@ -106,12 +80,13 @@ void FMIndex_Test() {
     // Build FM-index
     FMIndex fm(dna);
 
-    std::string query = "TA";
-    size_t      c     = fm.count(query);
-    Logger::DebugLog(LOC, "count(" + query + "): " + std::to_string(c));
-
-    auto locs = fm.locate(query);
-    Logger::DebugLog(LOC, "locate(" + query + "): " + ToString(locs));
+    std::string query        = "ATTAA";
+    uint32_t    lpm_len      = fm.LongestPrefixMatchLength(query);
+    uint32_t    lpm_len_sdsl = ComputeLPMwithSDSL(dna, query);
+    Logger::DebugLog(LOC, "lpm_len(" + query + "): " + std::to_string(lpm_len));
+    Logger::DebugLog(LOC, "lpm_len_sdsl(" + query + "): " + std::to_string(lpm_len_sdsl));
+    if (lpm_len != lpm_len_sdsl)
+        throw oc::UnitTestFail("lpm_len != lpm_len_sdsl");
 
     Logger::DebugLog(LOC, "FMIndex_Test - Passed");
 }

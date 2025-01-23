@@ -4,7 +4,6 @@
 
 # Add library
 add_library(wm
-    bit_vector.cpp
     wavelet_matrix.cpp
     fmindex.cpp
 )

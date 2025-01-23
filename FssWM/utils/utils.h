@@ -59,16 +59,15 @@ std::string ToString(const Container &container, const std::string &del = " ") {
 }
 
 template <typename Container>
-std::string ToString(const Container &container, const FormatType format, const std::string &del = "") {
+std::string ToString(const Container &container, const FormatType format, const std::string &del = " ") {
     std::stringstream ss;
     for (std::size_t i = 0; i < container.size(); ++i) {
         switch (format) {
-            case FormatType::kBin:
-                // Adjust binary width dynamically based on the type of the element
-                using ValueType                 = typename Container::value_type;
-                constexpr std::size_t bit_width = std::numeric_limits<ValueType>::digits;
+            case FormatType::kBin: {
+                constexpr std::size_t bit_width = std::numeric_limits<typename Container::value_type>::digits;
                 ss << std::bitset<bit_width>(container[i]);
                 break;
+            }
             case FormatType::kHex:
                 ss << std::hex << std::uppercase << container[i];
                 break;
