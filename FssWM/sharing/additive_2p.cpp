@@ -1,16 +1,18 @@
 #include "additive_2p.h"
 
+#include "cryptoTools/Network/Channel.h"
+
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/utils.h"
-#include "cryptoTools/Network/Channel.h"
 
 namespace fsswm {
 namespace sharing {
 
 AdditiveSharing2P::AdditiveSharing2P(const uint32_t bitsize)
     : bitsize_(bitsize), triples_(0), triple_index_(0) {
+    prng_.SetSeed(oc::toBlock(SecureRng::Rand64(), SecureRng::Rand64()));
 }
 
 void AdditiveSharing2P::OfflineSetUp(const uint32_t num_triples, const std::string &file_path) const {
@@ -48,15 +50,15 @@ void AdditiveSharing2P::OnlineSetUp(const uint32_t party_id, const std::string &
 }
 
 std::pair<uint32_t, uint32_t> AdditiveSharing2P::Share(const uint32_t &x) const {
-    uint32_t x_0 = Mod(SecureRng::Rand32(), bitsize_);
+    uint32_t x_0 = Mod(prng_.get<uint32_t>(), bitsize_);
     uint32_t x_1 = Mod(x - x_0, bitsize_);
     return std::make_pair(x_0, x_1);
 }
 
 std::pair<std::array<uint32_t, 2>, std::array<uint32_t, 2>> AdditiveSharing2P::Share(const std::array<uint32_t, 2> &x) const {
     std::array<uint32_t, 2> x_0, x_1;
-    x_0[0] = Mod(SecureRng::Rand32(), bitsize_);
-    x_0[1] = Mod(SecureRng::Rand32(), bitsize_);
+    x_0[0] = Mod(prng_.get<uint32_t>(), bitsize_);
+    x_0[1] = Mod(prng_.get<uint32_t>(), bitsize_);
     x_1[0] = Mod(x[0] - x_0[0], bitsize_);
     x_1[1] = Mod(x[1] - x_0[1], bitsize_);
     return {std::move(x_0), std::move(x_1)};
@@ -65,7 +67,7 @@ std::pair<std::array<uint32_t, 2>, std::array<uint32_t, 2>> AdditiveSharing2P::S
 std::pair<std::vector<uint32_t>, std::vector<uint32_t>> AdditiveSharing2P::Share(const std::vector<uint32_t> &x) const {
     std::vector<uint32_t> x_0(x.size()), x_1(x.size());
     for (size_t i = 0; i < x.size(); ++i) {
-        x_0[i] = Mod(SecureRng::Rand32(), bitsize_);
+        x_0[i] = Mod(prng_.get<uint32_t>(), bitsize_);
         x_1[i] = Mod(x[i] - x_0[i], bitsize_);
     }
     return {std::move(x_0), std::move(x_1)};
@@ -76,9 +78,9 @@ std::pair<BeaverTriples, BeaverTriples> AdditiveSharing2P::Share(const BeaverTri
     BeaverTriples triples_0(num_triples), triples_1(num_triples);
 
     for (uint32_t i = 0; i < num_triples; ++i) {
-        uint32_t a_0 = Mod(SecureRng::Rand32(), bitsize_);
-        uint32_t b_0 = Mod(SecureRng::Rand32(), bitsize_);
-        uint32_t c_0 = Mod(SecureRng::Rand32(), bitsize_);
+        uint32_t a_0 = Mod(prng_.get<uint32_t>(), bitsize_);
+        uint32_t b_0 = Mod(prng_.get<uint32_t>(), bitsize_);
+        uint32_t c_0 = Mod(prng_.get<uint32_t>(), bitsize_);
 
         uint32_t a_1 = Mod(triples.triples[i].a - a_0, bitsize_);
         uint32_t b_1 = Mod(triples.triples[i].b - b_0, bitsize_);
@@ -452,8 +454,8 @@ void AdditiveSharing2P::GenerateBeaverTriples(const uint32_t num_triples, const 
         triples.triples.resize(num_triples);
     }
     for (uint32_t i = 0; i < num_triples; ++i) {
-        uint32_t a         = Mod(SecureRng::Rand32(), bitsize);
-        uint32_t b         = Mod(SecureRng::Rand32(), bitsize);
+        uint32_t a         = Mod(prng_.get<uint32_t>(), bitsize);
+        uint32_t b         = Mod(prng_.get<uint32_t>(), bitsize);
         uint32_t c         = Mod(a * b, bitsize);
         triples.triples[i] = {a, b, c};
     }
@@ -475,7 +477,7 @@ void AdditiveSharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, c
 
 void AdditiveSharing2P::LoadTriplesShareFromFile(const uint32_t party_id, const std::string &file_path) {
     std::vector<uint8_t> buffer;
-    FileIo        io(".bt.bin");
+    FileIo               io(".bt.bin");
     io.ReadFromFileBinary(file_path + "_" + std::to_string(party_id), buffer);
 
     BeaverTriples triples;

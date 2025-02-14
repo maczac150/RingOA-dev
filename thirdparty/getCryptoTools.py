@@ -13,7 +13,7 @@ def getCryptoTools(install, prefix, par, cryptoTools, boost, relic):
 
     # cryptoToolsディレクトリに移動してブランチを固定
     os.chdir(os.path.join(cwd, "cryptoTools"))
-    os.system("git checkout d29f143a86ca71490201c52df9b6d813b618cda8 --quiet")
+    os.system("git checkout 2bf5fe84e19cadd9aeea5c191a08ac59e65b54e7 --quiet")
     os.system("git submodule update --init --recursive")
 
     # OSごとの設定

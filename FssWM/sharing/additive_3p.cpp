@@ -1,10 +1,10 @@
 #include "additive_3p.h"
 
-#include "cryptoTools/Crypto/PRNG.h"
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/utils.h"
+#include "cryptoTools/Crypto/PRNG.h"
 
 namespace fsswm {
 namespace sharing {
@@ -13,11 +13,18 @@ ReplicatedSharing3P::ReplicatedSharing3P(const uint32_t bitsize)
     : bitsize_(bitsize) {
 }
 
-void ReplicatedSharing3P::OfflineSetUp(Channels &chls, const std::string &file_path) const {
+void ReplicatedSharing3P::OfflineSetUp(const std::string &file_path) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Offline setup for ReplicatedSharing3P.");
 #endif
-    RandSetup(chls);
+    RandOffline(file_path);
+}
+
+void ReplicatedSharing3P::OnlineSetUp(const uint32_t party_id, const std::string &file_path) {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Party " + std::to_string(party_id) + ": Online setup for ReplicatedSharing3P.");
+#endif
+    RandOnline(party_id, file_path);
 }
 
 std::array<SharePair, kNumParties> ReplicatedSharing3P::ShareLocal(const uint32_t &x) const {
@@ -103,11 +110,13 @@ void ReplicatedSharing3P::Open(Channels &chls, const SharesPair &x_vec_sh, std::
 #endif
 }
 
-void ReplicatedSharing3P::RandSetup(Channels &chls) const {
-    
-}
-
-void ReplicatedSharing3P::Rand(Channels &chls, uint32_t &x) const {
+void ReplicatedSharing3P::Rand(SharePair &x) {
+    if (prf_idx_ + sizeof(uint32_t) > prf_buff_[0].size() * sizeof(oc::block)) {
+        RefillBuffer();
+    }
+    x.data[0] = Mod(*(uint32_t *)((uint8_t *)prf_buff_[0].data() + prf_idx_), bitsize_);
+    x.data[1] = Mod(*(uint32_t *)((uint8_t *)prf_buff_[1].data() + prf_idx_), bitsize_);
+    prf_idx_ += sizeof(uint32_t);
 }
 
 void ReplicatedSharing3P::EvaluateAdd(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const {
@@ -156,11 +165,106 @@ void ReplicatedSharing3P::EvaluateSub(const SharesPair &x_vec_sh, const SharesPa
     }
 }
 
-void ReplicatedSharing3P::EvaluateMult(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const {
+void ReplicatedSharing3P::EvaluateMult(Channels &chls, const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) {
     // (t_0, t_1, t_2) forms a (3, 3)-sharing of t = x * y
-    uint32_t t_sh = Mod(x_sh.data[0] * y_sh.data[0] + x_sh.data[1] * y_sh.data[0] + x_sh.data[0] * y_sh.data[1], bitsize_);
+    uint32_t  t_sh = Mod(x_sh.data[0] * y_sh.data[0] + x_sh.data[1] * y_sh.data[0] + x_sh.data[0] * y_sh.data[1], bitsize_);
+    SharePair r_sh;
+    Rand(r_sh);
+    z_sh.data[0] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+    chls.next.send(z_sh.data[0]);
+    chls.prev.recv(z_sh.data[1]);
+}
 
+void ReplicatedSharing3P::EvaluateMult(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) {
+    if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
+        Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateMult.");
+        return;
+    }
 
+    if (z_vec_sh.num_shares != x_vec_sh.num_shares) {
+        z_vec_sh.num_shares = x_vec_sh.num_shares;
+        z_vec_sh.data[0].resize(x_vec_sh.num_shares);
+        z_vec_sh.data[1].resize(x_vec_sh.num_shares);
+    }
+
+    for (uint32_t i = 0; i < x_vec_sh.num_shares; ++i) {
+        // (t_0, t_1, t_2) forms a (3, 3)-sharing of t = x * y
+        uint32_t  t_sh = Mod(x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
+        SharePair r_sh;
+        Rand(r_sh);
+        z_vec_sh.data[0][i] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+    }
+
+    chls.next.send(z_vec_sh.data[0]);
+    chls.prev.recv(z_vec_sh.data[1]);
+}
+
+void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharePair &z) {
+    if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
+        Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateInnerProduct.");
+        return;
+    }
+
+    uint32_t s_sh = 0;
+    for (uint32_t i = 0; i < x_vec_sh.num_shares; ++i) {
+        s_sh = Mod(s_sh + x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
+    }
+    SharePair r_sh;
+    Rand(r_sh);
+    z.data[0] = Mod(s_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+    chls.next.send(z.data[0]);
+    chls.prev.recv(z.data[1]);
+}
+
+void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
+    Logger::DebugLog(LOC, "Offline Rand for ReplicatedSharing3P.");
+    std::array<uint64_t, 2>                          key_0 = {SecureRng::Rand64(), SecureRng::Rand64()};
+    std::array<uint64_t, 2>                          key_1 = {SecureRng::Rand64(), SecureRng::Rand64()};
+    std::array<uint64_t, 2>                          key_2 = {SecureRng::Rand64(), SecureRng::Rand64()};
+    std::array<std::array<uint64_t, 2>, kNumParties> keys  = {key_0, key_1, key_2};
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    for (uint32_t i = 0; i < kNumParties; ++i) {
+        Logger::DebugLog(LOC, "[P" + std::to_string(i) + "] Prf keys (i): " + ToString(keys[i], FormatType::kHex) + ", (i-1): " + ToString(keys[(i + 2) % kNumParties], FormatType::kHex));
+    }
+#endif
+
+    // Save the keys to the file
+    FileIo io(".key");
+    // next: i, prev: i-1
+    io.WriteToFileBinary(file_path + "_next_0", keys[0]);
+    io.WriteToFileBinary(file_path + "_prev_0", keys[2]);
+    io.WriteToFileBinary(file_path + "_next_1", keys[1]);
+    io.WriteToFileBinary(file_path + "_prev_1", keys[0]);
+    io.WriteToFileBinary(file_path + "_next_2", keys[2]);
+    io.WriteToFileBinary(file_path + "_prev_2", keys[1]);
+}
+
+void ReplicatedSharing3P::RandOnline(const uint32_t party_id, const std::string &file_path, uint32_t buffer_size) {
+    Logger::DebugLog(LOC, "Rand setup for ReplicatedSharing3P.");
+
+    // Load the keys from the file
+    FileIo                  io(".key");
+    std::array<uint64_t, 2> key_next, key_prev;
+    io.ReadFromFileBinary(file_path + "_next_" + std::to_string(party_id), key_next);
+    io.ReadFromFileBinary(file_path + "_prev_" + std::to_string(party_id), key_prev);
+
+    // Initialize PRF
+    prf_buff_idx_ = 0;
+    prf_buff_[0].resize(buffer_size);
+    prf_buff_[1].resize(buffer_size);
+    prf_[0].setKey(key_prev);
+    prf_[1].setKey(key_next);
+
+    // Refill the buffer
+    RefillBuffer();
+}
+
+void ReplicatedSharing3P::RefillBuffer() {
+    prf_[0].ecbEncCounterMode(prf_buff_idx_, prf_buff_[0].size(), prf_buff_[0].data());
+    prf_[1].ecbEncCounterMode(prf_buff_idx_, prf_buff_[1].size(), prf_buff_[1].data());
+    prf_buff_idx_ += prf_buff_[0].size();
+    prf_idx_ = 0;
 }
 
 }    // namespace sharing

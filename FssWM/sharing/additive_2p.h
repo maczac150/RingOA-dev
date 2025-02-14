@@ -4,6 +4,8 @@
 #include <array>
 #include <string>
 
+#include "cryptoTools/Crypto/PRNG.h"
+
 #include "beaver_triples.h"
 
 // Forward declaration
@@ -69,9 +71,10 @@ public:
     uint32_t GetRemainingTripleCount() const;
 
 private:
-    const uint32_t bitsize_;      /**< The size of the bits used for secret sharing operations. */
-    BeaverTriples  triples_;      /**< The Beaver triples used for secure multiplication. */
-    uint32_t       triple_index_; /**< The index of the current Beaver triple. */
+    const uint32_t   bitsize_;      /**< The size of the bits used for secret sharing operations. */
+    BeaverTriples    triples_;      /**< The Beaver triples used for secure multiplication. */
+    uint32_t         triple_index_; /**< The index of the current Beaver triple. */
+    mutable oc::PRNG prng_;         /**< The PRNG used for generating random values. */
 
     // Internal functions
     void GenerateBeaverTriples(const uint32_t num_triples, const uint32_t bitsize, BeaverTriples &triples) const;

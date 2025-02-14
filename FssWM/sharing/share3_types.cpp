@@ -8,8 +8,8 @@
 namespace fsswm {
 namespace sharing {
 
-void SharePair::DebugLog(const uint32_t party_id) const {
-    Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (x_" + std::to_string(party_id) + ", x_" + std::to_string((party_id + 1) % 3) + ") = (" + std::to_string(data[0]) + ", " + std::to_string(data[1]) + ")");
+void SharePair::DebugLog(const uint32_t party_id, const std::string &prefix) const {
+    Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (" + prefix + "_" + std::to_string(party_id) + ", " + prefix + "_" + std::to_string((party_id + 1) % 3) + ") = (" + std::to_string(data[0]) + ", " + std::to_string(data[1]) + ")");
 }
 
 void SharePair::Serialize(std::vector<uint8_t> &buffer) const {
@@ -27,8 +27,8 @@ void SharePair::Deserialize(const std::vector<uint8_t> &buffer) {
     std::memcpy(data.data(), buffer.data(), sizeof(data));
 }
 
-void SharesPair::DebugLog(const uint32_t party_id) const {
-    Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (x_" + std::to_string(party_id) + ", x_" + std::to_string((party_id - 1) % 3) + ") = (" + ToString(data[0]) + ", " + ToString(data[1]) + ")");
+void SharesPair::DebugLog(const uint32_t party_id, const std::string &prefix) const {
+    Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (" + prefix + "_" + std::to_string(party_id) + ", " + prefix + "_" + std::to_string((party_id - 1) % 3) + ") = (" + ToString(data[0]) + ", " + ToString(data[1]) + ")");
 }
 
 void SharesPair::Serialize(std::vector<uint8_t> &buffer) const {

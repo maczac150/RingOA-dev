@@ -211,7 +211,6 @@ void Additive2P_EvaluateMult_Offline_Test() {
 
     for (const uint32_t bitsize : kBitsizes) {
         AdditiveSharing2P ss(bitsize);
-        FileIo            file_io;
 
         // Generate beaver triples
         std::string triple_path = kTestAdditivePath + "triple_n" + std::to_string(bitsize);

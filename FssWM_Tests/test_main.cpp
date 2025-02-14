@@ -33,8 +33,11 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Additive2P_EvaluateMult_Online_Test", Additive2P_EvaluateMult_Online_Test);
     t.add("Additive2P_EvaluateSelect_Offline_Test", Additive2P_EvaluateSelect_Offline_Test);
     t.add("Additive2P_EvaluateSelect_Online_Test", Additive2P_EvaluateSelect_Online_Test);
-    t.add("Additive3P_Open_Offline_Test", Additive3P_Open_Offline_Test);
+    t.add("Additive3P_Offline_Test", Additive3P_Offline_Test);
     t.add("Additive3P_Open_Online_Test", Additive3P_Open_Online_Test);
+    t.add("Additive3P_EvaluateAdd_Online_Test", Additive3P_EvaluateAdd_Online_Test);
+    t.add("Additive3P_EvaluateMult_Online_Test", Additive3P_EvaluateMult_Online_Test);
+    t.add("Additive3P_EvaluateInnerProduct_Online_Test", Additive3P_EvaluateInnerProduct_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
 });
