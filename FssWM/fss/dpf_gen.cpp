@@ -75,8 +75,8 @@ void DpfKeyGenerator::GenerateKeysNaive(uint32_t alpha, uint32_t beta, std::pair
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Output: " + ToString(output));
-    key_pair.first.PrintDpfKey();
-    key_pair.second.PrintDpfKey();
+    key_pair.first.PrintKey();
+    key_pair.second.PrintKey();
 #endif
 }
 
@@ -109,8 +109,8 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::
     SetOutput(alpha, beta, seed_0, seed_1, control_bit_1, key_pair);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    key_pair.first.PrintDpfKey();
-    key_pair.second.PrintDpfKey();
+    key_pair.first.PrintKey();
+    key_pair.second.PrintKey();
 #endif
 }
 

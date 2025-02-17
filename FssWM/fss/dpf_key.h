@@ -131,12 +131,12 @@ public:
      * @brief Get the string representation of the DpfParameters.
      * @return std::string The string representation of the DpfParameters.
      */
-    std::string GetDpfParametersInfo() const;
+    std::string GetParametersInfo() const;
 
     /**
      * @brief Print the details of the DpfParameters.
      */
-    void PrintDpfParameters() const;
+    void PrintParameters() const;
 
 private:
     uint32_t input_bitsize_;     /**< The size of input in bits. */
@@ -179,21 +179,13 @@ struct DpfKey {
     /**
      * @brief Copy constructor is deleted to prevent copying of DpfKey.
      */
-    DpfKey(const DpfKey &) = delete;
-
-    /**
-     * @brief Copy assignment operator is deleted to prevent copying of DpfKey.
-     */
+    DpfKey(const DpfKey &)            = delete;
     DpfKey &operator=(const DpfKey &) = delete;
 
     /**
      * @brief Move constructor for DpfKey.
      */
-    DpfKey(DpfKey &&) noexcept = default;
-
-    /**
-     * @brief Move assignment operator for DpfKey.
-     */
+    DpfKey(DpfKey &&) noexcept            = default;
     DpfKey &operator=(DpfKey &&) noexcept = default;
 
     /**
@@ -239,7 +231,7 @@ struct DpfKey {
 
     /**
      * @brief Deserialize the DpfKey.
-     * @param data The serialized DpfKey.
+     * @param buffer The serialized DpfKey.
      */
     void Deserialize(const std::vector<uint8_t> &buffer);
 
@@ -247,7 +239,7 @@ struct DpfKey {
      * @brief Print the details of the DpfKey.
      * @param detailed Flag to print detailed information.
      */
-    void PrintDpfKey(const bool detailed = false) const;
+    void PrintKey(const bool detailed = false) const;
 
 private:
     DpfParameters params_;          /**< DpfParameters for the DpfKey. */

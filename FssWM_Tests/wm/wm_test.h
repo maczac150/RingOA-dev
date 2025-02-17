@@ -3,7 +3,6 @@
 
 namespace test_fsswm {
 
-void BitVector_Test();
 void WaveletMatrix_Test();
 void FMIndex_Test();
 

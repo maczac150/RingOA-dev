@@ -15,6 +15,7 @@ set(TEST_SOURCES
     sharing/additive_2p_test.cpp
     sharing/additive_3p_test.cpp
     wm/wm_test.cpp
+    wm/obliv_select_test.cpp
     test_main.cpp
 )
 

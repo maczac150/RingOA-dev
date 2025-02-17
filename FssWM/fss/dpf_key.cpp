@@ -147,7 +147,7 @@ void DpfParameters::ReconfigureParameters(const uint32_t n, const uint32_t e, co
     }
 }
 
-std::string DpfParameters::GetDpfParametersInfo() const {
+std::string DpfParameters::GetParametersInfo() const {
     std::ostringstream oss;
     oss << "(Input, Output, Terminate): (" << input_bitsize_ << ", " << element_bitsize_ << ", " << terminate_bitsize_ << ") bit";
     oss << " (Early termination: " << (enable_et_ ? "ON" : "OFF") << ")";
@@ -155,8 +155,8 @@ std::string DpfParameters::GetDpfParametersInfo() const {
     return oss.str();
 }
 
-void DpfParameters::PrintDpfParameters() const {
-    Logger::DebugLog(LOC, "[DPF Parameters] " + GetDpfParametersInfo());
+void DpfParameters::PrintParameters() const {
+    Logger::DebugLog(LOC, "[DPF Parameters] " + GetParametersInfo());
 }
 
 DpfKey::DpfKey(const uint32_t id, const DpfParameters &params)
@@ -241,7 +241,7 @@ void DpfKey::Deserialize(const std::vector<uint8_t> &buffer) {
     std::memcpy(&output, buffer.data() + offset, sizeof(output));
 }
 
-void DpfKey::PrintDpfKey(const bool detailed) const {
+void DpfKey::PrintKey(const bool detailed) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     if (detailed) {
         Logger::DebugLog(LOC, Logger::StrWithSep("DPF Key"));

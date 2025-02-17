@@ -56,17 +56,17 @@ bool DpfFullDomainCheckOneBit(const uint32_t alpha, const uint32_t beta, const s
 namespace test_fsswm {
 
 using fsswm::block;
-using fsswm::fss::dpf::DpfEvaluator;
-using fsswm::fss::dpf::DpfKey;
-using fsswm::fss::dpf::DpfKeyGenerator;
-using fsswm::fss::dpf::DpfParameters;
-using fsswm::fss::dpf::EvalType;
+using fsswm::FormatType;
 using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::SecureRng;
 using fsswm::TimerManager;
 using fsswm::ToString;
-using fsswm::FormatType;
+using fsswm::fss::dpf::DpfEvaluator;
+using fsswm::fss::dpf::DpfKey;
+using fsswm::fss::dpf::DpfKeyGenerator;
+using fsswm::fss::dpf::DpfParameters;
+using fsswm::fss::dpf::EvalType;
 
 void Dpf_Params_Test() {
     // Test parameters
@@ -86,7 +86,7 @@ void Dpf_Params_Test() {
     };
 
     for (const DpfParameters &params : params_list) {
-        params.PrintDpfParameters();
+        params.PrintParameters();
         DpfKeyGenerator gen(params);
         DpfEvaluator    eval(params);
     }
@@ -110,7 +110,7 @@ void Dpf_EvalAt_Test() {
     };
 
     for (const DpfParameters &params : params_list) {
-        params.PrintDpfParameters();
+        params.PrintParameters();
         uint32_t                  e = params.GetOutputBitsize();
         DpfKeyGenerator           gen(params);
         DpfEvaluator              eval(params);
@@ -168,7 +168,7 @@ void Dpf_Fde_Type_Test() {
         };
 
         for (const DpfParameters &params : params_list) {
-            params.PrintDpfParameters();
+            params.PrintParameters();
             DpfKeyGenerator gen(params);
             DpfEvaluator    eval(params);
         }
@@ -193,7 +193,7 @@ void Dpf_Fde_Test() {
         };
 
         for (const DpfParameters &params : params_list) {
-            params.PrintDpfParameters();
+            params.PrintParameters();
             uint32_t        n = params.GetInputBitsize();
             uint32_t        e = params.GetOutputBitsize();
             DpfKeyGenerator gen(params);
@@ -245,7 +245,7 @@ void Dpf_Fde_One_Test() {
         };
 
         for (const DpfParameters &params : params_list) {
-            params.PrintDpfParameters();
+            params.PrintParameters();
             uint32_t        n = params.GetInputBitsize();
             DpfKeyGenerator gen(params);
             DpfEvaluator    eval(params);
@@ -290,7 +290,7 @@ void Dpf_Fde_TwoKey_Test() {
         };
 
         for (const DpfParameters &params : params_list) {
-            params.PrintDpfParameters();
+            params.PrintParameters();
             uint32_t        n = params.GetInputBitsize();
             uint32_t        e = params.GetOutputBitsize();
             DpfKeyGenerator gen(params);

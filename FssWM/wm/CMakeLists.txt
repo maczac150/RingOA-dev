@@ -4,6 +4,7 @@
 
 # Add library
 add_library(wm
+    obliv_select.cpp
     wavelet_matrix.cpp
     fmindex.cpp
 )

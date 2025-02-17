@@ -39,6 +39,7 @@ public:
 
     // Randomness generation
     void Rand(SharePair &x);
+    uint32_t GenerateRandomValue() const;
 
     // Evaluation operations (addition, subtraction, multiplication, inner product)
     void EvaluateAdd(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const;

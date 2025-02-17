@@ -119,6 +119,10 @@ void ReplicatedSharing3P::Rand(SharePair &x) {
     prf_idx_ += sizeof(uint32_t);
 }
 
+uint32_t ReplicatedSharing3P::GenerateRandomValue() const {
+    return Mod(SecureRng::Rand32(), bitsize_);
+}
+
 void ReplicatedSharing3P::EvaluateAdd(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const {
     z_sh.data[0] = Mod(x_sh.data[0] + y_sh.data[0], bitsize_);
     z_sh.data[1] = Mod(x_sh.data[1] + y_sh.data[1], bitsize_);
