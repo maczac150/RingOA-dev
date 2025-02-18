@@ -12,6 +12,9 @@ namespace sharing {
 struct SharePair {
     std::array<uint32_t, 2> data;
 
+    SharePair() = default;
+    SharePair(const uint32_t share_0, const uint32_t share_1);
+
     void DebugLog(const uint32_t party_id, const std::string &prefix = "x") const;
     void Serialize(std::vector<uint8_t> &buffer) const;
     void Deserialize(const std::vector<uint8_t> &buffer);

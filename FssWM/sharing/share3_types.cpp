@@ -8,6 +8,10 @@
 namespace fsswm {
 namespace sharing {
 
+SharePair::SharePair(const uint32_t share_0, const uint32_t share_1)
+    : data({share_0, share_1}) {
+}
+
 void SharePair::DebugLog(const uint32_t party_id, const std::string &prefix) const {
     Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (" + prefix + "_" + std::to_string(party_id) + ", " + prefix + "_" + std::to_string((party_id + 1) % 3) + ") = (" + std::to_string(data[0]) + ", " + std::to_string(data[1]) + ")");
 }
@@ -28,7 +32,7 @@ void SharePair::Deserialize(const std::vector<uint8_t> &buffer) {
 }
 
 void SharesPair::DebugLog(const uint32_t party_id, const std::string &prefix) const {
-    Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (" + prefix + "_" + std::to_string(party_id) + ", " + prefix + "_" + std::to_string((party_id - 1) % 3) + ") = (" + ToString(data[0]) + ", " + ToString(data[1]) + ")");
+    Logger::DebugLog(LOC, "[P" + std::to_string(party_id) + "] (" + prefix + "_" + std::to_string(party_id) + ", " + prefix + "_" + std::to_string((party_id + 1) % 3) + ") = (" + ToString(data[0]) + ", " + ToString(data[1]) + ")");
 }
 
 void SharesPair::Serialize(std::vector<uint8_t> &buffer) const {
@@ -40,9 +44,8 @@ void SharesPair::Serialize(std::vector<uint8_t> &buffer) const {
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&num_shares), reinterpret_cast<const uint8_t *>(&num_shares) + sizeof(num_shares));
 
     // Serialize the share data
-    for (const auto &vec : data) {
-        buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(vec.data()), reinterpret_cast<const uint8_t *>(vec.data()) + sizeof(vec));
-    }
+    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(data[0].data()), reinterpret_cast<const uint8_t *>(data[0].data()) + num_shares * sizeof(uint32_t));
+    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(data[1].data()), reinterpret_cast<const uint8_t *>(data[1].data()) + num_shares * sizeof(uint32_t));
 }
 
 void SharesPair::Deserialize(const std::vector<uint8_t> &buffer) {
@@ -60,10 +63,9 @@ void SharesPair::Deserialize(const std::vector<uint8_t> &buffer) {
     data[1].resize(num_shares);
 
     // Deserialize the share data
-    for (auto &vec : data) {
-        std::memcpy(vec.data(), buffer.data() + offset, sizeof(vec));
-        offset += sizeof(vec);
-    }
+    std::memcpy(data[0].data(), buffer.data() + offset, num_shares * sizeof(uint32_t));
+    offset += num_shares * sizeof(uint32_t);
+    std::memcpy(data[1].data(), buffer.data() + offset, num_shares * sizeof(uint32_t));
 }
 
 }    // namespace sharing

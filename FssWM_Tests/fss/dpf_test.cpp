@@ -69,6 +69,7 @@ using fsswm::fss::dpf::DpfParameters;
 using fsswm::fss::dpf::EvalType;
 
 void Dpf_Params_Test() {
+    Logger::DebugLog(LOC, "Dpf_Params_Test...");
     // Test parameters
     std::vector<DpfParameters> params_list = {
         DpfParameters(5, 5, false),
@@ -90,9 +91,11 @@ void Dpf_Params_Test() {
         DpfKeyGenerator gen(params);
         DpfEvaluator    eval(params);
     }
+    Logger::DebugLog(LOC, "Dpf_Params_Test - Passed");
 }
 
 void Dpf_EvalAt_Test() {
+    Logger::DebugLog(LOC, "Dpf_EvalAt_Test...");
     // Test parameters
     std::vector<DpfParameters> params_list = {
         DpfParameters(5, 5, false),
@@ -134,9 +137,11 @@ void Dpf_EvalAt_Test() {
         if (y != 0)
             throw oc::UnitTestFail("y is not equal to 0");
     }
+    Logger::DebugLog(LOC, "Dpf_EvalAt_Test - Passed");
 }
 
 void Dpf_Fde_Type_Test() {
+    Logger::DebugLog(LOC, "Dpf_Fde_Type_Test...");
     for (auto eval_type : {
              EvalType::kNaive,
              EvalType::kRecursion,
@@ -173,9 +178,11 @@ void Dpf_Fde_Type_Test() {
             DpfEvaluator    eval(params);
         }
     }
+    Logger::DebugLog(LOC, "Dpf_Fde_Type_Test - Passed");
 }
 
 void Dpf_Fde_Test() {
+    Logger::DebugLog(LOC, "Dpf_Fde_Test...");
     for (auto eval_type : {
              EvalType::kNaive,
              EvalType::kRecursion,
@@ -224,9 +231,11 @@ void Dpf_Fde_Test() {
                 throw oc::UnitTestFail("FDE check failed");
         }
     }
+    Logger::DebugLog(LOC, "Dpf_Fde_Test - Passed");
 }
 
 void Dpf_Fde_One_Test() {
+    Logger::DebugLog(LOC, "Dpf_Fde_One_Test...");
     for (auto eval_type : {
              //  EvalType::kNaive, // * Not supported
              EvalType::kRecursion,
@@ -276,9 +285,11 @@ void Dpf_Fde_One_Test() {
                 throw oc::UnitTestFail("FDE check failed");
         }
     }
+    Logger::DebugLog(LOC, "Dpf_Fde_One_Test - Passed");
 }
 
 void Dpf_Fde_TwoKey_Test() {
+    Logger::DebugLog(LOC, "Dpf_Fde_TwoKey_Test...");
     for (auto eval_type : {
              EvalType::kIterSingleBatch_2Keys,
          }) {
@@ -327,6 +338,7 @@ void Dpf_Fde_TwoKey_Test() {
                 throw oc::UnitTestFail("FDE check failed");
         }
     }
+    Logger::DebugLog(LOC, "Dpf_Fde_TwoKey_Test - Passed");
 }
 
 }    // namespace test_fsswm

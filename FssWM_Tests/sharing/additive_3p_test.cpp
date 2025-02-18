@@ -33,7 +33,7 @@ const std::vector<uint32_t> kBitsizes = {
 };
 
 void Additive3P_Offline_Test() {
-    Logger::DebugLog(LOC, "Additive3P_Open_Offline_Test");
+    Logger::DebugLog(LOC, "Additive3P_Open_Offline_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         ReplicatedSharing3P rss(bitsize);
@@ -72,14 +72,14 @@ void Additive3P_Offline_Test() {
         sh_io.SaveShare(y_path + "_vec_2", y_vec_sh[2]);
 
         // Offline setup
-        rss.OfflineSetUp(kTestAdditivePath + "prf_");
+        rss.OfflineSetUp(kTestAdditivePath + "prf");
     }
 
     Logger::DebugLog(LOC, "Additive3P_Open_Offline_Test - Passed");
 }
 
 void Additive3P_Open_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_Open_Online_Test");
+    Logger::DebugLog(LOC, "Additive3P_Open_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         ShareIo sh_io;
@@ -157,7 +157,7 @@ void Additive3P_Open_Online_Test() {
 }
 
 void Additive3P_EvaluateAdd_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_Add_Online_Test");
+    Logger::DebugLog(LOC, "Additive3P_Add_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         ShareIo sh_io;
@@ -263,7 +263,7 @@ void Additive3P_EvaluateAdd_Online_Test() {
 }
 
 void Additive3P_EvaluateMult_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_Mult_Online_Test");
+    Logger::DebugLog(LOC, "Additive3P_Mult_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         ShareIo sh_io;
@@ -378,7 +378,7 @@ void Additive3P_EvaluateMult_Online_Test() {
 }
 
 void Additive3P_EvaluateInnerProduct_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_InnerProduct_Online_Test");
+    Logger::DebugLog(LOC, "Additive3P_InnerProduct_Online_Test...");
 
     for (const uint32_t bitsize : kBitsizes) {
         ShareIo sh_io;
