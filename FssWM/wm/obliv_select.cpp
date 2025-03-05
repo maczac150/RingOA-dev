@@ -198,7 +198,7 @@ void OblivSelectEvaluator::Evaluate(sharing::Channels         &chls,
     uint32_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Evaluate OblivSelect");
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
     Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
     std::string party_str = "[P" + std::to_string(party_id) + "] ";
     index.DebugLog(party_id, "idx");
@@ -206,11 +206,9 @@ void OblivSelectEvaluator::Evaluate(sharing::Channels         &chls,
 #endif
 
     // Reconstruct p - r_i
-    uint32_t pr_prev = 0, pr_next = 0;
-    ReconstructPR(chls, key, index, d, pr_prev, pr_next);
+    auto [pr_prev, pr_next] = ReconstructPR(chls, key, index, d);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, party_str + " pr_prev: " + std::to_string(pr_prev));
-    Logger::DebugLog(LOC, party_str + " pr_next: " + std::to_string(pr_next));
+    Logger::DebugLog(LOC, party_str + " pr_prev: " + std::to_string(pr_prev) + ", pr_next: " + std::to_string(pr_next));
 #endif
 
     // Evaluate DPF
@@ -231,15 +229,14 @@ void OblivSelectEvaluator::Evaluate(sharing::Channels         &chls,
     chls.prev.recv(result.data[1]);
 }
 
-void OblivSelectEvaluator::ReconstructPR(sharing::Channels        &chls,
-                                         const OblivSelectKey     &key,
-                                         const sharing::SharePair &index,
-                                         const uint32_t            d,
-                                         uint32_t                 &pr_prev,
-                                         uint32_t                 &pr_next) const {
+std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPR(sharing::Channels        &chls,
+                                                                  const OblivSelectKey     &key,
+                                                                  const sharing::SharePair &index,
+                                                                  const uint32_t            d) const {
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
 
     // Set replicated sharing of random value
+    uint32_t           pr_prev = 0, pr_next = 0;
     sharing::SharePair r_0_sh, r_1_sh, r_2_sh;
 
     switch (chls.party_id) {
@@ -260,7 +257,7 @@ void OblivSelectEvaluator::ReconstructPR(sharing::Channels        &chls,
             break;
         default:
             Logger::ErrorLog(LOC, "Invalid party_id: " + std::to_string(chls.party_id));
-            return;
+            return std::make_pair(0, 0);
     }
 
     // Reconstruct p - r_i
@@ -311,6 +308,7 @@ void OblivSelectEvaluator::ReconstructPR(sharing::Channels        &chls,
         chls.next.send(p_r_sh.data[1]);
         pr_prev = Mod(p_r_sh.data[0] + p_r_sh.data[1] + p_r_1_next, d);
     }
+    return std::make_pair(pr_prev, pr_next);
 }
 
 }    // namespace wm

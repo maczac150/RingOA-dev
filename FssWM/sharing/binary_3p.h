@@ -1,5 +1,5 @@
-#ifndef SHARING_ADDITIVE_3P_H_
-#define SHARING_ADDITIVE_3P_H_
+#ifndef SHARING_BINARY_3P_H_
+#define SHARING_BINARY_3P_H_
 
 #include "cryptoTools/Crypto/AES.h"
 #include "share3_types.h"
@@ -7,10 +7,10 @@
 namespace fsswm {
 namespace sharing {
 
-class ReplicatedSharing3P {
+class BinaryReplicatedSharing3P {
 public:
-    ReplicatedSharing3P() = delete;
-    explicit ReplicatedSharing3P(const uint32_t bitsize);
+    BinaryReplicatedSharing3P() = delete;
+    explicit BinaryReplicatedSharing3P(const uint32_t bitsize);
 
     // Setup functions
     void OfflineSetUp(const std::string &file_path) const;
@@ -25,20 +25,15 @@ public:
     void Open(Channels &chls, const SharesPair &x_vec_sh, std::vector<uint32_t> &open_x_vec) const;
 
     // Randomness generation
-    void Rand(SharePair &x);
+    void     Rand(SharePair &x);
     uint32_t GenerateRandomValue() const;
 
     // Evaluation operations (addition, subtraction, multiplication, inner product)
-    void EvaluateAdd(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const;
-    void EvaluateAdd(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const;
+    void EvaluateXor(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const;
+    void EvaluateXor(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const;
 
-    void EvaluateSub(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const;
-    void EvaluateSub(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const;
-
-    void EvaluateMult(Channels &chls, const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh);
-    void EvaluateMult(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh);
-
-    void EvaluateInnerProduct(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharePair &z);
+    void EvaluateAnd(Channels &chls, const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh);
+    void EvaluateAnd(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh);
 
 private:
     uint32_t                              bitsize_;      /**< Bit size of the shared data */
@@ -56,4 +51,4 @@ private:
 }    // namespace sharing
 }    // namespace fsswm
 
-#endif    // SHARING_ADDITIVE_3P_H_
+#endif    // SHARING_BINARY_3P_H_

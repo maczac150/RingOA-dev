@@ -26,7 +26,7 @@ namespace wm {
 /**
  * @brief A class to hold params for the Oblivious Selection.
  */
-struct OblivSelectParameters {
+class OblivSelectParameters {
 public:
     /**
      * @brief Default constructor for OblivSelectParameters is deleted.
@@ -61,7 +61,7 @@ public:
      * @brief Get the DpfParameters for the OblivSelectParameters.
      * @return fss::dpf::DpfParameters The DpfParameters for the OblivSelectParameters.
      */
-    fss::dpf::DpfParameters GetParameters() const {
+    const fss::dpf::DpfParameters GetParameters() const {
         return params_;
     }
 
@@ -190,6 +190,7 @@ public:
      * @brief Parameterized constructor for OblivSelectKeyGenerator.
      * @param params OblivSelectParameters for the OblivSelectKeyGenerator.
      * @param rss Replicated sharing for 3-party for the OblivSelectKeyGenerator.
+     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
      */
     OblivSelectKeyGenerator(const OblivSelectParameters &params, sharing::ReplicatedSharing3P &rss, sharing::AdditiveSharing2P &ass);
 
@@ -224,12 +225,12 @@ public:
     OblivSelectEvaluator(const OblivSelectParameters &params, sharing::ReplicatedSharing3P &rss);
 
     void Evaluate(sharing::Channels         &chls,
-                      std::vector<uint32_t>     &uv_prev,
-                      std::vector<uint32_t>     &uv_next,
-                      const OblivSelectKey      &key,
-                      const sharing::SharesPair &database,
-                      const sharing::SharePair  &index,
-                      sharing::SharePair        &result) const;
+                  std::vector<uint32_t>     &uv_prev,
+                  std::vector<uint32_t>     &uv_next,
+                  const OblivSelectKey      &key,
+                  const sharing::SharesPair &database,
+                  const sharing::SharePair  &index,
+                  sharing::SharePair        &result) const;
 
 private:
     OblivSelectParameters         params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */
@@ -237,12 +238,10 @@ private:
     sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
 
     // Internal functions
-    void ReconstructPR(sharing::Channels        &chls,
-                       const OblivSelectKey     &key,
-                       const sharing::SharePair &index,
-                       const uint32_t            d,
-                       uint32_t                 &pr_prev,
-                       uint32_t                 &pr_next) const;
+    std::pair<uint32_t, uint32_t> ReconstructPR(sharing::Channels        &chls,
+                                                const OblivSelectKey     &key,
+                                                const sharing::SharePair &index,
+                                                const uint32_t            d) const;
 };
 
 }    // namespace wm

@@ -8,6 +8,8 @@
 #include "FssWM_Tests/fss/prg_test.h"
 #include "FssWM_Tests/sharing/additive_2p_test.h"
 #include "FssWM_Tests/sharing/additive_3p_test.h"
+#include "FssWM_Tests/sharing/binary_2p_test.h"
+#include "FssWM_Tests/sharing/binary_3p_test.h"
 #include "FssWM_Tests/utils/file_io_test.h"
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
@@ -34,11 +36,19 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Additive2P_EvaluateMult_Online_Test", Additive2P_EvaluateMult_Online_Test);
     t.add("Additive2P_EvaluateSelect_Offline_Test", Additive2P_EvaluateSelect_Offline_Test);
     t.add("Additive2P_EvaluateSelect_Online_Test", Additive2P_EvaluateSelect_Online_Test);
+    t.add("Binary2P_EvaluateXor_Offline_Test", Binary2P_EvaluateXor_Offline_Test);
+    t.add("Binary2P_EvaluateXor_Online_Test", Binary2P_EvaluateXor_Online_Test);
+    t.add("Binary2P_EvaluateAnd_Offline_Test", Binary2P_EvaluateAnd_Offline_Test);
+    t.add("Binary2P_EvaluateAnd_Online_Test", Binary2P_EvaluateAnd_Online_Test);
     t.add("Additive3P_Offline_Test", Additive3P_Offline_Test);
     t.add("Additive3P_Open_Online_Test", Additive3P_Open_Online_Test);
     t.add("Additive3P_EvaluateAdd_Online_Test", Additive3P_EvaluateAdd_Online_Test);
     t.add("Additive3P_EvaluateMult_Online_Test", Additive3P_EvaluateMult_Online_Test);
     t.add("Additive3P_EvaluateInnerProduct_Online_Test", Additive3P_EvaluateInnerProduct_Online_Test);
+    t.add("Binary3P_Offline_Test", Binary3P_Offline_Test);
+    t.add("Binary3P_Open_Online_Test", Binary3P_Open_Online_Test);
+    t.add("Binary3P_EvaluateXor_Online_Test", Binary3P_EvaluateXor_Online_Test);
+    t.add("Binary3P_EvaluateAnd_Online_Test", Binary3P_EvaluateAnd_Online_Test);
     t.add("OblivSelect_Offline_Test", OblivSelect_Offline_Test);
     t.add("OblivSelect_Online_Test", OblivSelect_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);

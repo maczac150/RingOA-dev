@@ -6,8 +6,22 @@
 #include <string>
 #include <vector>
 
+#include "cryptoTools/Network/Channel.h"
+
 namespace fsswm {
 namespace sharing {
+
+constexpr size_t kNumParties = 3;
+
+struct Channels {
+    uint32_t    party_id;
+    oc::Channel prev;
+    oc::Channel next;
+
+    Channels(const uint32_t party_id, oc::Channel &prev, oc::Channel &next)
+        : party_id(party_id), prev(prev), next(next) {
+    }
+};
 
 struct SharePair {
     std::array<uint32_t, 2> data;

@@ -13,7 +13,9 @@ set(TEST_SOURCES
     fss/prg_test.cpp
     fss/dpf_test.cpp
     sharing/additive_2p_test.cpp
+    sharing/binary_2p_test.cpp
     sharing/additive_3p_test.cpp
+    sharing/binary_3p_test.cpp
     wm/wm_test.cpp
     wm/obliv_select_test.cpp
     test_main.cpp

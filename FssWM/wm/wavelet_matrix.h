@@ -23,7 +23,6 @@ public:
 private:
     static constexpr size_t                 BITS = 3;
     std::array<std::vector<uint32_t>, BITS> rank0_tables_;
-    std::array<uint32_t, BITS>              zero_counts_;
     size_t                                  length_ = 0;
 
     void Build(const std::vector<uint32_t> &data);
