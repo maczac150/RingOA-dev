@@ -23,7 +23,11 @@ public:
      * @param sigma The alphabet size for the FssWMParameters.
      */
     FssWMParameters(const uint32_t database_bitsize, const uint32_t query_size, const uint32_t sigma = 3)
-        : database_bitsize_(database_bitsize), database_size_(1U << database_bitsize), query_size_(query_size), sigma_(sigma), os_params_(database_bitsize) {
+        : database_bitsize_(database_bitsize),
+          database_size_(1U << database_bitsize),
+          query_size_(query_size),
+          sigma_(sigma),
+          os_params_(database_bitsize, ShareType::kBinary) {
     }
 
     /**
@@ -37,7 +41,7 @@ public:
         database_size_    = 1U << database_bitsize;
         query_size_       = query_size;
         sigma_            = sigma;
-        os_params_.ReconfigureParameters(database_bitsize);
+        os_params_.ReconfigureParameters(database_bitsize, ShareType::kBinary);
     }
 
     /**
@@ -188,10 +192,13 @@ public:
     /**
      * @brief Parameterized constructor for FssWMKeyGenerator.
      * @param params FssWMParameters for the FssWMKeyGenerator.
-     * @param rss Replicated sharing for 3-party for the FssWMKeyGenerator.
-     * @param ass Additive sharing for 2-party for the FssWMKeyGenerator.
+     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
      */
-    FssWMKeyGenerator(const FssWMParameters &params, sharing::ReplicatedSharing3P &rss, sharing::AdditiveSharing2P &ass);
+    FssWMKeyGenerator(
+        const FssWMParameters      &params,
+        sharing::AdditiveSharing2P &ass,
+        sharing::BinarySharing2P   &bss);
 
     /**
      * @brief Generate keys for the FssWM.
@@ -200,10 +207,10 @@ public:
     std::array<FssWMKey, 3> GenerateKeys() const;
 
 private:
-    FssWMParameters               params_; /**< FssWMParameters for the FssWMKeyGenerator. */
-    OblivSelectKeyGenerator       gen_;    /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
-    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssWMKeyGenerator. */
-    sharing::AdditiveSharing2P   &ass_;    /**< Additive sharing for 2-party for the FssWMKeyGenerator. */
+    FssWMParameters             params_; /**< FssWMParameters for the FssWMKeyGenerator. */
+    OblivSelectKeyGenerator     gen_;    /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
+    sharing::AdditiveSharing2P &ass_;    /**< Additive sharing for 2-party for the OblivSelectKeyGenerator. */
+    sharing::BinarySharing2P   &bss_;    /**< Binary sharing for 2-party for the OblivSelectKeyGenerator. */
 };
 
 /**
@@ -219,9 +226,12 @@ public:
     /**
      * @brief Parameterized constructor for FssWMEvaluator.
      * @param params FssWMParameters for the FssWMEvaluator.
-     * @param rss Replicated sharing for 3-party for the FssWMEvaluator.
+     * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
+     * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
-    FssWMEvaluator(const FssWMParameters &params, sharing::ReplicatedSharing3P &rss);
+    FssWMEvaluator(const FssWMParameters              &params,
+                   sharing::ReplicatedSharing3P       &rss,
+                   sharing::BinaryReplicatedSharing3P &brss);
 
     void Evaluate(sharing::Channels                      &chls,
                   const FssWMKey                         &key,
@@ -230,9 +240,10 @@ public:
                   sharing::SharesPair                    &result) const;
 
 private:
-    FssWMParameters               params_; /**< FssWMParameters for the FssWMEvaluator. */
-    OblivSelectEvaluator          eval_;   /**< OblivSelectEvaluator for the FssWMEvaluator. */
-    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssWMEvaluator. */
+    FssWMParameters                     params_; /**< FssWMParameters for the FssWMEvaluator. */
+    OblivSelectEvaluator                eval_;   /**< OblivSelectEvaluator for the FssWMEvaluator. */
+    sharing::ReplicatedSharing3P       &rss_;    /**< Replicated sharing for 3-party for the FssWMEvaluator. */
+    sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
 };
 
 }    // namespace wm

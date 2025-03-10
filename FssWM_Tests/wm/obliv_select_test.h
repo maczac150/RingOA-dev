@@ -5,8 +5,10 @@
 
 namespace test_fsswm {
 
-void OblivSelect_Offline_Test();
-void OblivSelect_Online_Test(const oc::CLP &cmd);
+void OblivSelect_Additive_Offline_Test();
+void OblivSelect_Additive_Online_Test(const oc::CLP &cmd);
+void OblivSelect_Binary_Offline_Test();
+void OblivSelect_Binary_Online_Test(const oc::CLP &cmd);
 
 }    // namespace test_fsswm
 

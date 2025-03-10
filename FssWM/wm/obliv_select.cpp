@@ -4,8 +4,34 @@
 
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
+#include "FssWM/sharing/binary_2p.h"
+#include "FssWM/sharing/binary_3p.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/utils.h"
+
+namespace {
+// This helper extracts 128 bits from each __m128i block and appends them as 0/1 values.
+std::vector<uint8_t> ExtractBits(const std::vector<fsswm::block> &blocks) {
+    std::vector<uint8_t> bits;
+    // Each fsswm::block contains 128 bits.
+    bits.reserve(blocks.size() * 128);
+    for (const auto &block : blocks) {
+        // Use an aligned array to store the block.
+        alignas(16) uint8_t buffer[16];
+        _mm_storeu_si128(reinterpret_cast<fsswm::block *>(buffer), block);
+        // Each byte in buffer has 8 bits.
+        for (int byte = 0; byte < 16; ++byte) {
+            for (int bit = 0; bit < 8; ++bit) {
+                // Extract the bit: shift and mask.
+                uint8_t bitVal = (buffer[byte] >> bit) & 1;
+                bits.push_back(bitVal);
+            }
+        }
+    }
+    return bits;
+}
+
+}    // namespace
 
 namespace fsswm {
 namespace wm {
@@ -102,98 +128,122 @@ void OblivSelectKey::PrintKey(const bool detailed) const {
 #endif
 }
 
-OblivSelectKeyGenerator::OblivSelectKeyGenerator(const OblivSelectParameters &params, sharing::ReplicatedSharing3P &rss, sharing::AdditiveSharing2P &ass)
-    : params_(params), gen_(params.GetParameters()), rss_(rss), ass_(ass) {
+OblivSelectKeyGenerator::OblivSelectKeyGenerator(
+    const OblivSelectParameters &params,
+    sharing::AdditiveSharing2P  &ass,
+    sharing::BinarySharing2P    &bss)
+    : params_(params),
+      gen_(params.GetParameters()),
+      ass_(ass), bss_(bss) {
 }
 
 std::array<OblivSelectKey, 3> OblivSelectKeyGenerator::GenerateKeys() const {
     // Initialize the keys
-    std::array<OblivSelectKey, 3> keys = {OblivSelectKey(0, params_), OblivSelectKey(1, params_), OblivSelectKey(2, params_)};
+    std::array<OblivSelectKey, 3> keys = {
+        OblivSelectKey(0, params_),
+        OblivSelectKey(1, params_),
+        OblivSelectKey(2, params_),
+    };
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Generate OblivSelect Keys");
 #endif
 
-    // [Party 0]
-    uint32_t                                      r_0    = rss_.GenerateRandomValue();
-    std::pair<uint32_t, uint32_t>                 r_0_sh = ass_.Share(r_0);
-    std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey> key_0  = gen_.GenerateKeys(r_0, 1);
-    // Send key_0.first and r_0_sh.first to Party 1
-    // Send key_0.second and r_0_sh.second to Party 2
-    // Set sampled value to own key
-    keys[0].r      = r_0;
-    keys[0].r_sh_0 = r_0_sh.first;
-    keys[0].r_sh_1 = r_0_sh.second;
+    switch (params_.GetType()) {
+        case ShareType::kAdditive:
+            GenerateAdditiveKeys(keys);
+            break;
+        case ShareType::kBinary:
+            GenerateBinaryKeys(keys);
+            break;
+        default:
+            Logger::ErrorLog(LOC, "Unsupported ShareType");
+            break;
+    }
+    return keys;
+}
 
-    // [Party 1]
-    uint32_t                                      r_1    = rss_.GenerateRandomValue();
-    std::pair<uint32_t, uint32_t>                 r_1_sh = ass_.Share(r_1);
-    std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey> key_1  = gen_.GenerateKeys(r_1, 1);
-    // Send key_1.first and r_1_sh.first to Party 2
-    // Send key_1.second and r_1_sh.second to Party 0
-    // Set sampled value to own key
-    keys[1].r      = r_1;
-    keys[1].r_sh_0 = r_1_sh.first;
-    keys[1].r_sh_1 = r_1_sh.second;
+void OblivSelectKeyGenerator::GenerateAdditiveKeys(std::array<OblivSelectKey, 3> &keys) const {
+    std::array<uint32_t, 3>                                    rands;
+    std::array<std::pair<uint32_t, uint32_t>, 3>               rand_shs;
+    std::vector<std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey>> key_pairs;
+    key_pairs.reserve(3);
 
-    // [Party 2]
-    uint32_t                                      r_2    = rss_.GenerateRandomValue();
-    std::pair<uint32_t, uint32_t>                 r_2_sh = ass_.Share(r_2);
-    std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey> key_2  = gen_.GenerateKeys(r_2, 1);
-    // Send key_2.first and r_2_sh.first to Party 0
-    // Send key_2.second and r_2_sh.second to Party 1
-    // Set sampled value to own key
-    keys[2].r      = r_2;
-    keys[2].r_sh_0 = r_2_sh.first;
-    keys[2].r_sh_1 = r_2_sh.second;
+    for (uint32_t i = 0; i < 3; ++i) {
+        rands[i]     = ass_.GenerateRandomValue();
+        rand_shs[i]  = ass_.Share(rands[i]);
+        key_pairs[i] = gen_.GenerateKeys(rands[i], 1);
 
-    // [Party 0]
-    // Receive key_2.first and r_2_sh.first from Party 2
-    // Receive key_1.second and r_1_sh.second from Party 1
-    // Set key and shared value to own key
-    keys[0].prev_key  = std::move(key_2.first);
-    keys[0].prev_r_sh = r_2_sh.first;
-    keys[0].next_key  = std::move(key_1.second);
-    keys[0].next_r_sh = r_1_sh.second;
+        keys[i].r      = rands[i];
+        keys[i].r_sh_0 = rand_shs[i].first;
+        keys[i].r_sh_1 = rand_shs[i].second;
+    }
 
-    // [Party 1]
-    // Receive key_0.first and r_0_sh.first from Party 0
-    // Receive key_2.second and r_2_sh.second from Party 2
-    // Set key and shared value to own key
-    keys[1].prev_key  = std::move(key_0.first);
-    keys[1].prev_r_sh = r_0_sh.first;
-    keys[1].next_key  = std::move(key_2.second);
-    keys[1].next_r_sh = r_2_sh.second;
-
-    // [Party 2]
-    // Receive key_1.first and r_1_sh.first from Party 1
-    // Receive key_0.second and r_0_sh.second from Party 0
-    // Set key and shared value to own key
-    keys[2].prev_key  = std::move(key_1.first);
-    keys[2].prev_r_sh = r_1_sh.first;
-    keys[2].next_key  = std::move(key_0.second);
-    keys[2].next_r_sh = r_0_sh.second;
+    // Assign previous and next keys
+    for (uint32_t i = 0; i < 3; ++i) {
+        uint32_t prev     = (i + 2) % 3;
+        uint32_t next     = (i + 1) % 3;
+        keys[i].prev_key  = std::move(key_pairs[prev].first);
+        keys[i].prev_r_sh = rand_shs[prev].first;
+        keys[i].next_key  = std::move(key_pairs[next].second);
+        keys[i].next_r_sh = rand_shs[next].second;
+    }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     keys[0].PrintKey();
     keys[1].PrintKey();
     keys[2].PrintKey();
 #endif
-
-    return keys;
 }
 
-OblivSelectEvaluator::OblivSelectEvaluator(const OblivSelectParameters &params, sharing::ReplicatedSharing3P &rss)
-    : params_(params), eval_(params.GetParameters()), rss_(rss) {
+void OblivSelectKeyGenerator::GenerateBinaryKeys(std::array<OblivSelectKey, 3> &keys) const {
+    std::array<uint32_t, 3>                                    rands;
+    std::array<std::pair<uint32_t, uint32_t>, 3>               rand_shs;
+    std::vector<std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey>> key_pairs;
+    key_pairs.reserve(3);
+
+    for (uint32_t i = 0; i < 3; ++i) {
+        rands[i]     = bss_.GenerateRandomValue();
+        rand_shs[i]  = bss_.Share(rands[i]);
+        key_pairs[i] = gen_.GenerateKeys(rands[i], 1);
+
+        keys[i].r      = rands[i];
+        keys[i].r_sh_0 = rand_shs[i].first;
+        keys[i].r_sh_1 = rand_shs[i].second;
+    }
+
+    // Assign previous and next keys
+    for (uint32_t i = 0; i < 3; ++i) {
+        uint32_t prev     = (i + 2) % 3;
+        uint32_t next     = (i + 1) % 3;
+        keys[i].prev_key  = std::move(key_pairs[prev].first);
+        keys[i].prev_r_sh = rand_shs[prev].first;
+        keys[i].next_key  = std::move(key_pairs[next].second);
+        keys[i].next_r_sh = rand_shs[next].second;
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    keys[0].PrintKey();
+    keys[1].PrintKey();
+    keys[2].PrintKey();
+#endif
 }
 
-void OblivSelectEvaluator::Evaluate(sharing::Channels         &chls,
-                                    std::vector<uint32_t>     &uv_prev,
-                                    std::vector<uint32_t>     &uv_next,
-                                    const OblivSelectKey      &key,
-                                    const sharing::SharesPair &database,
-                                    const sharing::SharePair  &index,
-                                    sharing::SharePair        &result) const {
+OblivSelectEvaluator::OblivSelectEvaluator(
+    const OblivSelectParameters        &params,
+    sharing::ReplicatedSharing3P       &rss,
+    sharing::BinaryReplicatedSharing3P &brss)
+    : params_(params), eval_(params.GetParameters()), rss_(rss), brss_(brss) {
+}
+
+void OblivSelectEvaluator::EvaluateAdditive(sharing::Channels         &chls,
+                                            std::vector<uint32_t>     &uv_prev,
+                                            std::vector<uint32_t>     &uv_next,
+                                            const OblivSelectKey      &key,
+                                            const sharing::SharesPair &database,
+                                            const sharing::SharePair  &index,
+                                            sharing::SharePair        &result) const {
+
     uint32_t d        = params_.GetDatabaseSize();
     uint32_t party_id = chls.party_id;
 
@@ -206,7 +256,7 @@ void OblivSelectEvaluator::Evaluate(sharing::Channels         &chls,
 #endif
 
     // Reconstruct p - r_i
-    auto [pr_prev, pr_next] = ReconstructPR(chls, key, index, d);
+    auto [pr_prev, pr_next] = ReconstructPRAdditive(chls, key, index, d);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + " pr_prev: " + std::to_string(pr_prev) + ", pr_next: " + std::to_string(pr_next));
 #endif
@@ -229,10 +279,10 @@ void OblivSelectEvaluator::Evaluate(sharing::Channels         &chls,
     chls.prev.recv(result.data[1]);
 }
 
-std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPR(sharing::Channels        &chls,
-                                                                  const OblivSelectKey     &key,
-                                                                  const sharing::SharePair &index,
-                                                                  const uint32_t            d) const {
+std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRAdditive(sharing::Channels        &chls,
+                                                                          const OblivSelectKey     &key,
+                                                                          const sharing::SharePair &index,
+                                                                          const uint32_t            d) const {
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
 
     // Set replicated sharing of random value
@@ -307,6 +357,134 @@ std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPR(sharing::Chann
         chls.next.recv(p_r_1_next);
         chls.next.send(p_r_sh.data[1]);
         pr_prev = Mod(p_r_sh.data[0] + p_r_sh.data[1] + p_r_1_next, d);
+    }
+    return std::make_pair(pr_prev, pr_next);
+}
+
+void OblivSelectEvaluator::EvaluateBinary(sharing::Channels         &chls,
+                                          std::vector<block>        &uv_prev,
+                                          std::vector<block>        &uv_next,
+                                          const OblivSelectKey      &key,
+                                          const sharing::SharesPair &database,
+                                          const sharing::SharePair  &index,
+                                          sharing::SharePair        &result) const {
+
+    uint32_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
+    Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
+    std::string party_str = "[P" + std::to_string(party_id) + "] ";
+    index.DebugLog(party_id, "idx");
+    database.DebugLog(party_id, "db");
+#endif
+
+    // Reconstruct p ^ r_i
+    auto [pr_prev, pr_next] = ReconstructPRBinary(chls, key, index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " pr_prev: " + std::to_string(pr_prev) + ", pr_next: " + std::to_string(pr_next));
+#endif
+
+    // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
+    eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
+    eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
+
+    // Extract bit-level values from the evaluated blocks.
+    std::vector<uint8_t> uv_prev_bits = ExtractBits(uv_prev);
+    std::vector<uint8_t> uv_next_bits = ExtractBits(uv_next);
+
+    // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
+    uint32_t dp_prev = 0, dp_next = 0;
+    for (size_t i = 0; i < uv_prev_bits.size(); ++i) {
+        dp_prev ^= (database.data[0][i] * uv_prev_bits[i ^ pr_prev]);
+        dp_next ^= (database.data[1][i] * uv_next_bits[i ^ pr_next]);
+    }
+
+    uint32_t           selected_sh = dp_prev ^ dp_next;
+    sharing::SharePair r_sh;
+    brss_.Rand(r_sh);
+    result.data[0] = selected_sh ^ r_sh.data[0] ^ r_sh.data[1];
+    chls.next.send(result.data[0]);
+    chls.prev.recv(result.data[1]);
+}
+
+std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRBinary(sharing::Channels        &chls,
+                                                                        const OblivSelectKey     &key,
+                                                                        const sharing::SharePair &index) const {
+    Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
+
+    // Set replicated sharing of random value
+    uint32_t           pr_prev = 0, pr_next = 0;
+    sharing::SharePair r_0_sh, r_1_sh, r_2_sh;
+
+    switch (chls.party_id) {
+        case 0:
+            r_0_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
+            r_1_sh = sharing::SharePair(key.next_r_sh, 0);
+            r_2_sh = sharing::SharePair(0, key.prev_r_sh);
+            break;
+        case 1:
+            r_0_sh = sharing::SharePair(0, key.prev_r_sh);
+            r_1_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
+            r_2_sh = sharing::SharePair(key.next_r_sh, 0);
+            break;
+        case 2:
+            r_0_sh = sharing::SharePair(key.next_r_sh, 0);
+            r_1_sh = sharing::SharePair(0, key.prev_r_sh);
+            r_2_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
+            break;
+        default:
+            Logger::ErrorLog(LOC, "Invalid party_id: " + std::to_string(chls.party_id));
+            return std::make_pair(0, 0);
+    }
+
+    // Reconstruct p ^ r_i
+    sharing::SharePair p_r_sh;
+
+    if (chls.party_id == 0) {
+        // p ^ r_1 between Party 0 and Party 2
+        brss_.EvaluateXor(index, r_1_sh, p_r_sh);
+        chls.prev.send(p_r_sh.data[0]);
+        uint32_t p_r_1_prev;
+        chls.prev.recv(p_r_1_prev);
+        pr_next = p_r_1_prev ^ p_r_sh.data[0] ^ p_r_sh.data[1];
+
+        // p ^ r_2 between Party 0 and Party 1
+        brss_.EvaluateXor(index, r_2_sh, p_r_sh);
+        chls.next.send(p_r_sh.data[1]);
+        uint32_t p_r_2_next;
+        chls.next.recv(p_r_2_next);
+        pr_prev = p_r_sh.data[0] ^ p_r_sh.data[1] ^ p_r_2_next;
+
+    } else if (chls.party_id == 1) {
+        // p ^ r_0 between Party 1 and Party 2
+        brss_.EvaluateXor(index, r_0_sh, p_r_sh);
+        chls.next.send(p_r_sh.data[1]);
+        uint32_t p_r_0_next;
+        chls.next.recv(p_r_0_next);
+        pr_prev = p_r_sh.data[0] ^ p_r_sh.data[1] ^ p_r_0_next;
+
+        // p ^ r_2 between Party 0 and Party 1
+        brss_.EvaluateXor(index, r_2_sh, p_r_sh);
+        uint32_t p_r_2_prev;
+        chls.prev.recv(p_r_2_prev);
+        chls.prev.send(p_r_sh.data[0]);
+        pr_next = p_r_2_prev ^ p_r_sh.data[0] ^ p_r_sh.data[1];
+
+    } else {
+        // p ^ r_0 between Party 1 and Party 2
+        brss_.EvaluateXor(index, r_0_sh, p_r_sh);
+        uint32_t p_r_0_prev;
+        chls.prev.recv(p_r_0_prev);
+        chls.prev.send(p_r_sh.data[0]);
+        pr_next = p_r_0_prev ^ p_r_sh.data[0] ^ p_r_sh.data[1];
+
+        // p ^ r_1 between Party 0 and Party 2
+        brss_.EvaluateXor(index, r_1_sh, p_r_sh);
+        uint32_t p_r_1_next;
+        chls.next.recv(p_r_1_next);
+        chls.next.send(p_r_sh.data[1]);
+        pr_prev = p_r_sh.data[0] ^ p_r_sh.data[1] ^ p_r_1_next;
     }
     return std::make_pair(pr_prev, pr_next);
 }

@@ -79,8 +79,11 @@ void FssWMKey::PrintKey(const bool detailed) const {
     }
 }
 
-FssWMKeyGenerator::FssWMKeyGenerator(const FssWMParameters &params, sharing::ReplicatedSharing3P &rss, sharing::AdditiveSharing2P &ass)
-    : params_(params), gen_(params.GetParameters(), rss, ass), rss_(rss), ass_(ass) {
+FssWMKeyGenerator::FssWMKeyGenerator(
+    const FssWMParameters      &params,
+    sharing::AdditiveSharing2P &ass,
+    sharing::BinarySharing2P   &bss)
+    : params_(params), gen_(params.GetParameters(), ass, bss), ass_(ass), bss_(bss) {
 }
 
 std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
@@ -116,8 +119,11 @@ std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
     return keys;
 }
 
-FssWMEvaluator::FssWMEvaluator(const FssWMParameters &params, sharing::ReplicatedSharing3P &rss)
-    : params_(params), eval_(params.GetParameters(), rss), rss_(rss) {
+FssWMEvaluator::FssWMEvaluator(
+    const FssWMParameters              &params,
+    sharing::ReplicatedSharing3P       &rss,
+    sharing::BinaryReplicatedSharing3P &brss)
+    : params_(params), eval_(params.GetParameters(), rss, brss), rss_(rss), brss_(brss) {
 }
 
 void FssWMEvaluator::Evaluate(sharing::Channels                      &chls,
@@ -148,7 +154,7 @@ void FssWMEvaluator::Evaluate(sharing::Channels                      &chls,
         // Evaluate the f
         sharing::SharePair f_sh;
         for (uint32_t j = 0; j < sigma; ++j) {
-            eval_.Evaluate(chls, uv_prev, uv_next, key.os_f_keys[i * sigma + j], wm_table[j], f_sh, f_sh);
+            eval_.EvaluateAdditive(chls, uv_prev, uv_next, key.os_f_keys[i * sigma + j], wm_table[j], f_sh, f_sh);
         }
     }
 }

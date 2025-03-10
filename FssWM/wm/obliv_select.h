@@ -8,13 +8,16 @@
 #include "FssWM/fss/dpf_eval.h"
 #include "FssWM/fss/dpf_gen.h"
 #include "FssWM/fss/dpf_key.h"
+#include "FssWM/utils/block.h"
 
 namespace fsswm {
 
 namespace sharing {
 
 class ReplicatedSharing3P;
+class BinaryReplicatedSharing3P;
 class AdditiveSharing2P;
+class BinarySharing2P;
 class SharesPair;
 class SharePair;
 struct Channels;
@@ -22,6 +25,12 @@ struct Channels;
 }    // namespace sharing
 
 namespace wm {
+
+enum class ShareType
+{
+    kAdditive,
+    kBinary,
+};
 
 /**
  * @brief A class to hold params for the Oblivious Selection.
@@ -36,17 +45,20 @@ public:
     /**
      * @brief Parameterized constructor for OblivSelectParameters.
      * @param d The input bitsize.
+     * @param type The type of sharing.
      */
-    explicit OblivSelectParameters(const uint32_t d)
-        : params_(d, d) {
+    explicit OblivSelectParameters(const uint32_t d, const ShareType type)
+        : params_(d, type == ShareType::kAdditive ? d : 1), type_(type) {
     }
 
     /**
      * @brief Reconfigure the parameters for the Zero Test technique.
      * @param d The input bitsize.
+     * @param type The type of sharing.
      */
-    void ReconfigureParameters(const uint32_t d) {
-        params_.ReconfigureParameters(d, d);
+    void ReconfigureParameters(const uint32_t d, const ShareType type) {
+        params_.ReconfigureParameters(d, type == ShareType::kAdditive ? d : 1);
+        type_ = type;
     }
 
     /**
@@ -55,6 +67,14 @@ public:
      */
     uint32_t GetDatabaseSize() const {
         return params_.GetInputBitsize();
+    }
+
+    /**
+     * @brief Get the type of sharing for the OblivSelectParameters.
+     * @return ShareType The type of sharing for the OblivSelectParameters.
+     */
+    ShareType GetType() const {
+        return type_;
     }
 
     /**
@@ -70,7 +90,7 @@ public:
      * @return std::string The string representation of the DpfParameters.
      */
     std::string GetParametersInfo() const {
-        return params_.GetParametersInfo();
+        return params_.GetParametersInfo() + " | ShareType: " + (type_ == ShareType::kAdditive ? "Additive" : "Binary");
     }
 
     /**
@@ -80,6 +100,7 @@ public:
 
 private:
     fss::dpf::DpfParameters params_; /**< DpfParameters for the OblivSelectParameters. */
+    ShareType               type_;   /**< The type of sharing for the OblivSelectParameters. */
 };
 
 /**
@@ -189,10 +210,13 @@ public:
     /**
      * @brief Parameterized constructor for OblivSelectKeyGenerator.
      * @param params OblivSelectParameters for the OblivSelectKeyGenerator.
-     * @param rss Replicated sharing for 3-party for the OblivSelectKeyGenerator.
      * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
      */
-    OblivSelectKeyGenerator(const OblivSelectParameters &params, sharing::ReplicatedSharing3P &rss, sharing::AdditiveSharing2P &ass);
+    OblivSelectKeyGenerator(
+        const OblivSelectParameters &params,
+        sharing::AdditiveSharing2P  &ass,
+        sharing::BinarySharing2P    &bss);
 
     /**
      * @brief Generate keys for the Oblivious Selection.
@@ -201,10 +225,13 @@ public:
     std::array<OblivSelectKey, 3> GenerateKeys() const;
 
 private:
-    OblivSelectParameters         params_; /**< OblivSelectParameters for the OblivSelectKeyGenerator. */
-    fss::dpf::DpfKeyGenerator     gen_;    /**< DPF key generator for the OblivSelectKeyGenerator. */
-    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the OblivSelectKeyGenerator. */
-    sharing::AdditiveSharing2P   &ass_;    /**< Additive sharing for 2-party for the OblivSelectKeyGenerator. */
+    OblivSelectParameters       params_; /**< OblivSelectParameters for the OblivSelectKeyGenerator. */
+    fss::dpf::DpfKeyGenerator   gen_;    /**< DPF key generator for the OblivSelectKeyGenerator. */
+    sharing::AdditiveSharing2P &ass_;    /**< Additive sharing for 2-party for the OblivSelectKeyGenerator. */
+    sharing::BinarySharing2P   &bss_;    /**< Binary sharing for 2-party for the OblivSelectKeyGenerator. */
+
+    void GenerateAdditiveKeys(std::array<OblivSelectKey, 3> &keys) const;
+    void GenerateBinaryKeys(std::array<OblivSelectKey, 3> &keys) const;
 };
 
 /**
@@ -221,27 +248,43 @@ public:
      * @brief Parameterized constructor for OblivSelectEvaluator.
      * @param params OblivSelectParameters for the OblivSelectEvaluator.
      * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
+     * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
-    OblivSelectEvaluator(const OblivSelectParameters &params, sharing::ReplicatedSharing3P &rss);
+    OblivSelectEvaluator(const OblivSelectParameters        &params,
+                         sharing::ReplicatedSharing3P       &rss,
+                         sharing::BinaryReplicatedSharing3P &brss);
 
-    void Evaluate(sharing::Channels         &chls,
-                  std::vector<uint32_t>     &uv_prev,
-                  std::vector<uint32_t>     &uv_next,
-                  const OblivSelectKey      &key,
-                  const sharing::SharesPair &database,
-                  const sharing::SharePair  &index,
-                  sharing::SharePair        &result) const;
+    void EvaluateAdditive(sharing::Channels         &chls,
+                          std::vector<uint32_t>     &uv_prev,
+                          std::vector<uint32_t>     &uv_next,
+                          const OblivSelectKey      &key,
+                          const sharing::SharesPair &database,
+                          const sharing::SharePair  &index,
+                          sharing::SharePair        &result) const;
+
+    void EvaluateBinary(sharing::Channels         &chls,
+                        std::vector<block>        &uv_prev,
+                        std::vector<block>        &uv_next,
+                        const OblivSelectKey      &key,
+                        const sharing::SharesPair &database,
+                        const sharing::SharePair  &index,
+                        sharing::SharePair        &result) const;
 
 private:
-    OblivSelectParameters         params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */
-    fss::dpf::DpfEvaluator        eval_;   /**< DPF evaluator for the OblivSelectEvaluator. */
-    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
+    OblivSelectParameters               params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */
+    fss::dpf::DpfEvaluator              eval_;   /**< DPF evaluator for the OblivSelectEvaluator. */
+    sharing::ReplicatedSharing3P       &rss_;    /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
+    sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
 
     // Internal functions
-    std::pair<uint32_t, uint32_t> ReconstructPR(sharing::Channels        &chls,
-                                                const OblivSelectKey     &key,
-                                                const sharing::SharePair &index,
-                                                const uint32_t            d) const;
+    std::pair<uint32_t, uint32_t> ReconstructPRAdditive(sharing::Channels        &chls,
+                                                        const OblivSelectKey     &key,
+                                                        const sharing::SharePair &index,
+                                                        const uint32_t            d) const;
+
+    std::pair<uint32_t, uint32_t> ReconstructPRBinary(sharing::Channels        &chls,
+                                                      const OblivSelectKey     &key,
+                                                      const sharing::SharePair &index) const;
 };
 
 }    // namespace wm

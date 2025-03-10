@@ -13,6 +13,7 @@
 #include "FssWM_Tests/utils/file_io_test.h"
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
+#include "FssWM_Tests/wm/fsswm_test.h"
 #include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
 
@@ -49,10 +50,14 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Binary3P_Open_Online_Test", Binary3P_Open_Online_Test);
     t.add("Binary3P_EvaluateXor_Online_Test", Binary3P_EvaluateXor_Online_Test);
     t.add("Binary3P_EvaluateAnd_Online_Test", Binary3P_EvaluateAnd_Online_Test);
-    t.add("OblivSelect_Offline_Test", OblivSelect_Offline_Test);
-    t.add("OblivSelect_Online_Test", OblivSelect_Online_Test);
+    t.add("OblivSelect_Additive_Offline_Test", OblivSelect_Additive_Offline_Test);
+    t.add("OblivSelect_Additive_Online_Test", OblivSelect_Additive_Online_Test);
+    t.add("OblivSelect_Binary_Offline_Test", OblivSelect_Binary_Offline_Test);
+    t.add("OblivSelect_Binary_Online_Test", OblivSelect_Binary_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
+    t.add("FssWM_Offline_Test", FssWM_Offline_Test);
+    t.add("FssWM_Online_Test", FssWM_Online_Test);
 });
 
 }    // namespace test_fsswm
