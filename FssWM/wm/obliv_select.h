@@ -9,6 +9,7 @@
 #include "FssWM/fss/dpf_gen.h"
 #include "FssWM/fss/dpf_key.h"
 #include "FssWM/utils/block.h"
+#include "wm.h"
 
 namespace fsswm {
 
@@ -25,12 +26,6 @@ struct Channels;
 }    // namespace sharing
 
 namespace wm {
-
-enum class ShareType
-{
-    kAdditive,
-    kBinary,
-};
 
 /**
  * @brief A class to hold params for the Oblivious Selection.
@@ -230,6 +225,7 @@ private:
     sharing::AdditiveSharing2P &ass_;    /**< Additive sharing for 2-party for the OblivSelectKeyGenerator. */
     sharing::BinarySharing2P   &bss_;    /**< Binary sharing for 2-party for the OblivSelectKeyGenerator. */
 
+    // Internal functions
     void GenerateAdditiveKeys(std::array<OblivSelectKey, 3> &keys) const;
     void GenerateBinaryKeys(std::array<OblivSelectKey, 3> &keys) const;
 };

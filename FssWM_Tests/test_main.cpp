@@ -16,6 +16,7 @@
 #include "FssWM_Tests/wm/fsswm_test.h"
 #include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
+#include "FssWM_Tests/wm/zt_test.h"
 
 namespace test_fsswm {
 
@@ -56,6 +57,10 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("OblivSelect_Binary_Online_Test", OblivSelect_Binary_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
+    t.add("ZeroTest_Additive_Offline_Test", ZeroTest_Additive_Offline_Test);
+    t.add("ZeroTest_Additive_Online_Test", ZeroTest_Additive_Online_Test);
+    t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
+    t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
     t.add("FssWM_Offline_Test", FssWM_Offline_Test);
     t.add("FssWM_Online_Test", FssWM_Online_Test);
 });

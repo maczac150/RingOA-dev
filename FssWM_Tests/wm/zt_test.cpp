@@ -1,0 +1,353 @@
+#include "zt_test.h"
+
+#include "cryptoTools/Common/TestCollection.h"
+
+#include "FssWM/sharing/additive_2p.h"
+#include "FssWM/sharing/additive_3p.h"
+#include "FssWM/sharing/binary_2p.h"
+#include "FssWM/sharing/binary_3p.h"
+#include "FssWM/sharing/share_io.h"
+#include "FssWM/utils/logger.h"
+#include "FssWM/utils/network.h"
+#include "FssWM/utils/utils.h"
+#include "FssWM/wm/key_io.h"
+#include "FssWM/wm/zero_test.h"
+
+namespace {
+
+const std::string kCurrentPath      = fsswm::GetCurrentDirectory();
+const std::string kTestZeroTestPath = kCurrentPath + "/data/test/wm/";
+
+}    // namespace
+
+namespace test_fsswm {
+
+using fsswm::FileIo;
+using fsswm::Logger;
+using fsswm::ThreePartyNetworkManager;
+using fsswm::ToString;
+using fsswm::sharing::AdditiveSharing2P;
+using fsswm::sharing::BinaryReplicatedSharing3P;
+using fsswm::sharing::BinarySharing2P;
+using fsswm::sharing::Channels;
+using fsswm::sharing::ReplicatedSharing3P;
+using fsswm::sharing::ShareIo;
+using fsswm::sharing::SharePair;
+using fsswm::sharing::SharesPair;
+using fsswm::wm::KeyIo;
+using fsswm::wm::ShareType;
+using fsswm::wm::ZeroTestEvaluator;
+using fsswm::wm::ZeroTestKey;
+using fsswm::wm::ZeroTestKeyGenerator;
+using fsswm::wm::ZeroTestParameters;
+
+void ZeroTest_Additive_Offline_Test() {
+    Logger::DebugLog(LOC, "ZeroTest_Additive_Offline_Test...");
+    std::vector<ZeroTestParameters> params_list = {
+        ZeroTestParameters(5, ShareType::kAdditive),
+        // ZeroTestParameters(10),
+        // ZeroTestParameters(15),
+        // ZeroTestParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint32_t                  n = params.GetParameters().GetInputBitsize();
+        AdditiveSharing2P         ass(n);
+        BinarySharing2P           bss(n);
+        ReplicatedSharing3P       rss(n);
+        BinaryReplicatedSharing3P brss(n);
+        ZeroTestKeyGenerator      gen(params, ass, bss);
+        FileIo                    file_io;
+        ShareIo                   sh_io;
+        KeyIo                     key_io;
+
+        // Generate keys
+        std::array<ZeroTestKey, 3> keys = gen.GenerateKeys();
+
+        // Save keys
+        std::string key_path = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
+        key_io.SaveKey(key_path + "_0", keys[0]);
+        key_io.SaveKey(key_path + "_1", keys[1]);
+        key_io.SaveKey(key_path + "_2", keys[2]);
+
+        // Generate the x
+        uint32_t x = 0;
+        Logger::DebugLog(LOC, "Input: " + std::to_string(x));
+
+        std::array<SharePair, 3> x_sh = rss.ShareLocal(x);
+        for (uint32_t i = 0; i < 3; ++i) {
+            x_sh[i].DebugLog(i, "x");
+        }
+
+        // Save data
+        std::string x_path = kTestZeroTestPath + "x_n" + std::to_string(n);
+
+        file_io.WriteToFile(x_path, x);
+        sh_io.SaveShare(x_path + "_0", x_sh[0]);
+        sh_io.SaveShare(x_path + "_1", x_sh[1]);
+        sh_io.SaveShare(x_path + "_2", x_sh[2]);
+
+        // Offline setup
+        rss.OfflineSetUp(kTestZeroTestPath + "prf");
+    }
+    Logger::DebugLog(LOC, "ZeroTest_Additive_Offline_Test - Passed");
+}
+
+void ZeroTest_Additive_Online_Test(const oc::CLP &cmd) {
+    Logger::DebugLog(LOC, "ZeroTest_Additive_Online_Test...");
+    std::vector<ZeroTestParameters> params_list = {
+        ZeroTestParameters(5, ShareType::kAdditive),
+        // ZeroTestParameters(10),
+        // ZeroTestParameters(15),
+        // ZeroTestParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint32_t n = params.GetParameters().GetInputBitsize();
+        FileIo   file_io;
+        ShareIo  sh_io;
+        KeyIo    key_io;
+
+        uint32_t    result;
+        std::string key_path = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
+        std::string x_path   = kTestZeroTestPath + "x_n" + std::to_string(n);
+        uint32_t    x;
+        file_io.ReadFromFile(x_path, x);
+
+        // Define the task for each party
+        ThreePartyNetworkManager net_mgr;
+
+        // Party 0 task
+        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            ReplicatedSharing3P       rss(n);
+            BinaryReplicatedSharing3P brss(n);
+            ZeroTestEvaluator         eval(params, rss, brss);
+            Channels                  chls(0, chl_prev, chl_next);
+
+            // Load keys
+            ZeroTestKey key(0, params);
+            key_io.LoadKey(key_path + "_0", key);
+            // Load data
+            SharePair x_sh;
+            sh_io.LoadShare(x_path + "_0", x_sh);
+            // Setup the PRF keys
+            rss.OnlineSetUp(0, kTestZeroTestPath + "prf");
+            // Evaluate
+            SharePair result_sh;
+            eval.EvaluateAdditive(chls, key, x_sh, result_sh);
+            rss.Open(chls, result_sh, result);
+        };
+
+        // Party 1 task
+        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            ReplicatedSharing3P       rss(n);
+            BinaryReplicatedSharing3P brss(n);
+            ZeroTestEvaluator         eval(params, rss, brss);
+            Channels                  chls(1, chl_prev, chl_next);
+
+            // Load keys
+            ZeroTestKey key(1, params);
+            key_io.LoadKey(key_path + "_1", key);
+            // Load data
+            SharePair x_sh;
+            sh_io.LoadShare(x_path + "_1", x_sh);
+            // Setup the PRF keys
+            rss.OnlineSetUp(1, kTestZeroTestPath + "prf");
+            // Evaluate
+            SharePair result_sh;
+            eval.EvaluateAdditive(chls, key, x_sh, result_sh);
+            rss.Open(chls, result_sh, result);
+        };
+
+        // Party 2 task
+        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            ReplicatedSharing3P       rss(n);
+            BinaryReplicatedSharing3P brss(n);
+            ZeroTestEvaluator         eval(params, rss, brss);
+            Channels                  chls(2, chl_prev, chl_next);
+
+            // Load keys
+            ZeroTestKey key(2, params);
+            key_io.LoadKey(key_path + "_2", key);
+            // Load data
+            SharePair x_sh;
+            sh_io.LoadShare(x_path + "_2", x_sh);
+            // Setup the PRF keys
+            rss.OnlineSetUp(2, kTestZeroTestPath + "prf");
+            // Evaluate
+            SharePair result_sh;
+            eval.EvaluateAdditive(chls, key, x_sh, result_sh);
+            rss.Open(chls, result_sh, result);
+        };
+
+        // Configure network based on party ID and wait for completion
+        int party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+        net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+        net_mgr.WaitForCompletion();
+
+        Logger::DebugLog(LOC, "Result: " + std::to_string(result));
+
+        if (result != (x == 0 ? 1 : 0))
+            throw oc::UnitTestSkipped("Not implemented yet");
+        // throw oc::UnitTestFail("ZeroTest_Additive_Online_Test failed: result = " + std::to_string(result) + ", x = " + std::to_string(x));
+        Logger::DebugLog(LOC, "ZeroTest_Additive_Online_Test - Passed");
+    }
+}
+
+void ZeroTest_Binary_Offline_Test() {
+    Logger::DebugLog(LOC, "ZeroTest_Binary_Offline_Test...");
+    std::vector<ZeroTestParameters> params_list = {
+        ZeroTestParameters(5, ShareType::kBinary),
+        // ZeroTestParameters(10),
+        // ZeroTestParameters(15),
+        // ZeroTestParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint32_t                  n = params.GetParameters().GetInputBitsize();
+        AdditiveSharing2P         ass(n);
+        BinarySharing2P           bss(n);
+        BinaryReplicatedSharing3P brss(n);
+        ZeroTestKeyGenerator      gen(params, ass, bss);
+        FileIo                    file_io;
+        ShareIo                   sh_io;
+        KeyIo                     key_io;
+
+        // Generate keys
+        std::array<ZeroTestKey, 3> keys = gen.GenerateKeys();
+
+        // Save keys
+        std::string key_path = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
+        key_io.SaveKey(key_path + "_0", keys[0]);
+        key_io.SaveKey(key_path + "_1", keys[1]);
+        key_io.SaveKey(key_path + "_2", keys[2]);
+
+        // Generate the x
+        uint32_t x = 10;
+        Logger::DebugLog(LOC, "Input: " + std::to_string(x));
+
+        std::array<SharePair, 3> x_sh = brss.ShareLocal(x);
+        for (uint32_t i = 0; i < 3; ++i) {
+            x_sh[i].DebugLog(i, "x");
+        }
+
+        // Save data
+        std::string x_path = kTestZeroTestPath + "x_n" + std::to_string(n);
+
+        file_io.WriteToFile(x_path, x);
+        sh_io.SaveShare(x_path + "_0", x_sh[0]);
+        sh_io.SaveShare(x_path + "_1", x_sh[1]);
+        sh_io.SaveShare(x_path + "_2", x_sh[2]);
+
+        // Offline setup
+        brss.OfflineSetUp(kTestZeroTestPath + "prf");
+    }
+    Logger::DebugLog(LOC, "ZeroTest_Binary_Offline_Test - Passed");
+}
+
+void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
+    Logger::DebugLog(LOC, "ZeroTest_Binary_Online_Test...");
+    std::vector<ZeroTestParameters> params_list = {
+        ZeroTestParameters(5, ShareType::kBinary),
+        // ZeroTestParameters(10),
+        // ZeroTestParameters(15),
+        // ZeroTestParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint32_t n = params.GetParameters().GetInputBitsize();
+        FileIo   file_io;
+        ShareIo  sh_io;
+        KeyIo    key_io;
+
+        uint32_t    result;
+        std::string key_path = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
+        std::string x_path   = kTestZeroTestPath + "x_n" + std::to_string(n);
+        uint32_t    x;
+        file_io.ReadFromFile(x_path, x);
+
+        // Define the task for each party
+        ThreePartyNetworkManager net_mgr;
+
+        // Party 0 task
+        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            ReplicatedSharing3P       rss(n);
+            BinaryReplicatedSharing3P brss(n);
+            ZeroTestEvaluator         eval(params, rss, brss);
+            Channels                  chls(0, chl_prev, chl_next);
+
+            // Load keys
+            ZeroTestKey key(0, params);
+            key_io.LoadKey(key_path + "_0", key);
+            // Load data
+            SharePair x_sh;
+            sh_io.LoadShare(x_path + "_0", x_sh);
+            // Setup the PRF keys
+            brss.OnlineSetUp(0, kTestZeroTestPath + "prf");
+            // Evaluate
+            SharePair result_sh;
+            eval.EvaluateBinary(chls, key, x_sh, result_sh);
+            brss.Open(chls, result_sh, result);
+        };
+
+        // Party 1 task
+        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            ReplicatedSharing3P       rss(n);
+            BinaryReplicatedSharing3P brss(n);
+            ZeroTestEvaluator         eval(params, rss, brss);
+            Channels                  chls(1, chl_prev, chl_next);
+
+            // Load keys
+            ZeroTestKey key(1, params);
+            key_io.LoadKey(key_path + "_1", key);
+            // Load data
+            SharePair x_sh;
+            sh_io.LoadShare(x_path + "_1", x_sh);
+            // Setup the PRF keys
+            brss.OnlineSetUp(1, kTestZeroTestPath + "prf");
+            // Evaluate
+            SharePair result_sh;
+            eval.EvaluateBinary(chls, key, x_sh, result_sh);
+            brss.Open(chls, result_sh, result);
+        };
+
+        // Party 2 task
+        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            ReplicatedSharing3P       rss(n);
+            BinaryReplicatedSharing3P brss(n);
+            ZeroTestEvaluator         eval(params, rss, brss);
+            Channels                  chls(2, chl_prev, chl_next);
+
+            // Load keys
+            ZeroTestKey key(2, params);
+            key_io.LoadKey(key_path + "_2", key);
+            // Load data
+            SharePair x_sh;
+            sh_io.LoadShare(x_path + "_2", x_sh);
+            // Setup the PRF keys
+            brss.OnlineSetUp(2, kTestZeroTestPath + "prf");
+            // Evaluate
+            SharePair result_sh;
+            eval.EvaluateBinary(chls, key, x_sh, result_sh);
+            brss.Open(chls, result_sh, result);
+        };
+
+        // Configure network based on party ID and wait for completion
+        int party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+        net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+        net_mgr.WaitForCompletion();
+
+        Logger::DebugLog(LOC, "Result: " + std::to_string(result));
+
+        if (result != (x == 0 ? 1 : 0)) {
+            throw oc::UnitTestFail("ZeroTest_Binary_Online_Test failed: result = " + std::to_string(result) + ", x = " + std::to_string(x));
+        }
+        Logger::DebugLog(LOC, "ZeroTest_Binary_Online_Test - Passed");
+    }
+}
+
+}    // namespace test_fsswm

@@ -221,8 +221,7 @@ void OblivSelect_Additive_Online_Test(const oc::CLP &cmd) {
 void OblivSelect_Binary_Offline_Test() {
     Logger::DebugLog(LOC, "OblivSelect_Binary_Offline_Test...");
     std::vector<OblivSelectParameters> params_list = {
-        OblivSelectParameters(11, ShareType::kBinary),
-        // OblivSelectParameters(10),
+        OblivSelectParameters(10, ShareType::kBinary),
         // OblivSelectParameters(15),
         // OblivSelectParameters(20),
     };
@@ -284,8 +283,7 @@ void OblivSelect_Binary_Offline_Test() {
 void OblivSelect_Binary_Online_Test(const oc::CLP &cmd) {
     Logger::DebugLog(LOC, "OblivSelect_Binary_Online_Test...");
     std::vector<OblivSelectParameters> params_list = {
-        OblivSelectParameters(11, ShareType::kBinary),
-        // OblivSelectParameters(10),
+        OblivSelectParameters(10, ShareType::kBinary),
         // OblivSelectParameters(15),
         // OblivSelectParameters(20),
     };

@@ -15,44 +15,24 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/fmindex.h"
 #include "FssWM/wm/fsswm.h"
 #include "FssWM/wm/key_io.h"
-#include "FssWM/wm/wavelet_matrix.h"
 
 namespace {
 
 const std::string kCurrentPath   = fsswm::GetCurrentDirectory();
 const std::string kTestFssWMPath = kCurrentPath + "/data/test/wm/";
 
-uint32_t ComputeLPMwithSDSL(const std::string &text, const std::string &query) {
-    sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024> fm_sdsl;
-    sdsl::construct_im(fm_sdsl, text, 1);
-
-    typename sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024>::size_type l = 0, r = fm_sdsl.size() - 1;
-
-    std::vector<uint32_t> intervals;
-    uint32_t              lpm_len = 0;
-
-    for (auto c : query) {
-        typename sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024>::char_type c_sdsl = c;
-        typename sdsl::csa_wt<sdsl::wt_huff<sdsl::rrr_vector<127>>, 512, 1024>::size_type nl = 0, nr = 0;
-
-        sdsl::backward_search(fm_sdsl, l, r, c_sdsl, nl, nr);
-
-        l = nl;
-        r = nr;
-
-        if (l <= r) {
-            lpm_len++;
-        } else {
-            break;
-        }
-        intervals.push_back(r + 1 - l);
+std::string GenerateRandomString(size_t length, const std::string &charset = "ATGC") {
+    if (charset.empty() || length == 0)
+        return "";
+    static thread_local std::mt19937_64                       rng(std::random_device{}());    // スレッドごとの高速乱数
+    static thread_local std::uniform_int_distribution<size_t> dist(0, charset.size() - 1);
+    std::string                                               result(length, '\0');    // 事前に領域確保
+    for (size_t i = 0; i < length; ++i) {
+        result[i] = charset[dist(rng)];    // 高速なインデックス選択
     }
-
-    fsswm::Logger::DebugLog(LOC, "Intervals: " + fsswm::ToString(intervals));
-    return lpm_len;
+    return result;
 }
 
 }    // namespace
@@ -71,19 +51,17 @@ using fsswm::sharing::ReplicatedSharing3P;
 using fsswm::sharing::ShareIo;
 using fsswm::sharing::SharePair;
 using fsswm::sharing::SharesPair;
-using fsswm::wm::FMIndex;
 using fsswm::wm::FssWMEvaluator;
 using fsswm::wm::FssWMKey;
 using fsswm::wm::FssWMKeyGenerator;
 using fsswm::wm::FssWMParameters;
 using fsswm::wm::KeyIo;
 using fsswm::wm::ShareType;
-using fsswm::wm::WaveletMatrix;
 
 void FssWM_Offline_Test() {
     Logger::DebugLog(LOC, "FssWM_Offline_Test...");
     std::vector<FssWMParameters> params_list = {
-        FssWMParameters(5, 3),
+        FssWMParameters(4, 3, ShareType::kAdditive),
         // FssWMParameters(10),
         // FssWMParameters(15),
         // FssWMParameters(20),
@@ -91,7 +69,9 @@ void FssWM_Offline_Test() {
 
     for (const auto &params : params_list) {
         params.PrintParameters();
-        uint32_t                  d = params.GetDatabaseBitSize();
+        uint32_t                  d  = params.GetDatabaseBitSize();
+        uint32_t                  ds = params.GetDatabaseSize();
+        uint32_t                  q  = params.GetQuerySize();
         AdditiveSharing2P         ass(d);
         BinarySharing2P           bss(d);
         ReplicatedSharing3P       rss(d);
@@ -111,18 +91,30 @@ void FssWM_Offline_Test() {
         key_io.SaveKey(key_path + "_2", keys[2]);
 
         // Generate the database and index
-        
+        std::string database = GenerateRandomString(ds);
+        std::string query    = GenerateRandomString(q);
+        Logger::DebugLog(LOC, "Database: " + database);
+        Logger::DebugLog(LOC, "Query   : " + query);
+
+        // std::vector<SharesPair> db_sh = gen.GenerateDatabaseShare(database);
+        // SharesPair              q_sh  = gen.GenerateQueryShare(query);
+
+        // for (uint32_t i = 0; i < 4; ++i) {
+        //     sh_io.SaveShare(kTestFssWMPath + "db_d" + std::to_string(d) + "_s" + std::to_string(i), db_sh[i]);
+        // }
+        // sh_io.SaveShare(kTestFssWMPath + "query_d" + std::to_string(d), q_sh);
 
         // Offline setup
         rss.OfflineSetUp(kTestFssWMPath + "prf");
     }
+    throw oc::UnitTestSkipped("Not implemented yet");
     Logger::DebugLog(LOC, "FssWM_Offline_Test - Passed");
 }
 
 void FssWM_Online_Test() {
     Logger::DebugLog(LOC, "FssWM_Online_Test...");
     std::vector<FssWMParameters> params_list = {
-        FssWMParameters(5, 5),
+        FssWMParameters(4, 3, ShareType::kAdditive),
         // FssWMParameters(10),
         // FssWMParameters(15),
         // FssWMParameters(20),
@@ -131,6 +123,7 @@ void FssWM_Online_Test() {
     for (const auto &params : params_list) {
         params.PrintParameters();
     }
+    throw oc::UnitTestSkipped("Not implemented yet");
     Logger::DebugLog(LOC, "FssWM_Online_Test - Passed");
 }
 

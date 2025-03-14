@@ -18,6 +18,7 @@ set(TEST_SOURCES
     sharing/binary_3p_test.cpp
     wm/wm_test.cpp
     wm/obliv_select_test.cpp
+    wm/zt_test.cpp
     wm/fsswm_test.cpp
     test_main.cpp
 )
