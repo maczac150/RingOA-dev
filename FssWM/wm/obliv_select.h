@@ -9,7 +9,6 @@
 #include "FssWM/fss/dpf_gen.h"
 #include "FssWM/fss/dpf_key.h"
 #include "FssWM/utils/block.h"
-#include "wm.h"
 
 namespace fsswm {
 
@@ -19,8 +18,10 @@ class ReplicatedSharing3P;
 class BinaryReplicatedSharing3P;
 class AdditiveSharing2P;
 class BinarySharing2P;
-class SharesPair;
-class SharePair;
+class RepShareMat;
+class RepShareVec;
+class RepShare;
+class RepShareVecView;
 struct Channels;
 
 }    // namespace sharing
@@ -131,13 +132,13 @@ struct OblivSelectKey {
     /**
      * @brief Copy constructor is deleted to prevent copying of OblivSelectKey.
      */
-    OblivSelectKey(const OblivSelectKey &)            = delete;
+    OblivSelectKey(const OblivSelectKey &) = delete;
     OblivSelectKey &operator=(const OblivSelectKey &) = delete;
 
     /**
      * @brief Move constructor for OblivSelectKey.
      */
-    OblivSelectKey(OblivSelectKey &&)            = default;
+    OblivSelectKey(OblivSelectKey &&) = default;
     OblivSelectKey &operator=(OblivSelectKey &&) = default;
 
     /**
@@ -210,8 +211,8 @@ public:
      */
     OblivSelectKeyGenerator(
         const OblivSelectParameters &params,
-        sharing::AdditiveSharing2P  &ass,
-        sharing::BinarySharing2P    &bss);
+        sharing::AdditiveSharing2P & ass,
+        sharing::BinarySharing2P &   bss);
 
     /**
      * @brief Generate keys for the Oblivious Selection.
@@ -223,7 +224,7 @@ private:
     OblivSelectParameters       params_; /**< OblivSelectParameters for the OblivSelectKeyGenerator. */
     fss::dpf::DpfKeyGenerator   gen_;    /**< DPF key generator for the OblivSelectKeyGenerator. */
     sharing::AdditiveSharing2P &ass_;    /**< Additive sharing for 2-party for the OblivSelectKeyGenerator. */
-    sharing::BinarySharing2P   &bss_;    /**< Binary sharing for 2-party for the OblivSelectKeyGenerator. */
+    sharing::BinarySharing2P &  bss_;    /**< Binary sharing for 2-party for the OblivSelectKeyGenerator. */
 
     // Internal functions
     void GenerateAdditiveKeys(std::array<OblivSelectKey, 3> &keys) const;
@@ -246,41 +247,61 @@ public:
      * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
      * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
-    OblivSelectEvaluator(const OblivSelectParameters        &params,
-                         sharing::ReplicatedSharing3P       &rss,
+    OblivSelectEvaluator(const OblivSelectParameters &       params,
+                         sharing::ReplicatedSharing3P &      rss,
                          sharing::BinaryReplicatedSharing3P &brss);
 
-    void EvaluateAdditive(sharing::Channels         &chls,
-                          std::vector<uint32_t>     &uv_prev,
-                          std::vector<uint32_t>     &uv_next,
-                          const OblivSelectKey      &key,
-                          const sharing::SharesPair &database,
-                          const sharing::SharePair  &index,
-                          sharing::SharePair        &result) const;
+    void EvaluateAdditive(sharing::Channels &         chls,
+                          std::vector<uint32_t> &     uv_prev,
+                          std::vector<uint32_t> &     uv_next,
+                          const OblivSelectKey &      key,
+                          const sharing::RepShareVec &database,
+                          const sharing::RepShare &   index,
+                          sharing::RepShare &         result) const;
 
-    void EvaluateBinary(sharing::Channels         &chls,
-                        std::vector<block>        &uv_prev,
-                        std::vector<block>        &uv_next,
-                        const OblivSelectKey      &key,
-                        const sharing::SharesPair &database,
-                        const sharing::SharePair  &index,
-                        sharing::SharePair        &result) const;
+    void EvaluateBinary(sharing::Channels &         chls,
+                        std::vector<block> &        uv_prev,
+                        std::vector<block> &        uv_next,
+                        const OblivSelectKey &      key,
+                        const sharing::RepShareVec &database,
+                        const sharing::RepShare &   index,
+                        sharing::RepShare &         result) const;
+
+    void EvaluateBinary(sharing::Channels &         chls,
+                        std::vector<block> &        uv_prev,
+                        std::vector<block> &        uv_next,
+                        const OblivSelectKey &      key,
+                        const sharing::RepShareVec &database1,
+                        const sharing::RepShareVec &database2,
+                        const sharing::RepShare &   index,
+                        sharing::RepShare &         result1,
+                        sharing::RepShare &         result2) const;
+
+    void EvaluateBinary(sharing::Channels &             chls,
+                        std::vector<block> &            uv_prev,
+                        std::vector<block> &            uv_next,
+                        const OblivSelectKey &          key,
+                        const sharing::RepShareVecView &database1,
+                        const sharing::RepShareVecView &database2,
+                        const sharing::RepShare &       index,
+                        sharing::RepShare &             result1,
+                        sharing::RepShare &             result2) const;
 
 private:
     OblivSelectParameters               params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */
     fss::dpf::DpfEvaluator              eval_;   /**< DPF evaluator for the OblivSelectEvaluator. */
-    sharing::ReplicatedSharing3P       &rss_;    /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
+    sharing::ReplicatedSharing3P &      rss_;    /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
 
     // Internal functions
-    std::pair<uint32_t, uint32_t> ReconstructPRAdditive(sharing::Channels        &chls,
-                                                        const OblivSelectKey     &key,
-                                                        const sharing::SharePair &index,
-                                                        const uint32_t            d) const;
+    std::pair<uint32_t, uint32_t> ReconstructPRAdditive(sharing::Channels &      chls,
+                                                        const OblivSelectKey &   key,
+                                                        const sharing::RepShare &index,
+                                                        const uint32_t           d) const;
 
-    std::pair<uint32_t, uint32_t> ReconstructPRBinary(sharing::Channels        &chls,
-                                                      const OblivSelectKey     &key,
-                                                      const sharing::SharePair &index) const;
+    std::pair<uint32_t, uint32_t> ReconstructPRBinary(sharing::Channels &      chls,
+                                                      const OblivSelectKey &   key,
+                                                      const sharing::RepShare &index) const;
 };
 
 }    // namespace wm

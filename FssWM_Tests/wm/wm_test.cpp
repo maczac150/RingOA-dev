@@ -51,6 +51,14 @@ void FMIndex_Test() {
     if (lpm_len != lpm_len_sdsl)
         throw oc::UnitTestFail("lpm_len != lpm_len_sdsl");
 
+    std::vector<std::vector<uint32_t>> rank0 = fm.GetRank0Tables();
+    std::vector<std::vector<uint32_t>> rank1 = fm.GetRank1Tables();
+    for (size_t i = 0; i < rank0.size(); ++i) {
+        Logger::DebugLog(LOC, "rank0[" + std::to_string(i) + "]: " + ToString(rank0[i]));
+    }
+    for (size_t i = 0; i < rank1.size(); ++i) {
+        Logger::DebugLog(LOC, "rank1[" + std::to_string(i) + "]: " + ToString(rank1[i]));
+    }
     Logger::DebugLog(LOC, "FMIndex_Test - Passed");
 }
 

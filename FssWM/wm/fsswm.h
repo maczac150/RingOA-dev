@@ -2,7 +2,6 @@
 #define WM_FSSWM_H_
 
 #include "obliv_select.h"
-#include "zero_test.h"
 
 namespace fsswm {
 namespace wm {
@@ -20,17 +19,14 @@ public:
     /**
      * @brief Parameterized constructor for FssWMParameters.
      * @param database_bitsize The database size for the FssWMParameters.
-     * @param query_size The query size for the FssWMParameters.
      * @param type The type of sharing for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
      */
-    FssWMParameters(const uint32_t database_bitsize, const uint32_t query_size, const ShareType type, const uint32_t sigma = 3)
+    FssWMParameters(const uint32_t database_bitsize, const ShareType type, const uint32_t sigma = 3)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
-          query_size_(query_size),
           sigma_(sigma),
-          os_params_(database_bitsize, type),
-          zt_params_(database_bitsize, type) {
+          os_params_(database_bitsize, type) {
     }
 
     /**
@@ -40,13 +36,11 @@ public:
      * @param type The type of sharing for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
      */
-    void ReconfigureParameters(const uint32_t database_bitsize, const uint32_t query_size, const ShareType type, const uint32_t sigma = 3) {
+    void ReconfigureParameters(const uint32_t database_bitsize, const ShareType type, const uint32_t sigma = 3) {
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
-        query_size_       = query_size;
         sigma_            = sigma;
         os_params_.ReconfigureParameters(database_bitsize, type);
-        zt_params_.ReconfigureParameters(database_bitsize, type);
     }
 
     /**
@@ -66,14 +60,6 @@ public:
     }
 
     /**
-     * @brief Get the query size for the FssWMParameters.
-     * @return uint32_t The query size for the FssWMParameters.
-     */
-    uint32_t GetQuerySize() const {
-        return query_size_;
-    }
-
-    /**
      * @brief Get the alphabet size for the FssWMParameters.
      * @return uint32_t The alphabet size for the FssWMParameters.
      */
@@ -90,20 +76,12 @@ public:
     }
 
     /**
-     * @brief Get the ZeroTestParameters for the FssWMParameters.
-     * @return const ZeroTestParameters& The ZeroTestParameters for the FssWMParameters.
-     */
-    const ZeroTestParameters GetZTParameters() const {
-        return zt_params_;
-    }
-
-    /**
      * @brief Get the parameters info for the FssWMParameters.
      * @return std::string The parameters info for the FssWMParameters.
      */
     std::string GetParametersInfo() const {
         std::ostringstream oss;
-        oss << "DB size: " << database_bitsize_ << ", Query size: " << query_size_ << ", Sigma: " << sigma_ << ", OS params: " << os_params_.GetParametersInfo();
+        oss << "DB size: " << database_bitsize_ << ", Sigma: " << sigma_ << ", OS params: " << os_params_.GetParametersInfo();
         return oss.str();
     }
 
@@ -115,10 +93,8 @@ public:
 private:
     uint32_t              database_bitsize_; /**< The database bit size for the FssWMParameters. */
     uint32_t              database_size_;    /**< The database size for the FssWMParameters. */
-    uint32_t              query_size_;       /**< The query size for the FssWMParameters. */
     uint32_t              sigma_;            /**< The alphabet size for the FssWMParameters. */
     OblivSelectParameters os_params_;        /**< The OblivSelectParameters for the FssWMParameters. */
-    ZeroTestParameters    zt_params_;        /**< The ZeroTestParameters for the FssWMParameters. */
 };
 
 /**
@@ -126,10 +102,7 @@ private:
  */
 struct FssWMKey {
     uint32_t                    num_os_keys;
-    uint32_t                    num_zt_keys;
-    std::vector<OblivSelectKey> os_f_keys;
-    std::vector<OblivSelectKey> os_g_keys;
-    std::vector<ZeroTestKey>    zt_keys;
+    std::vector<OblivSelectKey> os_keys;
 
     /**
      * @brief Default constructor for FssWMKey is deleted.
@@ -151,13 +124,13 @@ struct FssWMKey {
     /**
      * @brief Copy constructor is deleted to prevent copying of FssWMKey.
      */
-    FssWMKey(const FssWMKey &)            = delete;
+    FssWMKey(const FssWMKey &) = delete;
     FssWMKey &operator=(const FssWMKey &) = delete;
 
     /**
      * @brief Move constructor for FssWMKey.
      */
-    FssWMKey(FssWMKey &&) noexcept            = default;
+    FssWMKey(FssWMKey &&) noexcept = default;
     FssWMKey &operator=(FssWMKey &&) noexcept = default;
 
     /**
@@ -166,7 +139,7 @@ struct FssWMKey {
      * @return bool True if the FssWMKey are equal, false otherwise.
      */
     bool operator==(const FssWMKey &rhs) const {
-        return (num_os_keys == rhs.num_os_keys) && (os_f_keys == rhs.os_f_keys) && (os_g_keys == rhs.os_g_keys);
+        return (num_os_keys == rhs.num_os_keys) && (os_keys == rhs.os_keys);
     }
 
     bool operator!=(const FssWMKey &rhs) const {
@@ -210,25 +183,20 @@ public:
      * @param params FssWMParameters for the FssWMKeyGenerator.
      * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
      * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param brss Binary replicated sharing for 3-party for the sharing.
      */
     FssWMKeyGenerator(
-        const FssWMParameters      &params,
-        sharing::AdditiveSharing2P &ass,
-        sharing::BinarySharing2P   &bss);
+        const FssWMParameters &             params,
+        sharing::AdditiveSharing2P &        ass,
+        sharing::BinarySharing2P &          bss,
+        sharing::BinaryReplicatedSharing3P &brss);
 
     /**
      * @brief Generate shares for the database.
      * @param database The database to generate shares for.
-     * @return std::vector<sharing::SharesPair> The generated shares for the database.
+     * @return std::array<std::vector<sharing::RepShareVec>, 3> The generated shares for the database.
      */
-    std::vector<sharing::SharesPair> GenerateDatabaseShare(std::string &database);    // TODO
-
-    /**
-     * @brief Generate shares for the query.
-     * @param query The query to generate shares for.
-     * @return sharing::SharesPair The generated shares for the query
-     */
-    sharing::SharesPair GenerateQueryShare(std::string &query);    // TODO
+    std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> GenerateDatabaseShare(std::string &database);
 
     /**
      * @brief Generate keys for the FssWM.
@@ -237,11 +205,9 @@ public:
     std::array<FssWMKey, 3> GenerateKeys() const;
 
 private:
-    FssWMParameters             params_; /**< FssWMParameters for the FssWMKeyGenerator. */
-    OblivSelectKeyGenerator     os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
-    ZeroTestKeyGenerator        zt_gen_; /**< ZeroTestKeyGenerator for the FssWMKeyGenerator. */
-    sharing::AdditiveSharing2P &ass_;    /**< Additive sharing for 2-party for the OblivSelectKeyGenerator. */
-    sharing::BinarySharing2P   &bss_;    /**< Binary sharing for 2-party for the OblivSelectKeyGenerator. */
+    FssWMParameters                     params_; /**< FssWMParameters for the FssWMKeyGenerator. */
+    OblivSelectKeyGenerator             os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
+    sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary sharing for 3-party for the FssWMKeyGenerator. */
 };
 
 /**
@@ -260,21 +226,24 @@ public:
      * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
      * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
-    FssWMEvaluator(const FssWMParameters              &params,
-                   sharing::ReplicatedSharing3P       &rss,
+    FssWMEvaluator(const FssWMParameters &             params,
+                   sharing::ReplicatedSharing3P &      rss,
                    sharing::BinaryReplicatedSharing3P &brss);
 
-    void Evaluate(sharing::Channels                      &chls,
-                  const FssWMKey                         &key,
-                  const std::vector<sharing::SharesPair> &wm_table,
-                  const sharing::SharesPair              &query,
-                  sharing::SharesPair                    &result) const;
+    void EvaluateRankCF(sharing::Channels &         chls,
+                        std::vector<block> &        uv_prev,
+                        std::vector<block> &        uv_next,
+                        const FssWMKey &            key,
+                        const sharing::RepShareMat &wm_table0,
+                        const sharing::RepShareMat &wm_table1,
+                        const sharing::RepShareVec &char_sh,
+                        sharing::RepShare &         position_sh,
+                        sharing::RepShare &         result) const;
 
 private:
     FssWMParameters                     params_;  /**< FssWMParameters for the FssWMEvaluator. */
     OblivSelectEvaluator                os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
-    ZeroTestEvaluator                   zt_eval_; /**< ZeroTestEvaluator for the FssWMEvaluator. */
-    sharing::ReplicatedSharing3P       &rss_;     /**< Replicated sharing for 3-party for the FssWMEvaluator. */
+    sharing::ReplicatedSharing3P &      rss_;     /**< Replicated sharing for 3-party for the FssWMEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;    /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
 };
 

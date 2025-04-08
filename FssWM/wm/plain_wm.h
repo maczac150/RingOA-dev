@@ -1,10 +1,10 @@
 #ifndef WM_PLAIN_WM_H_
 #define WM_PLAIN_WM_H_
 
-#include <vector>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace fsswm {
 namespace wm {
@@ -52,9 +52,12 @@ public:
 
     const std::vector<std::vector<uint32_t>> &GetRank0Tables() const;
 
+    const std::vector<std::vector<uint32_t>> GetRank1Tables() const;
+
     std::vector<uint32_t> ConvertToBitVector(const std::string &query) const;
 
     // Search query in text, returns the Longest Prefix Match Length
+    uint32_t RankCF(uint32_t c, size_t position) const;
     uint32_t LongestPrefixMatchLength(const std::string &query) const;
     uint32_t ComputeLPMwithSDSL(const std::string &text, const std::string &query) const;
 

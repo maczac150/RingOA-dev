@@ -16,7 +16,7 @@
 #include "FssWM_Tests/wm/fsswm_test.h"
 #include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
-#include "FssWM_Tests/wm/zt_test.h"
+#include "FssWM_Tests/fm_index/zt_test.h"
 
 namespace test_fsswm {
 
@@ -51,6 +51,7 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Binary3P_Open_Online_Test", Binary3P_Open_Online_Test);
     t.add("Binary3P_EvaluateXor_Online_Test", Binary3P_EvaluateXor_Online_Test);
     t.add("Binary3P_EvaluateAnd_Online_Test", Binary3P_EvaluateAnd_Online_Test);
+    t.add("Binary3P_EvaluateSelect_Online_Test", Binary3P_EvaluateSelect_Online_Test);
     t.add("OblivSelect_Additive_Offline_Test", OblivSelect_Additive_Offline_Test);
     t.add("OblivSelect_Additive_Online_Test", OblivSelect_Additive_Online_Test);
     t.add("OblivSelect_Binary_Offline_Test", OblivSelect_Binary_Offline_Test);

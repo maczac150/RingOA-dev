@@ -24,6 +24,7 @@ namespace test_fsswm {
 
 using fsswm::FileIo;
 using fsswm::Logger;
+using fsswm::ShareType;
 using fsswm::ThreePartyNetworkManager;
 using fsswm::ToString;
 using fsswm::sharing::AdditiveSharing2P;
@@ -31,15 +32,14 @@ using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
 using fsswm::sharing::Channels;
 using fsswm::sharing::ReplicatedSharing3P;
+using fsswm::sharing::RepShare;
+using fsswm::sharing::RepShareVec;
 using fsswm::sharing::ShareIo;
-using fsswm::sharing::SharePair;
-using fsswm::sharing::SharesPair;
 using fsswm::wm::KeyIo;
 using fsswm::wm::OblivSelectEvaluator;
 using fsswm::wm::OblivSelectKey;
 using fsswm::wm::OblivSelectKeyGenerator;
 using fsswm::wm::OblivSelectParameters;
-using fsswm::wm::ShareType;
 
 void OblivSelect_Additive_Offline_Test() {
     Logger::DebugLog(LOC, "OblivSelect_Additive_Offline_Test...");
@@ -76,8 +76,8 @@ void OblivSelect_Additive_Offline_Test() {
         Logger::DebugLog(LOC, "Database: " + ToString(database));
         Logger::DebugLog(LOC, "Index: " + std::to_string(index));
 
-        std::array<SharesPair, 3> database_sh = rss.ShareLocal(database);
-        std::array<SharePair, 3>  index_sh    = rss.ShareLocal(index);
+        std::array<RepShareVec, 3> database_sh = rss.ShareLocal(database);
+        std::array<RepShare, 3>    index_sh    = rss.ShareLocal(index);
         for (uint32_t i = 0; i < 3; ++i) {
             database_sh[i].DebugLog(i, "db");
         }
@@ -143,14 +143,14 @@ void OblivSelect_Additive_Online_Test(const oc::CLP &cmd) {
             OblivSelectKey key(0, params);
             key_io.LoadKey(key_path + "_0", key);
             // Load data
-            SharesPair database_sh;
-            SharePair  index_sh;
+            RepShareVec database_sh;
+            RepShare    index_sh;
             sh_io.LoadShare(db_path + "_0", database_sh);
             sh_io.LoadShare(idx_path + "_0", index_sh);
             // Setup the PRF keys
             rss.OnlineSetUp(0, kTestOSPath + "prf");
             // Evaluate
-            SharePair             result_sh;
+            RepShare              result_sh;
             std::vector<uint32_t> uv_prev(1U << d), uv_next(1U << d);
             eval.EvaluateAdditive(chls, uv_prev, uv_next, key, database_sh, index_sh, result_sh);
             rss.Open(chls, result_sh, result);
@@ -167,14 +167,14 @@ void OblivSelect_Additive_Online_Test(const oc::CLP &cmd) {
             OblivSelectKey key(1, params);
             key_io.LoadKey(key_path + "_1", key);
             // Load data
-            SharesPair database_sh;
-            SharePair  index_sh;
+            RepShareVec database_sh;
+            RepShare    index_sh;
             sh_io.LoadShare(db_path + "_1", database_sh);
             sh_io.LoadShare(idx_path + "_1", index_sh);
             // Setup the PRF keys
             rss.OnlineSetUp(1, kTestOSPath + "prf");
             // Evaluate
-            SharePair             result_sh;
+            RepShare              result_sh;
             std::vector<uint32_t> uv_prev(1U << d), uv_next(1U << d);
             eval.EvaluateAdditive(chls, uv_prev, uv_next, key, database_sh, index_sh, result_sh);
             rss.Open(chls, result_sh, result);
@@ -191,14 +191,14 @@ void OblivSelect_Additive_Online_Test(const oc::CLP &cmd) {
             OblivSelectKey key(2, params);
             key_io.LoadKey(key_path + "_2", key);
             // Load data
-            SharesPair database_sh;
-            SharePair  index_sh;
+            RepShareVec database_sh;
+            RepShare    index_sh;
             sh_io.LoadShare(db_path + "_2", database_sh);
             sh_io.LoadShare(idx_path + "_2", index_sh);
             // Setup the PRF keys
             rss.OnlineSetUp(2, kTestOSPath + "prf");
             // Evaluate
-            SharePair             result_sh;
+            RepShare              result_sh;
             std::vector<uint32_t> uv_prev(1U << d), uv_next(1U << d);
             eval.EvaluateAdditive(chls, uv_prev, uv_next, key, database_sh, index_sh, result_sh);
             rss.Open(chls, result_sh, result);
@@ -252,13 +252,13 @@ void OblivSelect_Binary_Offline_Test() {
         Logger::DebugLog(LOC, "Database: " + ToString(database));
         Logger::DebugLog(LOC, "Index: " + std::to_string(index));
 
-        std::array<SharesPair, 3> database_sh = brss.ShareLocal(database);
-        std::array<SharePair, 3>  index_sh    = brss.ShareLocal(index);
-        for (uint32_t i = 0; i < 3; ++i) {
-            database_sh[i].DebugLog(i, "db");
+        std::array<RepShareVec, 3> database_sh = brss.ShareLocal(database);
+        std::array<RepShare, 3>    index_sh    = brss.ShareLocal(index);
+        for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
+            database_sh[p].DebugLog(p, "db");
         }
-        for (uint32_t i = 0; i < 3; ++i) {
-            index_sh[i].DebugLog(i, "idx");
+        for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
+            index_sh[p].DebugLog(p, "idx");
         }
 
         // Save data
@@ -267,12 +267,10 @@ void OblivSelect_Binary_Offline_Test() {
 
         file_io.WriteToFile(db_path, database);
         file_io.WriteToFile(idx_path, index);
-        sh_io.SaveShare(db_path + "_0", database_sh[0]);
-        sh_io.SaveShare(db_path + "_1", database_sh[1]);
-        sh_io.SaveShare(db_path + "_2", database_sh[2]);
-        sh_io.SaveShare(idx_path + "_0", index_sh[0]);
-        sh_io.SaveShare(idx_path + "_1", index_sh[1]);
-        sh_io.SaveShare(idx_path + "_2", index_sh[2]);
+        for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
+            sh_io.SaveShare(db_path + "_" + std::to_string(p), database_sh[p]);
+            sh_io.SaveShare(idx_path + "_" + std::to_string(p), index_sh[p]);
+        }
 
         // Offline setup
         brss.OfflineSetUp(kTestOSPath + "prf");
@@ -319,14 +317,14 @@ void OblivSelect_Binary_Online_Test(const oc::CLP &cmd) {
             OblivSelectKey key(0, params);
             key_io.LoadKey(key_path + "_0", key);
             // Load data
-            SharesPair database_sh;
-            SharePair  index_sh;
+            RepShareVec database_sh;
+            RepShare    index_sh;
             sh_io.LoadShare(db_path + "_0", database_sh);
             sh_io.LoadShare(idx_path + "_0", index_sh);
             // Setup the PRF keys
             brss.OnlineSetUp(0, kTestOSPath + "prf");
             // Evaluate
-            SharePair                 result_sh;
+            RepShare                  result_sh;
             std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
             eval.EvaluateBinary(chls, uv_prev, uv_next, key, database_sh, index_sh, result_sh);
             brss.Open(chls, result_sh, result);
@@ -343,14 +341,14 @@ void OblivSelect_Binary_Online_Test(const oc::CLP &cmd) {
             OblivSelectKey key(1, params);
             key_io.LoadKey(key_path + "_1", key);
             // Load data
-            SharesPair database_sh;
-            SharePair  index_sh;
+            RepShareVec database_sh;
+            RepShare    index_sh;
             sh_io.LoadShare(db_path + "_1", database_sh);
             sh_io.LoadShare(idx_path + "_1", index_sh);
             // Setup the PRF keys
             brss.OnlineSetUp(1, kTestOSPath + "prf");
             // Evaluate
-            SharePair                 result_sh;
+            RepShare                  result_sh;
             std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
             eval.EvaluateBinary(chls, uv_prev, uv_next, key, database_sh, index_sh, result_sh);
             brss.Open(chls, result_sh, result);
@@ -367,14 +365,14 @@ void OblivSelect_Binary_Online_Test(const oc::CLP &cmd) {
             OblivSelectKey key(2, params);
             key_io.LoadKey(key_path + "_2", key);
             // Load data
-            SharesPair database_sh;
-            SharePair  index_sh;
+            RepShareVec database_sh;
+            RepShare    index_sh;
             sh_io.LoadShare(db_path + "_2", database_sh);
             sh_io.LoadShare(idx_path + "_2", index_sh);
             // Setup the PRF keys
             brss.OnlineSetUp(2, kTestOSPath + "prf");
             // Evaluate
-            SharePair                 result_sh;
+            RepShare                  result_sh;
             std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
             eval.EvaluateBinary(chls, uv_prev, uv_next, key, database_sh, index_sh, result_sh);
             brss.Open(chls, result_sh, result);

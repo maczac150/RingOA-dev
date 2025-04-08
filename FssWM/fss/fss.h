@@ -7,6 +7,13 @@
 #include "FssWM/utils/block.h"
 
 namespace fsswm {
+
+enum class ShareType
+{
+    kAdditive,
+    kBinary,
+};
+
 namespace fss {
 
 constexpr uint32_t kSecurityParameter = 128;

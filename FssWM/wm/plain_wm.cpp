@@ -189,6 +189,20 @@ const std::vector<std::vector<uint32_t>> &FMIndex::GetRank0Tables() const {
     return wm_.GetRank0Tables();
 }
 
+const std::vector<std::vector<uint32_t>> FMIndex::GetRank1Tables() const {
+    std::vector<std::vector<uint32_t>> rank0_tables = wm_.GetRank0Tables();
+    std::vector<std::vector<uint32_t>> rank1_tables;
+    rank1_tables.resize(bits_);
+    for (size_t b = 0; b < bits_; ++b) {
+        rank1_tables[b].resize(rank0_tables[b].size());
+        size_t offset = rank0_tables[b].back();
+        for (size_t i = 0; i < rank0_tables[b].size(); ++i) {
+            rank1_tables[b][i] = i - rank0_tables[b][i] + offset;
+        }
+    }
+    return rank1_tables;
+}
+
 std::vector<uint32_t> FMIndex::ConvertToBitVector(const std::string &query) const {
     // 1) 文字列 -> 数値列
     std::vector<uint32_t> nums;
@@ -289,6 +303,13 @@ void FMIndex::BackwardSearch(char c, uint32_t &left, uint32_t &right) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "(left, right) after RankCF: (" + std::to_string(left) + ", " + std::to_string(right) + ")");
 #endif
+}
+
+uint32_t FMIndex::RankCF(uint32_t c, size_t position) const {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "RankCF(" + std::to_string(c) + ", " + std::to_string(position) + ")");
+#endif
+    return wm_.RankCF(c, position);
 }
 
 uint32_t FMIndex::LongestPrefixMatchLength(const std::string &query) const {

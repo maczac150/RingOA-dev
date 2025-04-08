@@ -83,7 +83,7 @@ public:
 
     void Start(const uint32_t party_id, std::function<void(oc::Channel &, oc::Channel &)> task);
 
-    void AutoConfigure(int                                party_id,
+    void AutoConfigure(int                                               party_id,
                        std::function<void(oc::Channel &, oc::Channel &)> party0_task,
                        std::function<void(oc::Channel &, oc::Channel &)> party1_task,
                        std::function<void(oc::Channel &, oc::Channel &)> party2_task);

@@ -9,7 +9,7 @@
 #include "FssWM/utils/logger.h"
 
 namespace fsswm {
-namespace wm {
+namespace fm_index {
 
 void ZeroTestParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[Zero Test Parameters]" + GetParametersInfo());
@@ -104,9 +104,9 @@ void ZeroTestKey::PrintKey(const bool detailed) const {
 }
 
 ZeroTestKeyGenerator::ZeroTestKeyGenerator(
-    const ZeroTestParameters   &params,
+    const ZeroTestParameters &  params,
     sharing::AdditiveSharing2P &ass,
-    sharing::BinarySharing2P   &bss)
+    sharing::BinarySharing2P &  bss)
     : params_(params), gen_(params.GetParameters()), ass_(ass), bss_(bss) {
 }
 
@@ -204,16 +204,16 @@ void ZeroTestKeyGenerator::GenerateBinaryKeys(std::array<ZeroTestKey, 3> &keys) 
 }
 
 ZeroTestEvaluator::ZeroTestEvaluator(
-    const ZeroTestParameters           &params,
-    sharing::ReplicatedSharing3P       &rss,
+    const ZeroTestParameters &          params,
+    sharing::ReplicatedSharing3P &      rss,
     sharing::BinaryReplicatedSharing3P &brss)
     : params_(params), eval_(params.GetParameters()), rss_(rss), brss_(brss) {
 }
 
-void ZeroTestEvaluator::EvaluateAdditive(sharing::Channels        &chls,
-                                         const ZeroTestKey        &key,
-                                         const sharing::SharePair &x,
-                                         sharing::SharePair       &result) const {
+void ZeroTestEvaluator::EvaluateAdditive(sharing::Channels &      chls,
+                                         const ZeroTestKey &      key,
+                                         const sharing::RepShare &x,
+                                         sharing::RepShare &      result) const {
     uint32_t n        = params_.GetParameters().GetInputBitsize();
     uint32_t party_id = chls.party_id;
 
@@ -234,39 +234,39 @@ void ZeroTestEvaluator::EvaluateAdditive(sharing::Channels        &chls,
     uint32_t dpf_prev = eval_.EvaluateAt(key.prev_key, pr_prev);
     uint32_t dpf_next = eval_.EvaluateAt(key.next_key, pr_next);
 
-    uint32_t           res_sh = Mod(dpf_prev * dpf_next, n);
-    sharing::SharePair r_sh;
+    uint32_t          res_sh = Mod(dpf_prev * dpf_next, n);
+    sharing::RepShare r_sh;
     rss_.Rand(r_sh);
     result.data[0] = Mod(res_sh + r_sh.data[0] - r_sh.data[1], n);
     chls.next.send(result.data[0]);
     chls.prev.recv(result.data[1]);
 }
 
-std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRAdditive(sharing::Channels        &chls,
-                                                                       const ZeroTestKey        &key,
-                                                                       const sharing::SharePair &index,
-                                                                       const uint32_t            d) const {
+std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRAdditive(sharing::Channels &      chls,
+                                                                       const ZeroTestKey &      key,
+                                                                       const sharing::RepShare &index,
+                                                                       const uint32_t           d) const {
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
 
     // Set replicated sharing of random value
-    uint32_t           pr_prev = 0, pr_next = 0;
-    sharing::SharePair r_0_sh, r_1_sh, r_2_sh;
+    uint32_t          pr_prev = 0, pr_next = 0;
+    sharing::RepShare r_0_sh, r_1_sh, r_2_sh;
 
     switch (chls.party_id) {
         case 0:
-            r_0_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
-            r_1_sh = sharing::SharePair(key.next_r_sh, 0);
-            r_2_sh = sharing::SharePair(0, key.prev_r_sh);
+            r_0_sh = sharing::RepShare(key.r_sh_0, key.r_sh_1);
+            r_1_sh = sharing::RepShare(key.next_r_sh, 0);
+            r_2_sh = sharing::RepShare(0, key.prev_r_sh);
             break;
         case 1:
-            r_0_sh = sharing::SharePair(0, key.prev_r_sh);
-            r_1_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
-            r_2_sh = sharing::SharePair(key.next_r_sh, 0);
+            r_0_sh = sharing::RepShare(0, key.prev_r_sh);
+            r_1_sh = sharing::RepShare(key.r_sh_0, key.r_sh_1);
+            r_2_sh = sharing::RepShare(key.next_r_sh, 0);
             break;
         case 2:
-            r_0_sh = sharing::SharePair(key.next_r_sh, 0);
-            r_1_sh = sharing::SharePair(0, key.prev_r_sh);
-            r_2_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
+            r_0_sh = sharing::RepShare(key.next_r_sh, 0);
+            r_1_sh = sharing::RepShare(0, key.prev_r_sh);
+            r_2_sh = sharing::RepShare(key.r_sh_0, key.r_sh_1);
             break;
         default:
             Logger::ErrorLog(LOC, "Invalid party_id: " + std::to_string(chls.party_id));
@@ -274,7 +274,7 @@ std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRAdditive(sharing::
     }
 
     // Reconstruct p - r_i
-    sharing::SharePair p_r_sh;
+    sharing::RepShare p_r_sh;
 
     if (chls.party_id == 0) {
         // p - r_1 between Party 0 and Party 2
@@ -324,10 +324,10 @@ std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRAdditive(sharing::
     return std::make_pair(pr_prev, pr_next);
 }
 
-void ZeroTestEvaluator::EvaluateBinary(sharing::Channels        &chls,
-                                       const ZeroTestKey        &key,
-                                       const sharing::SharePair &x,
-                                       sharing::SharePair       &result) const {
+void ZeroTestEvaluator::EvaluateBinary(sharing::Channels &      chls,
+                                       const ZeroTestKey &      key,
+                                       const sharing::RepShare &x,
+                                       sharing::RepShare &      result) const {
     uint32_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -347,38 +347,38 @@ void ZeroTestEvaluator::EvaluateBinary(sharing::Channels        &chls,
     uint32_t dpf_prev = eval_.EvaluateAt(key.prev_key, pr_prev);
     uint32_t dpf_next = eval_.EvaluateAt(key.next_key, pr_next);
 
-    uint32_t           res_sh = dpf_prev ^ dpf_next;
-    sharing::SharePair r_sh;
+    uint32_t          res_sh = dpf_prev ^ dpf_next;
+    sharing::RepShare r_sh;
     brss_.Rand(r_sh);
     result.data[0] = res_sh ^ r_sh.data[0] ^ r_sh.data[1];
     chls.next.send(result.data[0]);
     chls.prev.recv(result.data[1]);
 }
 
-std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRBinary(sharing::Channels        &chls,
-                                                                     const ZeroTestKey        &key,
-                                                                     const sharing::SharePair &x) const {
+std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRBinary(sharing::Channels &      chls,
+                                                                     const ZeroTestKey &      key,
+                                                                     const sharing::RepShare &x) const {
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
 
     // Set replicated sharing of random value
-    uint32_t           pr_prev = 0, pr_next = 0;
-    sharing::SharePair r_0_sh, r_1_sh, r_2_sh;
+    uint32_t          pr_prev = 0, pr_next = 0;
+    sharing::RepShare r_0_sh, r_1_sh, r_2_sh;
 
     switch (chls.party_id) {
         case 0:
-            r_0_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
-            r_1_sh = sharing::SharePair(key.next_r_sh, 0);
-            r_2_sh = sharing::SharePair(0, key.prev_r_sh);
+            r_0_sh = sharing::RepShare(key.r_sh_0, key.r_sh_1);
+            r_1_sh = sharing::RepShare(key.next_r_sh, 0);
+            r_2_sh = sharing::RepShare(0, key.prev_r_sh);
             break;
         case 1:
-            r_0_sh = sharing::SharePair(0, key.prev_r_sh);
-            r_1_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
-            r_2_sh = sharing::SharePair(key.next_r_sh, 0);
+            r_0_sh = sharing::RepShare(0, key.prev_r_sh);
+            r_1_sh = sharing::RepShare(key.r_sh_0, key.r_sh_1);
+            r_2_sh = sharing::RepShare(key.next_r_sh, 0);
             break;
         case 2:
-            r_0_sh = sharing::SharePair(key.next_r_sh, 0);
-            r_1_sh = sharing::SharePair(0, key.prev_r_sh);
-            r_2_sh = sharing::SharePair(key.r_sh_0, key.r_sh_1);
+            r_0_sh = sharing::RepShare(key.next_r_sh, 0);
+            r_1_sh = sharing::RepShare(0, key.prev_r_sh);
+            r_2_sh = sharing::RepShare(key.r_sh_0, key.r_sh_1);
             break;
         default:
             Logger::ErrorLog(LOC, "Invalid party_id: " + std::to_string(chls.party_id));
@@ -386,7 +386,7 @@ std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRBinary(sharing::Ch
     }
 
     // Reconstruct p ^ r_i
-    sharing::SharePair p_r_sh;
+    sharing::RepShare p_r_sh;
 
     if (chls.party_id == 0) {
         // p ^ r_1 between Party 0 and Party 2
@@ -436,5 +436,5 @@ std::pair<uint32_t, uint32_t> ZeroTestEvaluator::ReconstructPRBinary(sharing::Ch
     return std::make_pair(pr_prev, pr_next);
 }
 
-}    // namespace wm
+}    // namespace fm_index
 }    // namespace fsswm

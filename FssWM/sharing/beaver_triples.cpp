@@ -22,8 +22,8 @@ BeaverTriples::BeaverTriples(const uint32_t num_triples)
 void BeaverTriples::DebugLog() const {
     for (uint32_t i = 0; i < num_triples; ++i) {
         Logger::DebugLog(LOC, "BTs[" + std::to_string(i) + "]: a = " + std::to_string(triples[i].a) +
-                                         ", b = " + std::to_string(triples[i].b) +
-                                         ", c = " + std::to_string(triples[i].c));
+                                  ", b = " + std::to_string(triples[i].b) +
+                                  ", c = " + std::to_string(triples[i].c));
     }
 }
 

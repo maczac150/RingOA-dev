@@ -10,6 +10,8 @@
 
 namespace fsswm {
 
+constexpr size_t kSizeMax = 256;
+
 /**
  * @brief Get the Current Date Time As String object
  * @return std::string The current date time as string
@@ -46,22 +48,44 @@ enum class FormatType
     kDec     // Decimal
 };
 
+/**
+ * @brief Converts a container (std::array or std::vector) to a string with specified delimiter.
+ * @tparam Container The type of the container (e.g., std::array, std::vector).
+ * @param container The container to be converted to a string.
+ * @param del The delimiter string used to separate elements in the output string.
+ * @param max_size The maximum number of elements to include in the output string.
+ * @return A string representation of the container elements in the specified format and separated by 'del'.
+ */
 template <typename Container>
-std::string ToString(const Container &container, const std::string &del = " ") {
+std::string ToString(const Container &container, const std::string &del = " ", size_t max_size = kSizeMax) {
     std::stringstream ss;
-    for (std::size_t i = 0; i < container.size(); ++i) {
+    std::size_t       limit = std::min(container.size(), max_size);
+    for (std::size_t i = 0; i < limit; ++i) {
         ss << container[i];
-        if (i != container.size() - 1) {
+        if (i != limit - 1) {
             ss << del;
         }
+    }
+    if (container.size() > max_size) {
+        ss << del << "...";
     }
     return ss.str();
 }
 
+/**
+ * @brief Converts a container (std::array or std::vector) to a string with specified format and delimiter.
+ * @tparam Container The type of the container (e.g., std::array, std::vector).
+ * @param container The container to be converted to a string.
+ * @param format The format type (binary, hexadecimal, decimal).
+ * @param del The delimiter string used to separate elements in the output string.
+ * @param max_size The maximum number of elements to include in the output string.
+ * @return A string representation of the container elements in the specified format and separated by 'del'.
+ */
 template <typename Container>
-std::string ToString(const Container &container, const FormatType format, const std::string &del = " ") {
+std::string ToString(const Container &container, const FormatType format, const std::string &del = " ", size_t max_size = kSizeMax) {
     std::stringstream ss;
-    for (std::size_t i = 0; i < container.size(); ++i) {
+    std::size_t       limit = std::min(container.size(), max_size);
+    for (std::size_t i = 0; i < limit; ++i) {
         switch (format) {
             case FormatType::kBin: {
                 constexpr std::size_t bit_width = std::numeric_limits<typename Container::value_type>::digits;
@@ -75,9 +99,12 @@ std::string ToString(const Container &container, const FormatType format, const 
                 ss << container[i];
                 break;
         }
-        if (i != container.size() - 1) {
+        if (i != limit - 1) {
             ss << del;
         }
+    }
+    if (container.size() > max_size) {
+        ss << del << "...";
     }
     return ss.str();
 }
@@ -96,6 +123,32 @@ std::string ToString(const std::vector<bool> &bool_vector);
  * @return A string representation of the double value with the specified precision.
  */
 std::string ToString(const double val, const size_t digits = 0);
+
+/**
+ * @brief Converts a 2D container (matrix) to a string representation with specified delimiters.
+ * @tparam Container2D The type of the 2D container (e.g., std::vector<std::vector<T>>).
+ * @param matrix The 2D container to be converted to a string.
+ * @param row_prefix The prefix string for each row.
+ * @param row_suffix The suffix string for each row.
+ * @param col_del The delimiter string used to separate elements in each row.
+ * @param row_del The delimiter string used to separate rows.
+ * @return A string representation of the 2D container elements separated by 'row_del' and 'col_del'.
+ */
+template <typename Container2D>
+std::string ToStringMat(const Container2D &matrix,
+                        const std::string &row_prefix = "[",
+                        const std::string &row_suffix = "]",
+                        const std::string &col_del    = " ",
+                        const std::string &row_del    = "") {
+    std::stringstream ss;
+    for (std::size_t i = 0; i < matrix.size(); ++i) {
+        ss << row_prefix << ToString(matrix[i], col_del) << row_suffix;
+        if (i != matrix.size() - 1) {
+            ss << row_del;
+        }
+    }
+    return ss.str();
+}
 
 /**
  * @brief Converts an array of bytes to a hexadecimal string representation.

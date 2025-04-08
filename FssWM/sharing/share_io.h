@@ -10,8 +10,8 @@ namespace sharing {
 
 enum class ShareType
 {
-    kSharePair,
-    kSharesPair
+    kRepShare,
+    kRepShareVec
 };
 
 class ShareIo {
@@ -36,7 +36,7 @@ public:
         share.Serialize(buffer);
         try {
             std::string ext = binary_mode_ ? ".sh.bin" : ".sh.dat";
-            FileIo io(ext);
+            FileIo      io(ext);
             if (binary_mode_) {
                 io.WriteToFileBinary(file_path, buffer);
             } else {

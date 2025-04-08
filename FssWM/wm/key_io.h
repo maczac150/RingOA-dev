@@ -16,6 +16,7 @@ enum class KeyType
 {
     kDpfKey,
     kOblivSelectKey,
+    kFssWMKey,
 };
 
 class KeyIo {

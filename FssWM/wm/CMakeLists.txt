@@ -6,7 +6,6 @@
 add_library(wm
     plain_wm.cpp
     obliv_select.cpp
-    zero_test.cpp
     fsswm.cpp
 )
 

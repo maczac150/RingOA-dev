@@ -27,72 +27,91 @@ void ReplicatedSharing3P::OnlineSetUp(const uint32_t party_id, const std::string
     RandOnline(party_id, file_path);
 }
 
-std::array<SharePair, kNumParties> ReplicatedSharing3P::ShareLocal(const uint32_t &x) const {
-    std::array<uint32_t, kNumParties> x_sh;
-    x_sh[0] = Mod(SecureRng::Rand32(), bitsize_);
-    x_sh[1] = Mod(SecureRng::Rand32(), bitsize_);
-    x_sh[2] = Mod(x - x_sh[0] - x_sh[1], bitsize_);
+std::array<RepShare, kNumParties> ReplicatedSharing3P::ShareLocal(const uint32_t &x) const {
+    uint32_t x0 = Mod(SecureRng::Rand32(), bitsize_);
+    uint32_t x1 = Mod(SecureRng::Rand32(), bitsize_);
+    uint32_t x2 = Mod(x - x0 - x1, bitsize_);
 
-    std::array<SharePair, kNumParties> all_shares;
-    all_shares[0].data = {x_sh[0], x_sh[2]};
-    all_shares[1].data = {x_sh[1], x_sh[0]};
-    all_shares[2].data = {x_sh[2], x_sh[1]};
+    std::array<RepShare, kNumParties> all_shares;
+    all_shares[0].data = {x0, x2};
+    all_shares[1].data = {x1, x0};
+    all_shares[2].data = {x2, x1};
 
     return all_shares;
 }
 
-std::array<SharesPair, kNumParties> ReplicatedSharing3P::ShareLocal(const std::vector<uint32_t> &x_vec) const {
-    size_t num_shares = x_vec.size();
+std::array<RepShareVec, kNumParties> ReplicatedSharing3P::ShareLocal(const UIntVec &x_vec) const {
+    size_t                               num_shares = x_vec.size();
+    std::array<RepShareVec, kNumParties> all_shares;
 
-    std::array<std::vector<uint32_t>, kNumParties> x_sh_vec;
-    x_sh_vec[0].resize(num_shares);
-    x_sh_vec[1].resize(num_shares);
-    x_sh_vec[2].resize(num_shares);
-
-    for (uint32_t i = 0; i < x_vec.size(); i++) {
-        x_sh_vec[0][i] = Mod(SecureRng::Rand32(), bitsize_);
-        x_sh_vec[1][i] = Mod(SecureRng::Rand32(), bitsize_);
-        x_sh_vec[2][i] = Mod(x_vec[i] - x_sh_vec[0][i] - x_sh_vec[1][i], bitsize_);
+    for (size_t p = 0; p < kNumParties; ++p) {
+        all_shares[p].num_shares = num_shares;
+        all_shares[p][0].resize(num_shares);
+        all_shares[p][1].resize(num_shares);
     }
 
-    std::array<SharesPair, kNumParties> all_shares;
-    all_shares[0].num_shares = num_shares;
-    all_shares[1].num_shares = num_shares;
-    all_shares[2].num_shares = num_shares;
-    all_shares[0].data[0]    = x_sh_vec[0];
-    all_shares[0].data[1]    = x_sh_vec[2];
-    all_shares[1].data[0]    = x_sh_vec[1];
-    all_shares[1].data[1]    = x_sh_vec[0];
-    all_shares[2].data[0]    = x_sh_vec[2];
-    all_shares[2].data[1]    = x_sh_vec[1];
+    for (size_t i = 0; i < num_shares; ++i) {
+        all_shares[0][0][i] = Mod(SecureRng::Rand32(), bitsize_);
+        all_shares[1][0][i] = Mod(SecureRng::Rand32(), bitsize_);
+        all_shares[2][0][i] = Mod(x_vec[i] - all_shares[0][0][i] - all_shares[1][0][i], bitsize_);
 
+        all_shares[0][1][i] = all_shares[2][0][i];
+        all_shares[1][1][i] = all_shares[0][0][i];
+        all_shares[2][1][i] = all_shares[1][0][i];
+    }
     return all_shares;
 }
 
-void ReplicatedSharing3P::Open(Channels &chls, const SharePair &x_sh, uint32_t &open_x) const {
+std::array<RepShareMat, kNumParties> ReplicatedSharing3P::ShareLocal(const UIntMat &x_mat) const {
+    size_t                               rows = x_mat.size();
+    size_t                               cols = x_mat.empty() ? 0 : x_mat[0].size();
+    std::array<RepShareMat, kNumParties> all_shares;
+
+    for (size_t p = 0; p < kNumParties; ++p) {
+        all_shares[p].rows = rows;
+        all_shares[p].cols = cols;
+        all_shares[p][0].resize(rows, std::vector<uint32_t>(cols));
+        all_shares[p][1].resize(rows, std::vector<uint32_t>(cols));
+    }
+
+    for (size_t i = 0; i < rows; ++i) {
+        for (size_t j = 0; j < cols; ++j) {
+            all_shares[0][0][i][j] = Mod(SecureRng::Rand32(), bitsize_);
+            all_shares[1][0][i][j] = Mod(SecureRng::Rand32(), bitsize_);
+            all_shares[2][0][i][j] = Mod(x_mat[i][j] - all_shares[0][0][i][j] - all_shares[1][0][i][j], bitsize_);
+
+            all_shares[0][1][i][j] = all_shares[2][0][i][j];
+            all_shares[1][1][i][j] = all_shares[0][0][i][j];
+            all_shares[2][1][i][j] = all_shares[1][0][i][j];
+        }
+    }
+    return all_shares;
+}
+
+void ReplicatedSharing3P::Open(Channels &chls, const RepShare &x_sh, uint32_t &open_x) const {
     // Send the first share to the previous party
-    chls.prev.send(x_sh.data[0]);
+    chls.prev.send(x_sh[0]);
 
     // Receive the share from the next party
     uint32_t x_next;
     chls.next.recv(x_next);
 
     // Sum the shares and compute the open value
-    open_x = Mod(x_sh.data[0] + x_sh.data[1] + x_next, bitsize_);
+    open_x = Mod(x_sh[0] + x_sh[1] + x_next, bitsize_);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Sent first share to the previous party: " + std::to_string(x_sh.data[0]));
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Sent first share to the previous party: " + std::to_string(x_sh[0]));
     Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Received share from the next party: " + std::to_string(x_next));
-    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] (x_0, x_1, x_2): (" + std::to_string(x_sh.data[0]) + ", " + std::to_string(x_sh.data[1]) + ", " + std::to_string(x_next) + ")");
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] (x_0, x_1, x_2): (" + std::to_string(x_sh[0]) + ", " + std::to_string(x_sh[1]) + ", " + std::to_string(x_next) + ")");
 #endif
 }
 
-void ReplicatedSharing3P::Open(Channels &chls, const SharesPair &x_vec_sh, std::vector<uint32_t> &open_x_vec) const {
+void ReplicatedSharing3P::Open(Channels &chls, const RepShareVec &x_vec_sh, UIntVec &open_x_vec) const {
     // Send the first share to the previous party
-    chls.prev.send(x_vec_sh.data[0]);
+    chls.prev.send(x_vec_sh[0]);
 
     // Receive the share from the next party
-    std::vector<uint32_t> x_vec_next;
+    UIntVec x_vec_next;
     chls.next.recv(x_vec_next);
 
     // Sum the shares and compute the open values
@@ -100,17 +119,47 @@ void ReplicatedSharing3P::Open(Channels &chls, const SharesPair &x_vec_sh, std::
         open_x_vec.resize(x_vec_sh.num_shares);
     }
     for (uint32_t i = 0; i < open_x_vec.size(); ++i) {
-        open_x_vec[i] = Mod(x_vec_sh.data[0][i] + x_vec_sh.data[1][i] + x_vec_next[i], bitsize_);
+        open_x_vec[i] = Mod(x_vec_sh[0][i] + x_vec_sh[1][i] + x_vec_next[i], bitsize_);
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Sent first share to the previous party: " + ToString(x_vec_sh.data[0]));
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Sent first share to the previous party: " + ToString(x_vec_sh[0]));
     Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Received share from the next party: " + ToString(x_vec_next));
-    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] x_0: " + ToString(x_vec_sh.data[0]) + ", x_1: " + ToString(x_vec_sh.data[1]) + ", x_2: " + ToString(x_vec_next));
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] x_0: " + ToString(x_vec_sh[0]) + ", x_1: " + ToString(x_vec_sh[1]) + ", x_2: " + ToString(x_vec_next));
 #endif
 }
 
-void ReplicatedSharing3P::Rand(SharePair &x) {
+void ReplicatedSharing3P::Open(Channels &chls, const RepShareMat &x_mat_sh, UIntMat &open_x_mat) const {
+    // Send the first share to the previous party
+    for (const auto &row : x_mat_sh[0]) {
+        chls.prev.send(row);
+    }
+
+    // Receive the shares from the next party
+    UIntMat x_mat_next;
+    for (size_t i = 0; i < x_mat_sh.rows; ++i) {
+        UIntVec row(x_mat_sh.cols);
+        chls.next.recv(row);
+        x_mat_next.push_back(row);
+    }
+
+    // Sum the shares and compute the open values
+    if (open_x_mat.size() != x_mat_sh.rows) {
+        open_x_mat.resize(x_mat_sh.rows, UIntVec(x_mat_sh.cols));
+    }
+    for (size_t i = 0; i < x_mat_sh.rows; ++i) {
+        for (size_t j = 0; j < x_mat_sh.cols; ++j) {
+            open_x_mat[i][j] = Mod(x_mat_sh[0][i][j] + x_mat_sh[1][i][j] + x_mat_next[i][j], bitsize_);
+        }
+    }
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Sent first share to the previous party: " + ToStringMat(x_mat_sh[0]));
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] Received share from the next party: " + ToStringMat(x_mat_next));
+    Logger::DebugLog(LOC, "[P" + std::to_string(chls.party_id) + "] x_0: " + ToStringMat(x_mat_sh[0]) + ", x_1: " + ToStringMat(x_mat_sh[1]) + ", x_2: " + ToStringMat(x_mat_next));
+#endif
+}
+
+void ReplicatedSharing3P::Rand(RepShare &x) {
     if (prf_idx_ + sizeof(uint32_t) > prf_buff_[0].size() * sizeof(oc::block)) {
         RefillBuffer();
     }
@@ -123,12 +172,12 @@ uint32_t ReplicatedSharing3P::GenerateRandomValue() const {
     return Mod(SecureRng::Rand32(), bitsize_);
 }
 
-void ReplicatedSharing3P::EvaluateAdd(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const {
+void ReplicatedSharing3P::EvaluateAdd(const RepShare &x_sh, const RepShare &y_sh, RepShare &z_sh) const {
     z_sh.data[0] = Mod(x_sh.data[0] + y_sh.data[0], bitsize_);
     z_sh.data[1] = Mod(x_sh.data[1] + y_sh.data[1], bitsize_);
 }
 
-void ReplicatedSharing3P::EvaluateAdd(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const {
+void ReplicatedSharing3P::EvaluateAdd(const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShareVec &z_vec_sh) const {
     if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
         Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateAdd.");
         return;
@@ -146,12 +195,12 @@ void ReplicatedSharing3P::EvaluateAdd(const SharesPair &x_vec_sh, const SharesPa
     }
 }
 
-void ReplicatedSharing3P::EvaluateSub(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const {
+void ReplicatedSharing3P::EvaluateSub(const RepShare &x_sh, const RepShare &y_sh, RepShare &z_sh) const {
     z_sh.data[0] = Mod(x_sh.data[0] - y_sh.data[0], bitsize_);
     z_sh.data[1] = Mod(x_sh.data[1] - y_sh.data[1], bitsize_);
 }
 
-void ReplicatedSharing3P::EvaluateSub(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const {
+void ReplicatedSharing3P::EvaluateSub(const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShareVec &z_vec_sh) const {
     if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
         Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateSub.");
         return;
@@ -169,17 +218,17 @@ void ReplicatedSharing3P::EvaluateSub(const SharesPair &x_vec_sh, const SharesPa
     }
 }
 
-void ReplicatedSharing3P::EvaluateMult(Channels &chls, const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) {
+void ReplicatedSharing3P::EvaluateMult(Channels &chls, const RepShare &x_sh, const RepShare &y_sh, RepShare &z_sh) {
     // (t_0, t_1, t_2) forms a (3, 3)-sharing of t = x * y
-    uint32_t  t_sh = Mod(x_sh.data[0] * y_sh.data[0] + x_sh.data[1] * y_sh.data[0] + x_sh.data[0] * y_sh.data[1], bitsize_);
-    SharePair r_sh;
+    uint32_t t_sh = Mod(x_sh.data[0] * y_sh.data[0] + x_sh.data[1] * y_sh.data[0] + x_sh.data[0] * y_sh.data[1], bitsize_);
+    RepShare r_sh;
     Rand(r_sh);
     z_sh.data[0] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     chls.next.send(z_sh.data[0]);
     chls.prev.recv(z_sh.data[1]);
 }
 
-void ReplicatedSharing3P::EvaluateMult(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) {
+void ReplicatedSharing3P::EvaluateMult(Channels &chls, const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShareVec &z_vec_sh) {
     if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
         Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateMult.");
         return;
@@ -193,8 +242,8 @@ void ReplicatedSharing3P::EvaluateMult(Channels &chls, const SharesPair &x_vec_s
 
     for (uint32_t i = 0; i < x_vec_sh.num_shares; ++i) {
         // (t_0, t_1, t_2) forms a (3, 3)-sharing of t = x * y
-        uint32_t  t_sh = Mod(x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
-        SharePair r_sh;
+        uint32_t t_sh = Mod(x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
+        RepShare r_sh;
         Rand(r_sh);
         z_vec_sh.data[0][i] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     }
@@ -203,7 +252,7 @@ void ReplicatedSharing3P::EvaluateMult(Channels &chls, const SharesPair &x_vec_s
     chls.prev.recv(z_vec_sh.data[1]);
 }
 
-void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharePair &z) {
+void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShare &z) {
     if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
         Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateInnerProduct.");
         return;
@@ -213,7 +262,7 @@ void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const SharesPair 
     for (uint32_t i = 0; i < x_vec_sh.num_shares; ++i) {
         s_sh = Mod(s_sh + x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
     }
-    SharePair r_sh;
+    RepShare r_sh;
     Rand(r_sh);
     z.data[0] = Mod(s_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     chls.next.send(z.data[0]);

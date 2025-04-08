@@ -2,6 +2,7 @@
 
 #include "cryptoTools/Common/TestCollection.h"
 
+#include "FssWM/fm_index/zero_test.h"
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
@@ -11,7 +12,6 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/utils.h"
 #include "FssWM/wm/key_io.h"
-#include "FssWM/wm/zero_test.h"
 
 namespace {
 
@@ -22,24 +22,26 @@ const std::string kTestZeroTestPath = kCurrentPath + "/data/test/wm/";
 
 namespace test_fsswm {
 
+using fsswm::CreateSequence;
 using fsswm::FileIo;
 using fsswm::Logger;
+using fsswm::Pow;
+using fsswm::ShareType;
 using fsswm::ThreePartyNetworkManager;
 using fsswm::ToString;
+using fsswm::fm_index::ZeroTestEvaluator;
+using fsswm::fm_index::ZeroTestKey;
+using fsswm::fm_index::ZeroTestKeyGenerator;
+using fsswm::fm_index::ZeroTestParameters;
 using fsswm::sharing::AdditiveSharing2P;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
 using fsswm::sharing::Channels;
 using fsswm::sharing::ReplicatedSharing3P;
+using fsswm::sharing::RepShare;
+using fsswm::sharing::RepShareVec;
 using fsswm::sharing::ShareIo;
-using fsswm::sharing::SharePair;
-using fsswm::sharing::SharesPair;
 using fsswm::wm::KeyIo;
-using fsswm::wm::ShareType;
-using fsswm::wm::ZeroTestEvaluator;
-using fsswm::wm::ZeroTestKey;
-using fsswm::wm::ZeroTestKeyGenerator;
-using fsswm::wm::ZeroTestParameters;
 
 void ZeroTest_Additive_Offline_Test() {
     Logger::DebugLog(LOC, "ZeroTest_Additive_Offline_Test...");
@@ -75,7 +77,7 @@ void ZeroTest_Additive_Offline_Test() {
         uint32_t x = 0;
         Logger::DebugLog(LOC, "Input: " + std::to_string(x));
 
-        std::array<SharePair, 3> x_sh = rss.ShareLocal(x);
+        std::array<RepShare, 3> x_sh = rss.ShareLocal(x);
         for (uint32_t i = 0; i < 3; ++i) {
             x_sh[i].DebugLog(i, "x");
         }
@@ -130,12 +132,12 @@ void ZeroTest_Additive_Online_Test(const oc::CLP &cmd) {
             ZeroTestKey key(0, params);
             key_io.LoadKey(key_path + "_0", key);
             // Load data
-            SharePair x_sh;
+            RepShare x_sh;
             sh_io.LoadShare(x_path + "_0", x_sh);
             // Setup the PRF keys
             rss.OnlineSetUp(0, kTestZeroTestPath + "prf");
             // Evaluate
-            SharePair result_sh;
+            RepShare result_sh;
             eval.EvaluateAdditive(chls, key, x_sh, result_sh);
             rss.Open(chls, result_sh, result);
         };
@@ -151,12 +153,12 @@ void ZeroTest_Additive_Online_Test(const oc::CLP &cmd) {
             ZeroTestKey key(1, params);
             key_io.LoadKey(key_path + "_1", key);
             // Load data
-            SharePair x_sh;
+            RepShare x_sh;
             sh_io.LoadShare(x_path + "_1", x_sh);
             // Setup the PRF keys
             rss.OnlineSetUp(1, kTestZeroTestPath + "prf");
             // Evaluate
-            SharePair result_sh;
+            RepShare result_sh;
             eval.EvaluateAdditive(chls, key, x_sh, result_sh);
             rss.Open(chls, result_sh, result);
         };
@@ -172,12 +174,12 @@ void ZeroTest_Additive_Online_Test(const oc::CLP &cmd) {
             ZeroTestKey key(2, params);
             key_io.LoadKey(key_path + "_2", key);
             // Load data
-            SharePair x_sh;
+            RepShare x_sh;
             sh_io.LoadShare(x_path + "_2", x_sh);
             // Setup the PRF keys
             rss.OnlineSetUp(2, kTestZeroTestPath + "prf");
             // Evaluate
-            SharePair result_sh;
+            RepShare result_sh;
             eval.EvaluateAdditive(chls, key, x_sh, result_sh);
             rss.Open(chls, result_sh, result);
         };
@@ -228,19 +230,28 @@ void ZeroTest_Binary_Offline_Test() {
         // Generate the x
         uint32_t x = 10;
         Logger::DebugLog(LOC, "Input: " + std::to_string(x));
+        std::vector<uint32_t> x_vec = CreateSequence(0, Pow(2, n));
+        Logger::DebugLog(LOC, "Input: " + ToString(x_vec));
 
-        std::array<SharePair, 3> x_sh = brss.ShareLocal(x);
+        std::array<RepShare, 3>    x_sh     = brss.ShareLocal(x);
+        std::array<RepShareVec, 3> x_vec_sh = brss.ShareLocal(x_vec);
         for (uint32_t i = 0; i < 3; ++i) {
             x_sh[i].DebugLog(i, "x");
+            x_vec_sh[i].DebugLog(i, "x_vec");
         }
 
         // Save data
-        std::string x_path = kTestZeroTestPath + "x_n" + std::to_string(n);
+        std::string x_path     = kTestZeroTestPath + "x_n" + std::to_string(n);
+        std::string x_vec_path = kTestZeroTestPath + "x_vec_n" + std::to_string(n);
 
         file_io.WriteToFile(x_path, x);
         sh_io.SaveShare(x_path + "_0", x_sh[0]);
         sh_io.SaveShare(x_path + "_1", x_sh[1]);
         sh_io.SaveShare(x_path + "_2", x_sh[2]);
+        file_io.WriteToFile(x_vec_path, x_vec);
+        sh_io.SaveShare(x_vec_path + "_0", x_vec_sh[0]);
+        sh_io.SaveShare(x_vec_path + "_1", x_vec_sh[1]);
+        sh_io.SaveShare(x_vec_path + "_2", x_vec_sh[2]);
 
         // Offline setup
         brss.OfflineSetUp(kTestZeroTestPath + "prf");
@@ -264,11 +275,14 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
         ShareIo  sh_io;
         KeyIo    key_io;
 
-        uint32_t    result;
-        std::string key_path = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
-        std::string x_path   = kTestZeroTestPath + "x_n" + std::to_string(n);
-        uint32_t    x;
+        uint32_t              result;
+        std::string           key_path   = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
+        std::string           x_path     = kTestZeroTestPath + "x_n" + std::to_string(n);
+        std::string           x_vec_path = kTestZeroTestPath + "x_vec_n" + std::to_string(n);
+        uint32_t              x;
+        std::vector<uint32_t> x_vec;
         file_io.ReadFromFile(x_path, x);
+        file_io.ReadFromFile(x_vec_path, x_vec);
 
         // Define the task for each party
         ThreePartyNetworkManager net_mgr;
@@ -284,12 +298,14 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
             ZeroTestKey key(0, params);
             key_io.LoadKey(key_path + "_0", key);
             // Load data
-            SharePair x_sh;
+            RepShare x_sh;
             sh_io.LoadShare(x_path + "_0", x_sh);
+            RepShareVec x_vec_sh;
+            sh_io.LoadShare(x_vec_path + "_0", x_vec_sh);
             // Setup the PRF keys
             brss.OnlineSetUp(0, kTestZeroTestPath + "prf");
             // Evaluate
-            SharePair result_sh;
+            RepShare result_sh;
             eval.EvaluateBinary(chls, key, x_sh, result_sh);
             brss.Open(chls, result_sh, result);
         };
@@ -305,12 +321,14 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
             ZeroTestKey key(1, params);
             key_io.LoadKey(key_path + "_1", key);
             // Load data
-            SharePair x_sh;
+            RepShare x_sh;
             sh_io.LoadShare(x_path + "_1", x_sh);
+            RepShareVec x_vec_sh;
+            sh_io.LoadShare(x_vec_path + "_1", x_vec_sh);
             // Setup the PRF keys
             brss.OnlineSetUp(1, kTestZeroTestPath + "prf");
             // Evaluate
-            SharePair result_sh;
+            RepShare result_sh;
             eval.EvaluateBinary(chls, key, x_sh, result_sh);
             brss.Open(chls, result_sh, result);
         };
@@ -326,12 +344,14 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
             ZeroTestKey key(2, params);
             key_io.LoadKey(key_path + "_2", key);
             // Load data
-            SharePair x_sh;
+            RepShare x_sh;
             sh_io.LoadShare(x_path + "_2", x_sh);
+            RepShareVec x_vec_sh;
+            sh_io.LoadShare(x_vec_path + "_2", x_vec_sh);
             // Setup the PRF keys
             brss.OnlineSetUp(2, kTestZeroTestPath + "prf");
             // Evaluate
-            SharePair result_sh;
+            RepShare result_sh;
             eval.EvaluateBinary(chls, key, x_sh, result_sh);
             brss.Open(chls, result_sh, result);
         };

@@ -17,28 +17,30 @@ public:
     void OnlineSetUp(const uint32_t party_id, const std::string &file_path);
 
     // Share data
-    std::array<SharePair, kNumParties>  ShareLocal(const uint32_t &x) const;
-    std::array<SharesPair, kNumParties> ShareLocal(const std::vector<uint32_t> &x_vec) const;
+    std::array<RepShare, kNumParties>    ShareLocal(const uint32_t &x) const;
+    std::array<RepShareVec, kNumParties> ShareLocal(const UIntVec &x_vec) const;
+    std::array<RepShareMat, kNumParties> ShareLocal(const UIntMat &x_mat) const;
 
     // Open data
-    void Open(Channels &chls, const SharePair &x_sh, uint32_t &open_x) const;
-    void Open(Channels &chls, const SharesPair &x_vec_sh, std::vector<uint32_t> &open_x_vec) const;
+    void Open(Channels &chls, const RepShare &x_sh, uint32_t &open_x) const;
+    void Open(Channels &chls, const RepShareVec &x_vec_sh, UIntVec &open_x_vec) const;
+    void Open(Channels &chls, const RepShareMat &x_mat_sh, UIntMat &open_x_mat) const;
 
     // Randomness generation
-    void Rand(SharePair &x);
+    void     Rand(RepShare &x);
     uint32_t GenerateRandomValue() const;
 
     // Evaluation operations (addition, subtraction, multiplication, inner product)
-    void EvaluateAdd(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const;
-    void EvaluateAdd(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const;
+    void EvaluateAdd(const RepShare &x_sh, const RepShare &y_sh, RepShare &z_sh) const;
+    void EvaluateAdd(const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShareVec &z_vec_sh) const;
 
-    void EvaluateSub(const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh) const;
-    void EvaluateSub(const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh) const;
+    void EvaluateSub(const RepShare &x_sh, const RepShare &y_sh, RepShare &z_sh) const;
+    void EvaluateSub(const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShareVec &z_vec_sh) const;
 
-    void EvaluateMult(Channels &chls, const SharePair &x_sh, const SharePair &y_sh, SharePair &z_sh);
-    void EvaluateMult(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharesPair &z_vec_sh);
+    void EvaluateMult(Channels &chls, const RepShare &x_sh, const RepShare &y_sh, RepShare &z_sh);
+    void EvaluateMult(Channels &chls, const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShareVec &z_vec_sh);
 
-    void EvaluateInnerProduct(Channels &chls, const SharesPair &x_vec_sh, const SharesPair &y_vec_sh, SharePair &z);
+    void EvaluateInnerProduct(Channels &chls, const RepShareVec &x_vec_sh, const RepShareVec &y_vec_sh, RepShare &z);
 
 private:
     uint32_t                              bitsize_;      /**< Bit size of the shared data */
