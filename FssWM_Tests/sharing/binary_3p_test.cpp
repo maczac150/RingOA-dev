@@ -1,6 +1,5 @@
 #include "binary_3p_test.h"
 
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/sharing/binary_3p.h"

@@ -1,6 +1,5 @@
 #include "dpf_bench.h"
 
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/fss/dpf_eval.h"

@@ -1,6 +1,5 @@
 #include "binary_2p_test.h"
 
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/sharing/binary_2p.h"

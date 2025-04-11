@@ -1,9 +1,9 @@
 #include "cryptoTools/Common/CLP.h"
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 #include "tests_cryptoTools/UnitTests.h"
 
 #include "FssWM_Bench/dpf_bench.h"
+#include "FssWM_Bench/fssfmi_bench.h"
 
 namespace bench_fsswm {
 
@@ -11,6 +11,8 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
     t.add("Dpf_Fde_TwoKey_Bench", Dpf_Fde_TwoKey_Bench);
+    t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
+    t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
 });
 
 }    // namespace bench_fsswm

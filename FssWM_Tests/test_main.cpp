@@ -1,9 +1,10 @@
 #include "cryptoTools/Common/CLP.h"
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 #include "tests_cryptoTools/UnitTests.h"
 
 #include "FssWM/utils/logger.h"
+#include "FssWM_Tests/fm_index/fssfmi_test.h"
+#include "FssWM_Tests/fm_index/zt_test.h"
 #include "FssWM_Tests/fss/dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
 #include "FssWM_Tests/sharing/additive_2p_test.h"
@@ -16,7 +17,6 @@
 #include "FssWM_Tests/wm/fsswm_test.h"
 #include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
-#include "FssWM_Tests/fm_index/zt_test.h"
 
 namespace test_fsswm {
 
@@ -64,6 +64,8 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
     t.add("FssWM_Offline_Test", FssWM_Offline_Test);
     t.add("FssWM_Online_Test", FssWM_Online_Test);
+    t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);
+    t.add("FssFMI_Online_Test", FssFMI_Online_Test);
 });
 
 }    // namespace test_fsswm

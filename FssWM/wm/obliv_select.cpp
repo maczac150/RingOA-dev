@@ -77,6 +77,12 @@ void OblivSelectKey::Serialize(std::vector<uint8_t> &buffer) const {
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&r), reinterpret_cast<const uint8_t *>(&r) + sizeof(r));
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&r_sh_0), reinterpret_cast<const uint8_t *>(&r_sh_0) + sizeof(r_sh_0));
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&r_sh_1), reinterpret_cast<const uint8_t *>(&r_sh_1) + sizeof(r_sh_1));
+
+    // Check size
+    if (buffer.size() != serialized_size_) {
+        Logger::ErrorLog(LOC, "Serialized size mismatch: " + std::to_string(buffer.size()) + " != " + std::to_string(serialized_size_));
+        return;
+    }
 }
 
 void OblivSelectKey::Deserialize(const std::vector<uint8_t> &buffer) {
@@ -90,10 +96,10 @@ void OblivSelectKey::Deserialize(const std::vector<uint8_t> &buffer) {
     offset += sizeof(party_id);
 
     // Deserialize the DPF keys
-    size_t key_size = prev_key.CalculateSerializedSize();
+    size_t key_size = prev_key.GetSerializedSize();
     prev_key.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.begin() + offset + key_size));
     offset += key_size;
-    key_size = next_key.CalculateSerializedSize();
+    key_size = next_key.GetSerializedSize();
     next_key.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.begin() + offset + key_size));
     offset += key_size;
 
@@ -130,8 +136,8 @@ void OblivSelectKey::PrintKey(const bool detailed) const {
 
 OblivSelectKeyGenerator::OblivSelectKeyGenerator(
     const OblivSelectParameters &params,
-    sharing::AdditiveSharing2P & ass,
-    sharing::BinarySharing2P &   bss)
+    sharing::AdditiveSharing2P  &ass,
+    sharing::BinarySharing2P    &bss)
     : params_(params),
       gen_(params.GetParameters()),
       ass_(ass), bss_(bss) {
@@ -230,19 +236,19 @@ void OblivSelectKeyGenerator::GenerateBinaryKeys(std::array<OblivSelectKey, 3> &
 }
 
 OblivSelectEvaluator::OblivSelectEvaluator(
-    const OblivSelectParameters &       params,
-    sharing::ReplicatedSharing3P &      rss,
+    const OblivSelectParameters        &params,
+    sharing::ReplicatedSharing3P       &rss,
     sharing::BinaryReplicatedSharing3P &brss)
     : params_(params), eval_(params.GetParameters()), rss_(rss), brss_(brss) {
 }
 
-void OblivSelectEvaluator::EvaluateAdditive(sharing::Channels &         chls,
-                                            std::vector<uint32_t> &     uv_prev,
-                                            std::vector<uint32_t> &     uv_next,
-                                            const OblivSelectKey &      key,
+void OblivSelectEvaluator::EvaluateAdditive(sharing::Channels          &chls,
+                                            std::vector<uint32_t>      &uv_prev,
+                                            std::vector<uint32_t>      &uv_next,
+                                            const OblivSelectKey       &key,
                                             const sharing::RepShareVec &database,
-                                            const sharing::RepShare &   index,
-                                            sharing::RepShare &         result) const {
+                                            const sharing::RepShare    &index,
+                                            sharing::RepShare          &result) const {
 
     uint32_t d        = params_.GetDatabaseSize();
     uint32_t party_id = chls.party_id;
@@ -279,8 +285,8 @@ void OblivSelectEvaluator::EvaluateAdditive(sharing::Channels &         chls,
     chls.prev.recv(result[1]);
 }
 
-std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRAdditive(sharing::Channels &      chls,
-                                                                          const OblivSelectKey &   key,
+std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRAdditive(sharing::Channels       &chls,
+                                                                          const OblivSelectKey    &key,
                                                                           const sharing::RepShare &index,
                                                                           const uint32_t           d) const {
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
@@ -361,13 +367,13 @@ std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRAdditive(sharin
     return std::make_pair(pr_prev, pr_next);
 }
 
-void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &         chls,
-                                          std::vector<block> &        uv_prev,
-                                          std::vector<block> &        uv_next,
-                                          const OblivSelectKey &      key,
+void OblivSelectEvaluator::EvaluateBinary(sharing::Channels          &chls,
+                                          std::vector<block>         &uv_prev,
+                                          std::vector<block>         &uv_next,
+                                          const OblivSelectKey       &key,
                                           const sharing::RepShareVec &database,
-                                          const sharing::RepShare &   index,
-                                          sharing::RepShare &         result) const {
+                                          const sharing::RepShare    &index,
+                                          sharing::RepShare          &result) const {
 
     uint32_t party_id = chls.party_id;
 
@@ -408,15 +414,15 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &         chls,
     chls.prev.recv(result[1]);
 }
 
-void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &         chls,
-                                          std::vector<block> &        uv_prev,
-                                          std::vector<block> &        uv_next,
-                                          const OblivSelectKey &      key,
+void OblivSelectEvaluator::EvaluateBinary(sharing::Channels          &chls,
+                                          std::vector<block>         &uv_prev,
+                                          std::vector<block>         &uv_next,
+                                          const OblivSelectKey       &key,
                                           const sharing::RepShareVec &database1,
                                           const sharing::RepShareVec &database2,
-                                          const sharing::RepShare &   index,
-                                          sharing::RepShare &         result1,
-                                          sharing::RepShare &         result2) const {
+                                          const sharing::RepShare    &index,
+                                          sharing::RepShare          &result1,
+                                          sharing::RepShare          &result2) const {
 
     uint32_t party_id = chls.party_id;
 
@@ -469,15 +475,15 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &         chls,
 #endif
 }
 
-void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &             chls,
-                                          std::vector<block> &            uv_prev,
-                                          std::vector<block> &            uv_next,
-                                          const OblivSelectKey &          key,
+void OblivSelectEvaluator::EvaluateBinary(sharing::Channels              &chls,
+                                          std::vector<block>             &uv_prev,
+                                          std::vector<block>             &uv_next,
+                                          const OblivSelectKey           &key,
                                           const sharing::RepShareVecView &database1,
                                           const sharing::RepShareVecView &database2,
-                                          const sharing::RepShare &       index,
-                                          sharing::RepShare &             result1,
-                                          sharing::RepShare &             result2) const {
+                                          const sharing::RepShare        &index,
+                                          sharing::RepShare              &result1,
+                                          sharing::RepShare              &result2) const {
 
     uint32_t party_id = chls.party_id;
 
@@ -486,8 +492,6 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &             chls,
     Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
     std::string party_str = "[P" + std::to_string(party_id) + "] ";
     index.DebugLog(party_id, "idx");
-    database1.DebugLog(party_id, "db1");
-    database2.DebugLog(party_id, "db2");
 #endif
 
     // Reconstruct p ^ r_i
@@ -497,8 +501,10 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &             chls,
 #endif
 
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
+    Logger::SetPrintLog(false);
     eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
     eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
+    Logger::SetPrintLog(true);
 
     // Extract bit-level values from the evaluated blocks.
     std::vector<uint8_t> uv_prev_bits = ExtractBits(uv_prev);
@@ -530,8 +536,8 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels &             chls,
 #endif
 }
 
-std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRBinary(sharing::Channels &      chls,
-                                                                        const OblivSelectKey &   key,
+std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRBinary(sharing::Channels       &chls,
+                                                                        const OblivSelectKey    &key,
                                                                         const sharing::RepShare &index) const {
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
 

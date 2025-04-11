@@ -10,7 +10,7 @@
 
 namespace fsswm {
 
-constexpr size_t kSizeMax = 256;
+constexpr size_t kSizeMax = 128;
 
 /**
  * @brief Get the Current Date Time As String object

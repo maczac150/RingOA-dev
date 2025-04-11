@@ -1,6 +1,5 @@
 #include "timer_test.h"
 
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/utils/logger.h"

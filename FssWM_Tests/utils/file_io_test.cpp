@@ -1,6 +1,5 @@
 #include "file_io_test.h"
 
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/utils/file_io.h"
@@ -10,7 +9,7 @@
 namespace {
 
 const std::string kCurrentPath    = fsswm::GetCurrentDirectory();
-const std::string kTestFileIoPath = kCurrentPath + "/data/test/fileio/";
+const std::string kTestFileIoPath = kCurrentPath + "/data/test/utils/";
 
 }    // namespace
 

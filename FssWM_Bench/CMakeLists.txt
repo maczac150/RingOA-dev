@@ -8,6 +8,7 @@ project(FssWM_Bench)
 # Add the bench sources
 set(BENCH_SOURCES
     dpf_bench.cpp
+    fssfmi_bench.cpp
     bench_main.cpp
 )
 

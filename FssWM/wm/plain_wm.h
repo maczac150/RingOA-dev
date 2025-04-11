@@ -9,6 +9,11 @@
 namespace fsswm {
 namespace wm {
 
+/**
+ * @brief Character type enumeration
+ * This enum is used to specify the type of characters in the text.
+ * It can be either DNA or protein.
+ */
 enum class CharType
 {
     DNA,
@@ -16,68 +21,93 @@ enum class CharType
 };
 
 /**
- * @brief WaveletMatrix class
- * @tparam BITS Number of bits in the integer array (e.g., 3 for DNA, 5 for protein)
+ * @brief CharMapper class for character mapping
+ */
+class CharMapper {
+public:
+    CharMapper(CharType type = CharType::DNA);
+    void Initialize(CharType type);
+
+    const std::unordered_map<char, uint32_t> &GetMap() const;
+    size_t                                    GetSigma() const;
+    CharType                                  GetType() const;
+    bool                                      IsValidChar(char c) const;
+
+    std::vector<uint32_t> ToIds(const std::string &s) const;
+    uint32_t              ToId(char c) const;
+    std::string           ToString(const std::vector<uint32_t> &v) const;
+    std::string           MapToString() const;
+
+private:
+    std::unordered_map<char, uint32_t> char2id_;
+    std::vector<char>                  id2char_;
+    size_t                             sigma_;
+    CharType                           type_;
+};
+
+/**
+ * @brief WaveletMatrix class for plain computation.
  */
 class WaveletMatrix {
 public:
-    WaveletMatrix() = default;
-    explicit WaveletMatrix(const size_t bits, const std::vector<uint32_t> &data);
+    WaveletMatrix()                                     = default;
+    WaveletMatrix(const WaveletMatrix &)                = default;
+    WaveletMatrix(WaveletMatrix &&) noexcept            = default;
+    WaveletMatrix &operator=(const WaveletMatrix &)     = default;
+    WaveletMatrix &operator=(WaveletMatrix &&) noexcept = default;
 
-    size_t size() const;
-    size_t bits() const;
+    explicit WaveletMatrix(const std::string &data, const CharType type = CharType::DNA);
+    explicit WaveletMatrix(const std::vector<uint32_t> &data, const size_t sigma);
+
+    size_t                                    GetLength() const;
+    size_t                                    GetSigma() const;
+    const CharMapper                         &GetMapper() const;
+    std::string                               GetMapString() const;
+    const std::vector<uint32_t>              &GetData() const;
+    const std::vector<std::vector<uint32_t>> &GetRank0Tables() const;
+    const std::vector<std::vector<uint32_t>> &GetRank1Tables() const;
+    void                                      PrintRank0Tables() const;
+    void                                      PrintRank1Tables() const;
 
     uint32_t RankCF(uint32_t c, size_t position) const;
 
-    const std::vector<std::vector<uint32_t>> &GetRank0Tables() const;
-
-    void PrintRank0Tables() const;
-
 private:
-    size_t bits_   = 0;
-    size_t length_ = 0;
-    // rank0_tables_[b] は (length_ + 1) 長さを持ち、
-    // rank0_tables_[b][i] は [0..i) の要素中「b ビットが 0 の数」を記録
+    size_t                             length_;
+    size_t                             sigma_;
+    CharMapper                         mapper_;
+    std::vector<uint32_t>              data_;
     std::vector<std::vector<uint32_t>> rank0_tables_;
+    std::vector<std::vector<uint32_t>> rank1_tables_;
 
     void Build(const std::vector<uint32_t> &data);
+    void SetRank1Tables();
 };
 
 class FMIndex {
 public:
-    // コンストラクタ (textと文字種を受け取る)
-    // 例: FMIndex<3> fmDNA("ACGTACGT", CharType::DNA);
-    //     FMIndex<5> fmProtein("ARNDCQEGH...", CharType::PROTEIN);
-    FMIndex(const size_t bits, const std::string &text, const CharType type = CharType::DNA);
+    FMIndex(const std::string &text, const CharType type = CharType::DNA);
+    FMIndex(const FMIndex &)                = default;
+    FMIndex(FMIndex &&) noexcept            = default;
+    FMIndex &operator=(const FMIndex &)     = default;
+    FMIndex &operator=(FMIndex &&) noexcept = default;
 
+    const WaveletMatrix                      &GetWaveletMatrix() const;
     const std::vector<std::vector<uint32_t>> &GetRank0Tables() const;
+    const std::vector<std::vector<uint32_t>> &GetRank1Tables() const;
 
-    const std::vector<std::vector<uint32_t>> GetRank1Tables() const;
-
-    std::vector<uint32_t> ConvertToBitVector(const std::string &query) const;
+    std::vector<std::vector<uint32_t>> ConvertToBitMatrix(const std::string &query) const;
 
     // Search query in text, returns the Longest Prefix Match Length
-    uint32_t RankCF(uint32_t c, size_t position) const;
-    uint32_t LongestPrefixMatchLength(const std::string &query) const;
-    uint32_t ComputeLPMwithSDSL(const std::string &text, const std::string &query) const;
+    uint32_t ComputeLPMfromWM(const std::string &query) const;
+    uint32_t ComputeLPMfromBWT(const std::string &query) const;
 
 private:
-    size_t                             bits_;          /**< Number of bits in the integer array */
-    std::string                        text_;          /**< original text + sentinel */
-    std::string                        bwt_str_;       /**< BWT of text */
-    WaveletMatrix                      wm_;            /**< Wavelet matrix built over bwt_str (as integer array) */
-    std::unordered_map<char, uint32_t> char2id_;       /**< Mapping from character to integer */
-    std::vector<char>                  id2char_;       /**< Mapping from integer to character */
-    size_t                             alphabet_size_; /**< Size of the alphabet */
-
-    // Initialize character mappings
-    void InitializeCharMap(CharType type);
+    std::string   text_;    /**< original text + sentinel */
+    std::string   bwt_str_; /**< BWT of text */
+    WaveletMatrix wm_;      /**< Wavelet matrix built over bwt_str (as integer array) */
 
     // Build BWT from suffix array
     void BuildBwt();
-
-    // Convert BWT string to an integer array for wavelet matrix
-    std::vector<uint32_t> BwtToInts() const;
 
     // Backward search [top, bottom) range
     void BackwardSearch(char c, uint32_t &left, uint32_t &right) const;

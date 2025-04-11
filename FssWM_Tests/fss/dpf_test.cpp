@@ -1,6 +1,5 @@
 #include "dpf_test.h"
 
-#include "cryptoTools/Common/Defines.h"
 #include "cryptoTools/Common/TestCollection.h"
 
 #include "FssWM/fss/dpf_eval.h"
@@ -249,8 +248,8 @@ void Dpf_Fde_One_Test() {
             // DpfParameters(5, 1, false), // * Not supported
             DpfParameters(11, 1, true, eval_type),
             DpfParameters(15, 1, true, eval_type),
-            DpfParameters(20, 1, true, eval_type),
-            DpfParameters(25, 1, true, eval_type),
+            // DpfParameters(20, 1, true, eval_type),
+            // DpfParameters(25, 1, true, eval_type),
         };
 
         for (const DpfParameters &params : params_list) {

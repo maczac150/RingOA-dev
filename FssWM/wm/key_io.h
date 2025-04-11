@@ -6,7 +6,6 @@
 #include "FssWM/fss/dpf_key.h"
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
-#include "FssWM/wm/obliv_select.h"
 
 namespace fsswm {
 namespace wm {
@@ -17,6 +16,8 @@ enum class KeyType
     kDpfKey,
     kOblivSelectKey,
     kFssWMKey,
+    kZeroTestKey,
+    kFssFMIKey,
 };
 
 class KeyIo {

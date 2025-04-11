@@ -6,6 +6,8 @@
 namespace fsswm {
 namespace wm {
 
+class FMIndex;
+
 /**
  * @brief A class to hold parameters for the FssWM.
  */
@@ -124,13 +126,13 @@ struct FssWMKey {
     /**
      * @brief Copy constructor is deleted to prevent copying of FssWMKey.
      */
-    FssWMKey(const FssWMKey &) = delete;
+    FssWMKey(const FssWMKey &)            = delete;
     FssWMKey &operator=(const FssWMKey &) = delete;
 
     /**
      * @brief Move constructor for FssWMKey.
      */
-    FssWMKey(FssWMKey &&) noexcept = default;
+    FssWMKey(FssWMKey &&) noexcept            = default;
     FssWMKey &operator=(FssWMKey &&) noexcept = default;
 
     /**
@@ -145,6 +147,20 @@ struct FssWMKey {
     bool operator!=(const FssWMKey &rhs) const {
         return !(*this == rhs);
     }
+
+    /**
+     * @brief Get the size of the serialized FssWMKey.
+     * @return size_t The size of the serialized FssWMKey.
+     */
+    size_t GetSerializedSize() const {
+        return serialized_size_;
+    }
+
+    /**
+     * @brief Calculate the size of the serialized FssWMKey.
+     * @return size_t The size of the serialized FssWMKey.
+     */
+    size_t CalculateSerializedSize() const;
 
     /**
      * @brief Calculate the size of the serialized FssWMKey.
@@ -165,7 +181,8 @@ struct FssWMKey {
     void PrintKey(const bool detailed = false) const;
 
 private:
-    FssWMParameters params_; /**< The FssWMParameters for the FssWMKey. */
+    FssWMParameters params_;          /**< The FssWMParameters for the FssWMKey. */
+    size_t          serialized_size_; /**< The size of the serialized FssWMKey. */
 };
 
 /**
@@ -186,17 +203,17 @@ public:
      * @param brss Binary replicated sharing for 3-party for the sharing.
      */
     FssWMKeyGenerator(
-        const FssWMParameters &             params,
-        sharing::AdditiveSharing2P &        ass,
-        sharing::BinarySharing2P &          bss,
+        const FssWMParameters              &params,
+        sharing::AdditiveSharing2P         &ass,
+        sharing::BinarySharing2P           &bss,
         sharing::BinaryReplicatedSharing3P &brss);
 
     /**
-     * @brief Generate shares for the database.
-     * @param database The database to generate shares for.
-     * @return std::array<std::vector<sharing::RepShareVec>, 3> The generated shares for the database.
+     * @brief Generate replicated shares for the database.
+     * @param fm The FMIndex used to generate the shares.
+     * @return std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> The replicated shares for the database.
      */
-    std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> GenerateDatabaseShare(std::string &database);
+    std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> GenerateDatabaseShare(const FMIndex &fm);
 
     /**
      * @brief Generate keys for the FssWM.
@@ -226,24 +243,34 @@ public:
      * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
      * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
-    FssWMEvaluator(const FssWMParameters &             params,
-                   sharing::ReplicatedSharing3P &      rss,
+    FssWMEvaluator(const FssWMParameters              &params,
+                   sharing::ReplicatedSharing3P       &rss,
                    sharing::BinaryReplicatedSharing3P &brss);
 
-    void EvaluateRankCF(sharing::Channels &         chls,
-                        std::vector<block> &        uv_prev,
-                        std::vector<block> &        uv_next,
-                        const FssWMKey &            key,
+    void EvaluateRankCF(sharing::Channels          &chls,
+                        std::vector<block>         &uv_prev,
+                        std::vector<block>         &uv_next,
+                        const FssWMKey             &key,
                         const sharing::RepShareMat &wm_table0,
                         const sharing::RepShareMat &wm_table1,
                         const sharing::RepShareVec &char_sh,
-                        sharing::RepShare &         position_sh,
-                        sharing::RepShare &         result) const;
+                        sharing::RepShare          &position_sh,
+                        sharing::RepShare          &result) const;
+
+    void EvaluateRankCF(sharing::Channels              &chls,
+                        std::vector<block>             &uv_prev,
+                        std::vector<block>             &uv_next,
+                        const FssWMKey                 &key,
+                        const sharing::RepShareMat     &wm_table0,
+                        const sharing::RepShareMat     &wm_table1,
+                        const sharing::RepShareVecView &char_sh,
+                        sharing::RepShare              &position_sh,
+                        sharing::RepShare              &result) const;
 
 private:
     FssWMParameters                     params_;  /**< FssWMParameters for the FssWMEvaluator. */
     OblivSelectEvaluator                os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
-    sharing::ReplicatedSharing3P &      rss_;     /**< Replicated sharing for 3-party for the FssWMEvaluator. */
+    sharing::ReplicatedSharing3P       &rss_;     /**< Replicated sharing for 3-party for the FssWMEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;    /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
 };
 

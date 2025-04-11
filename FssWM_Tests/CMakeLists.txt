@@ -20,6 +20,7 @@ set(TEST_SOURCES
     wm/obliv_select_test.cpp
     wm/fsswm_test.cpp
     fm_index/zt_test.cpp
+    fm_index/fssfmi_test.cpp
     test_main.cpp
 )
 
@@ -33,7 +34,4 @@ target_include_directories(test_FssWM PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(test_FssWM
     FssWM
     oc::tests_cryptoTools
-    sdsl
-    divsufsort
-    divsufsort64
 )

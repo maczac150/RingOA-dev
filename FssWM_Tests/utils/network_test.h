@@ -2,7 +2,6 @@
 #define TESTS_NETWORK_TEST_H_
 
 #include "cryptoTools/Common/CLP.h"
-#include "cryptoTools/Common/Defines.h"
 
 namespace test_fsswm {
 

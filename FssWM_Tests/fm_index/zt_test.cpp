@@ -16,7 +16,7 @@
 namespace {
 
 const std::string kCurrentPath      = fsswm::GetCurrentDirectory();
-const std::string kTestZeroTestPath = kCurrentPath + "/data/test/wm/";
+const std::string kTestZeroTestPath = kCurrentPath + "/data/test/fmi/";
 
 }    // namespace
 
@@ -38,9 +38,9 @@ using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
 using fsswm::sharing::Channels;
 using fsswm::sharing::ReplicatedSharing3P;
-using fsswm::sharing::RepShare;
-using fsswm::sharing::RepShareVec;
+using fsswm::sharing::RepShare, fsswm::sharing::RepShareVec, fsswm::sharing::RepShareVec;
 using fsswm::sharing::ShareIo;
+using fsswm::sharing::UIntVec, fsswm::sharing::UIntMat;
 using fsswm::wm::KeyIo;
 
 void ZeroTest_Additive_Offline_Test() {
@@ -201,8 +201,8 @@ void ZeroTest_Additive_Online_Test(const oc::CLP &cmd) {
 void ZeroTest_Binary_Offline_Test() {
     Logger::DebugLog(LOC, "ZeroTest_Binary_Offline_Test...");
     std::vector<ZeroTestParameters> params_list = {
-        ZeroTestParameters(5, ShareType::kBinary),
-        // ZeroTestParameters(10),
+        // ZeroTestParameters(5, ShareType::kBinary),
+        ZeroTestParameters(10, ShareType::kBinary),
         // ZeroTestParameters(15),
         // ZeroTestParameters(20),
     };
@@ -228,16 +228,16 @@ void ZeroTest_Binary_Offline_Test() {
         key_io.SaveKey(key_path + "_2", keys[2]);
 
         // Generate the x
-        uint32_t x = 10;
+        uint32_t              x     = 10;
+        std::vector<uint32_t> x_vec = {0, 10, 20, 30, 0, 512};
         Logger::DebugLog(LOC, "Input: " + std::to_string(x));
-        std::vector<uint32_t> x_vec = CreateSequence(0, Pow(2, n));
         Logger::DebugLog(LOC, "Input: " + ToString(x_vec));
 
         std::array<RepShare, 3>    x_sh     = brss.ShareLocal(x);
         std::array<RepShareVec, 3> x_vec_sh = brss.ShareLocal(x_vec);
-        for (uint32_t i = 0; i < 3; ++i) {
-            x_sh[i].DebugLog(i, "x");
-            x_vec_sh[i].DebugLog(i, "x_vec");
+        for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
+            x_sh[p].DebugLog(p, "x");
+            x_vec_sh[p].DebugLog(p, "x_vec");
         }
 
         // Save data
@@ -245,13 +245,11 @@ void ZeroTest_Binary_Offline_Test() {
         std::string x_vec_path = kTestZeroTestPath + "x_vec_n" + std::to_string(n);
 
         file_io.WriteToFile(x_path, x);
-        sh_io.SaveShare(x_path + "_0", x_sh[0]);
-        sh_io.SaveShare(x_path + "_1", x_sh[1]);
-        sh_io.SaveShare(x_path + "_2", x_sh[2]);
         file_io.WriteToFile(x_vec_path, x_vec);
-        sh_io.SaveShare(x_vec_path + "_0", x_vec_sh[0]);
-        sh_io.SaveShare(x_vec_path + "_1", x_vec_sh[1]);
-        sh_io.SaveShare(x_vec_path + "_2", x_vec_sh[2]);
+        for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
+            sh_io.SaveShare(x_path + "_" + std::to_string(p), x_sh[p]);
+            sh_io.SaveShare(x_vec_path + "_" + std::to_string(p), x_vec_sh[p]);
+        }
 
         // Offline setup
         brss.OfflineSetUp(kTestZeroTestPath + "prf");
@@ -262,8 +260,8 @@ void ZeroTest_Binary_Offline_Test() {
 void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
     Logger::DebugLog(LOC, "ZeroTest_Binary_Online_Test...");
     std::vector<ZeroTestParameters> params_list = {
-        ZeroTestParameters(5, ShareType::kBinary),
-        // ZeroTestParameters(10),
+        // ZeroTestParameters(5, ShareType::kBinary),
+        ZeroTestParameters(10, ShareType::kBinary),
         // ZeroTestParameters(15),
         // ZeroTestParameters(20),
     };
@@ -276,6 +274,7 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
         KeyIo    key_io;
 
         uint32_t              result;
+        std::vector<uint32_t> result_vec;
         std::string           key_path   = kTestZeroTestPath + "ztkey_n" + std::to_string(n);
         std::string           x_path     = kTestZeroTestPath + "x_n" + std::to_string(n);
         std::string           x_vec_path = kTestZeroTestPath + "x_vec_n" + std::to_string(n);
@@ -308,6 +307,13 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
             RepShare result_sh;
             eval.EvaluateBinary(chls, key, x_sh, result_sh);
             brss.Open(chls, result_sh, result);
+            RepShareVec result_vec_sh(x_vec.size());
+            for (size_t i = 0; i < x_vec.size(); ++i) {
+                RepShare tmp_sh;
+                eval.EvaluateBinary(chls, key, x_vec_sh.At(i), tmp_sh);
+                result_vec_sh.Set(i, tmp_sh);
+            }
+            brss.Open(chls, result_vec_sh, result_vec);
         };
 
         // Party 1 task
@@ -331,6 +337,13 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
             RepShare result_sh;
             eval.EvaluateBinary(chls, key, x_sh, result_sh);
             brss.Open(chls, result_sh, result);
+            RepShareVec result_vec_sh(x_vec.size());
+            for (size_t i = 0; i < x_vec.size(); ++i) {
+                RepShare tmp_sh;
+                eval.EvaluateBinary(chls, key, x_vec_sh.At(i), tmp_sh);
+                result_vec_sh.Set(i, tmp_sh);
+            }
+            brss.Open(chls, result_vec_sh, result_vec);
         };
 
         // Party 2 task
@@ -354,6 +367,13 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
             RepShare result_sh;
             eval.EvaluateBinary(chls, key, x_sh, result_sh);
             brss.Open(chls, result_sh, result);
+            RepShareVec result_vec_sh(x_vec.size());
+            for (size_t i = 0; i < x_vec.size(); ++i) {
+                RepShare tmp_sh;
+                eval.EvaluateBinary(chls, key, x_vec_sh.At(i), tmp_sh);
+                result_vec_sh.Set(i, tmp_sh);
+            }
+            brss.Open(chls, result_vec_sh, result_vec);
         };
 
         // Configure network based on party ID and wait for completion
@@ -362,6 +382,7 @@ void ZeroTest_Binary_Online_Test(const oc::CLP &cmd) {
         net_mgr.WaitForCompletion();
 
         Logger::DebugLog(LOC, "Result: " + std::to_string(result));
+        Logger::DebugLog(LOC, "Result: " + ToString(result_vec));
 
         if (result != (x == 0 ? 1 : 0)) {
             throw oc::UnitTestFail("ZeroTest_Binary_Online_Test failed: result = " + std::to_string(result) + ", x = " + std::to_string(x));

@@ -116,13 +116,13 @@ struct ZeroTestKey {
     /**
      * @brief Copy constructor is deleted to prevent copying of ZeroTestKey.
      */
-    ZeroTestKey(const ZeroTestKey &) = delete;
+    ZeroTestKey(const ZeroTestKey &)            = delete;
     ZeroTestKey &operator=(const ZeroTestKey &) = delete;
 
     /**
      * @brief Move constructor for ZeroTestKey.
      */
-    ZeroTestKey(ZeroTestKey &&) noexcept = default;
+    ZeroTestKey(ZeroTestKey &&) noexcept            = default;
     ZeroTestKey &operator=(ZeroTestKey &&) noexcept = default;
 
     /**
@@ -194,9 +194,9 @@ public:
      * @param bss Binary sharing for 2-party for the ZeroTestKeyGenerator.
      */
     ZeroTestKeyGenerator(
-        const ZeroTestParameters &  params,
+        const ZeroTestParameters   &params,
         sharing::AdditiveSharing2P &ass,
-        sharing::BinarySharing2P &  bss);
+        sharing::BinarySharing2P   &bss);
 
     /**
      * @brief Generate keys for the Zero Test.
@@ -208,7 +208,7 @@ private:
     ZeroTestParameters          params_; /**< ZeroTestParameters for the ZeroTestKeyGenerator. */
     fss::dpf::DpfKeyGenerator   gen_;    /**< DPF key generator for the ZeroTestKeyGenerator. */
     sharing::AdditiveSharing2P &ass_;    /**< Additive sharing for 2-party for the ZeroTestKeyGenerator. */
-    sharing::BinarySharing2P &  bss_;    /**< Binary sharing for 2-party for the ZeroTestKeyGenerator. */
+    sharing::BinarySharing2P   &bss_;    /**< Binary sharing for 2-party for the ZeroTestKeyGenerator. */
 
     // Internal functions
     void GenerateAdditiveKeys(std::array<ZeroTestKey, 3> &keys) const;    // TODO
@@ -232,8 +232,8 @@ public:
      * @param brss Binary replicated sharing for 3-party for the ZeroTestEvaluator.
      */
     ZeroTestEvaluator(
-        const ZeroTestParameters &          params,
-        sharing::ReplicatedSharing3P &      rss,
+        const ZeroTestParameters           &params,
+        sharing::ReplicatedSharing3P       &rss,
         sharing::BinaryReplicatedSharing3P &brss);
 
     /**
@@ -243,10 +243,10 @@ public:
      * @param x The input for the Zero Test.
      * @param result The result for the Zero Test.
      */
-    void EvaluateAdditive(sharing::Channels &      chls,
-                          const ZeroTestKey &      key,
+    void EvaluateAdditive(sharing::Channels       &chls,
+                          const ZeroTestKey       &key,
                           const sharing::RepShare &x,
-                          sharing::RepShare &      result) const;    // TODO
+                          sharing::RepShare       &result) const;    // TODO
 
     /**
      * @brief Evaluate the Zero Test.
@@ -255,10 +255,10 @@ public:
      * @param x The input for the Zero Test.
      * @param result The result for the Zero Test.
      */
-    void EvaluateBinary(sharing::Channels &      chls,
-                        const ZeroTestKey &      key,
+    void EvaluateBinary(sharing::Channels       &chls,
+                        const ZeroTestKey       &key,
                         const sharing::RepShare &x,
-                        sharing::RepShare &      result) const;
+                        sharing::RepShare       &result) const;
 
     /**
      * @brief Evaluate the Zero Test.
@@ -267,26 +267,32 @@ public:
      * @param x The input vector for the Zero Test.
      * @param result The result vector for the Zero Test.
      */
-    void EvaluateBinary(sharing::Channels &         chls,
-                        const ZeroTestKey &         key,
-                        const sharing::RepShareVec &x,
-                        sharing::RepShareVec &      result) const;
+    void EvaluateBinary(sharing::Channels              &chls,
+                        const std::vector<ZeroTestKey> &key,
+                        const sharing::RepShareVec     &x,
+                        sharing::RepShareVec           &result) const;
 
 private:
     ZeroTestParameters                  params_; /**< ZeroTestParameters for the ZeroTestEvaluator. */
     fss::dpf::DpfEvaluator              eval_;   /**< DPF evaluator for the ZeroTestEvaluator. */
-    sharing::ReplicatedSharing3P &      rss_;    /**< Replicated sharing for 3-party for the ZeroTestEvaluator. */
+    sharing::ReplicatedSharing3P       &rss_;    /**< Replicated sharing for 3-party for the ZeroTestEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary replicated sharing for 3-party for the ZeroTestEvaluator. */
 
     // Internal functions
-    std::pair<uint32_t, uint32_t> ReconstructPRAdditive(sharing::Channels &      chls,
-                                                        const ZeroTestKey &      key,
+    std::pair<uint32_t, uint32_t> ReconstructPRAdditive(sharing::Channels       &chls,
+                                                        const ZeroTestKey       &key,
                                                         const sharing::RepShare &x,
                                                         const uint32_t           n) const;
 
-    std::pair<uint32_t, uint32_t> ReconstructPRBinary(sharing::Channels &      chls,
-                                                      const ZeroTestKey &      key,
+    std::pair<uint32_t, uint32_t> ReconstructPRBinary(sharing::Channels       &chls,
+                                                      const ZeroTestKey       &key,
                                                       const sharing::RepShare &x) const;
+
+    void ReconstructPRBinary(sharing::Channels              &chls,
+                             const std::vector<ZeroTestKey> &key,
+                             const sharing::RepShareVec     &x,
+                             std::vector<uint32_t>          &res_prev,
+                             std::vector<uint32_t>          &res_next) const;
 };
 
 }    // namespace fm_index
