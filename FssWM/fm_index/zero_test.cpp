@@ -479,7 +479,9 @@ void ZeroTestEvaluator::ReconstructPRBinary(sharing::Channels              &chls
                                             const sharing::RepShareVec     &x,
                                             std::vector<uint32_t>          &res_prev,
                                             std::vector<uint32_t>          &res_next) const {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
+#endif
 
     if (res_prev.size() != x.num_shares) {
         res_prev.resize(x.num_shares);

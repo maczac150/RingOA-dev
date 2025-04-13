@@ -262,7 +262,9 @@ void BinaryReplicatedSharing3P::RandOffline(const std::string &file_path) const 
 }
 
 void BinaryReplicatedSharing3P::RandOnline(const uint32_t party_id, const std::string &file_path, uint32_t buffer_size) {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Rand setup for BinaryReplicatedSharing3P.");
+#endif
 
     // Load the keys from the file
     FileIo                  io(".key");

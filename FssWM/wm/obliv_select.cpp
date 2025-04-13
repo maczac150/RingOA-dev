@@ -9,30 +9,6 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/utils.h"
 
-namespace {
-// This helper extracts 128 bits from each __m128i block and appends them as 0/1 values.
-std::vector<uint8_t> ExtractBits(const std::vector<fsswm::block> &blocks) {
-    std::vector<uint8_t> bits;
-    // Each fsswm::block contains 128 bits.
-    bits.reserve(blocks.size() * 128);
-    for (const auto &block : blocks) {
-        // Use an aligned array to store the block.
-        alignas(16) uint8_t buffer[16];
-        _mm_storeu_si128(reinterpret_cast<fsswm::block *>(buffer), block);
-        // Each byte in buffer has 8 bits.
-        for (int byte = 0; byte < 16; ++byte) {
-            for (int bit = 0; bit < 8; ++bit) {
-                // Extract the bit: shift and mask.
-                uint8_t bitVal = (buffer[byte] >> bit) & 1;
-                bits.push_back(bitVal);
-            }
-        }
-    }
-    return bits;
-}
-
-}    // namespace
-
 namespace fsswm {
 namespace wm {
 
@@ -395,15 +371,23 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels          &chls,
     eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
     eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
 
-    // Extract bit-level values from the evaluated blocks.
-    std::vector<uint8_t> uv_prev_bits = ExtractBits(uv_prev);
-    std::vector<uint8_t> uv_next_bits = ExtractBits(uv_next);
-
     // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
     uint32_t dp_prev = 0, dp_next = 0;
-    for (size_t i = 0; i < uv_prev_bits.size(); ++i) {
-        dp_prev ^= (database[0][i] * uv_prev_bits[i ^ pr_prev]);
-        dp_next ^= (database[1][i] * uv_next_bits[i ^ pr_next]);
+    for (size_t i = 0; i < database.num_shares; ++i) {
+        size_t block_index = i / 128;
+        size_t bit_index   = i % 128;
+        size_t byte_index  = bit_index / 8;
+        size_t bit_in_byte = bit_index % 8;
+
+        alignas(16) uint8_t buffer_prev[16], buffer_next[16];
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_prev), uv_prev[block_index]);
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_next), uv_next[block_index]);
+
+        uint8_t bit_prev = (buffer_prev[byte_index] >> bit_in_byte) & 1;
+        uint8_t bit_next = (buffer_next[byte_index] >> bit_in_byte) & 1;
+
+        dp_prev ^= database[0][i ^ pr_prev] * bit_prev;
+        dp_next ^= database[1][i ^ pr_next] * bit_next;
     }
 
     uint32_t          selected_sh = dp_prev ^ dp_next;
@@ -412,67 +396,6 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels          &chls,
     result[0] = selected_sh ^ r_sh[0] ^ r_sh[1];
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
-}
-
-void OblivSelectEvaluator::EvaluateBinary(sharing::Channels          &chls,
-                                          std::vector<block>         &uv_prev,
-                                          std::vector<block>         &uv_next,
-                                          const OblivSelectKey       &key,
-                                          const sharing::RepShareVec &database1,
-                                          const sharing::RepShareVec &database2,
-                                          const sharing::RepShare    &index,
-                                          sharing::RepShare          &result1,
-                                          sharing::RepShare          &result2) const {
-
-    uint32_t party_id = chls.party_id;
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
-    Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
-    std::string party_str = "[P" + std::to_string(party_id) + "] ";
-    index.DebugLog(party_id, "idx");
-    database1.DebugLog(party_id, "db1");
-    database2.DebugLog(party_id, "db2");
-#endif
-
-    // Reconstruct p ^ r_i
-    auto [pr_prev, pr_next] = ReconstructPRBinary(chls, key, index);
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, party_str + " pr_prev: " + std::to_string(pr_prev) + ", pr_next: " + std::to_string(pr_next));
-#endif
-
-    // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
-    eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
-    eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
-
-    // Extract bit-level values from the evaluated blocks.
-    std::vector<uint8_t> uv_prev_bits = ExtractBits(uv_prev);
-    std::vector<uint8_t> uv_next_bits = ExtractBits(uv_next);
-
-    // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
-    uint32_t dp_prev_1 = 0, dp_next_1 = 0, dp_prev_2 = 0, dp_next_2 = 0;
-    for (size_t i = 0; i < uv_prev_bits.size(); ++i) {
-        dp_prev_1 ^= (database1[0][i] * uv_prev_bits[i ^ pr_prev]);
-        dp_next_1 ^= (database1[1][i] * uv_next_bits[i ^ pr_next]);
-        dp_prev_2 ^= (database2[0][i] * uv_prev_bits[i ^ pr_prev]);
-        dp_next_2 ^= (database2[1][i] * uv_next_bits[i ^ pr_next]);
-    }
-
-    uint32_t          selected_sh_1 = dp_prev_1 ^ dp_next_1;
-    uint32_t          selected_sh_2 = dp_prev_2 ^ dp_next_2;
-    sharing::RepShare r_sh;
-    brss_.Rand(r_sh);
-    result1[0] = selected_sh_1 ^ r_sh[0] ^ r_sh[1];
-    chls.next.send(result1[0]);
-    chls.prev.recv(result1[1]);
-    brss_.Rand(r_sh);
-    result2[0] = selected_sh_2 ^ r_sh[0] ^ r_sh[1];
-    chls.next.send(result2[0]);
-    chls.prev.recv(result2[1]);
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, party_str + " result1: " + std::to_string(result1[0]) + ", " + std::to_string(result1[1]));
-    Logger::DebugLog(LOC, party_str + " result2: " + std::to_string(result2[0]) + ", " + std::to_string(result2[1]));
-#endif
 }
 
 void OblivSelectEvaluator::EvaluateBinary(sharing::Channels              &chls,
@@ -501,22 +424,28 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels              &chls,
 #endif
 
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
-    Logger::SetPrintLog(false);
     eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
     eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
-    Logger::SetPrintLog(true);
-
-    // Extract bit-level values from the evaluated blocks.
-    std::vector<uint8_t> uv_prev_bits = ExtractBits(uv_prev);
-    std::vector<uint8_t> uv_next_bits = ExtractBits(uv_next);
 
     // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
     uint32_t dp_prev_1 = 0, dp_next_1 = 0, dp_prev_2 = 0, dp_next_2 = 0;
-    for (size_t i = 0; i < uv_prev_bits.size(); ++i) {
-        dp_prev_1 ^= (database1[0][i] * uv_prev_bits[i ^ pr_prev]);
-        dp_next_1 ^= (database1[1][i] * uv_next_bits[i ^ pr_next]);
-        dp_prev_2 ^= (database2[0][i] * uv_prev_bits[i ^ pr_prev]);
-        dp_next_2 ^= (database2[1][i] * uv_next_bits[i ^ pr_next]);
+    for (size_t i = 0; i < database1.num_shares(); ++i) {
+        size_t block_index = i / 128;
+        size_t bit_index   = i % 128;
+        size_t byte_index  = bit_index / 8;
+        size_t bit_in_byte = bit_index % 8;
+
+        alignas(16) uint8_t buffer_prev[16], buffer_next[16];
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_prev), uv_prev[block_index]);
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_next), uv_next[block_index]);
+
+        uint8_t bit_prev = (buffer_prev[byte_index] >> bit_in_byte) & 1;
+        uint8_t bit_next = (buffer_next[byte_index] >> bit_in_byte) & 1;
+
+        dp_prev_1 ^= (database1[0][i ^ pr_prev] * bit_prev);
+        dp_next_1 ^= (database1[1][i ^ pr_next] * bit_next);
+        dp_prev_2 ^= (database2[0][i ^ pr_prev] * bit_prev);
+        dp_next_2 ^= (database2[1][i ^ pr_next] * bit_next);
     }
 
     uint32_t          selected_sh_1 = dp_prev_1 ^ dp_next_1;
@@ -539,7 +468,10 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels              &chls,
 std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRBinary(sharing::Channels       &chls,
                                                                         const OblivSelectKey    &key,
                                                                         const sharing::RepShare &index) const {
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "ReconstructPR for Party " + std::to_string(chls.party_id));
+#endif
 
     // Set replicated sharing of random value
     uint32_t          pr_prev = 0, pr_next = 0;

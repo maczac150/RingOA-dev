@@ -35,11 +35,11 @@ std::string GenerateRandomString(size_t length, const std::string &charset = "AT
     return result;
 }
 
-std::vector<uint32_t> text_bitsizes     = {12, 16, 20, 24};
+std::vector<uint32_t> text_bitsizes     = {16, 20, 24};
 std::vector<uint32_t> text_bitsizes_all = fsswm::CreateSequence(10, 27);
 std::vector<uint32_t> query_sizes       = {16};
 
-constexpr uint32_t repeat = 25;
+constexpr uint32_t repeat = 10;
 
 }    // namespace
 
@@ -69,7 +69,7 @@ using fsswm::wm::FMIndex;
 using fsswm::wm::KeyIo;
 
 void FssFMI_Offline_Bench() {
-    Logger::DebugLog(LOC, "FssFMI_Offline_Bench...");
+    Logger::InfoLog(LOC, "FssFMI_Offline_Bench...");
 
     for (auto text_bitsize : text_bitsizes) {
         for (auto query_size : query_sizes) {
@@ -112,44 +112,45 @@ void FssFMI_Offline_Bench() {
                 brss.OfflineSetUp(kBenchFssFMIPath + "prf");
                 timer_mgr.Stop("OfflineSetUp(" + std::to_string(i) + ") d=" + std::to_string(d) + " qs=" + std::to_string(qs));
             }
-            timer_mgr.PrintAllResults("", fsswm::MICROSECONDS, true);
+            timer_mgr.PrintAllResults("DataGen d=" + std::to_string(d) + " qs=" + std::to_string(qs), fsswm::MICROSECONDS, true);
 
-            // Generate the database and index
-            int32_t timer_data = timer_mgr.CreateNewTimer("FssFMI DataGen");
-            timer_mgr.SelectTimer(timer_data);
-            timer_mgr.Start();
-            std::string database = GenerateRandomString(ds - 2);
-            std::string query    = GenerateRandomString(qs);
-            timer_mgr.Mark("DataGen d=" + std::to_string(d) + " qs=" + std::to_string(qs));
+            // // Generate the database and index
+            // int32_t timer_data = timer_mgr.CreateNewTimer("FssFMI DataGen");
+            // timer_mgr.SelectTimer(timer_data);
+            // timer_mgr.Start();
+            // std::string database = GenerateRandomString(ds - 2);
+            // std::string query    = GenerateRandomString(qs);
+            // timer_mgr.Mark("DataGen d=" + std::to_string(d) + " qs=" + std::to_string(qs));
 
-            // Generate the database and index
-            FMIndex fm(database);
-            timer_mgr.Mark("FMIndex d=" + std::to_string(d) + " qs=" + std::to_string(qs));
+            // // Generate the database and index
+            // FMIndex fm(database);
+            // timer_mgr.Mark("FMIndex d=" + std::to_string(d) + " qs=" + std::to_string(qs));
 
-            std::array<std::pair<RepShareMat, RepShareMat>, 3> db_sh    = gen.GenerateDatabaseShare(fm);
-            std::array<RepShareMat, 3>                         query_sh = gen.GenerateQueryShare(fm, query);
-            timer_mgr.Mark("ShareGen d=" + std::to_string(d) + " qs=" + std::to_string(qs));
+            // std::array<std::pair<RepShareMat, RepShareMat>, 3> db_sh    = gen.GenerateDatabaseShare(fm);
+            // std::array<RepShareMat, 3>                         query_sh = gen.GenerateQueryShare(fm, query);
+            // timer_mgr.Mark("ShareGen d=" + std::to_string(d) + " qs=" + std::to_string(qs));
 
-            // file_io.WriteToFile(db0_path, database);
-            // file_io.WriteToFile(db1_path, database);
-            // file_io.WriteToFile(query_path, query);
-            for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
-                sh_io.SaveShare(db0_path + "_" + std::to_string(p), db_sh[p].first);
-                sh_io.SaveShare(db1_path + "_" + std::to_string(p), db_sh[p].second);
-                sh_io.SaveShare(query_path + "_" + std::to_string(p), query_sh[p]);
-            }
-            timer_mgr.Mark("ShareSave d=" + std::to_string(d) + " qs=" + std::to_string(qs));
-            timer_mgr.PrintCurrentResults("DataGen d=" + std::to_string(d) + " qs=" + std::to_string(qs), fsswm::MILLISECONDS, true);
+            // // file_io.WriteToFile(db0_path, database);
+            // // file_io.WriteToFile(db1_path, database);
+            // // file_io.WriteToFile(query_path, query);
+            // for (size_t p = 0; p < fsswm::sharing::kNumParties; ++p) {
+            //     sh_io.SaveShare(db0_path + "_" + std::to_string(p), db_sh[p].first);
+            //     sh_io.SaveShare(db1_path + "_" + std::to_string(p), db_sh[p].second);
+            //     sh_io.SaveShare(query_path + "_" + std::to_string(p), query_sh[p]);
+            // }
+            // timer_mgr.Mark("ShareSave d=" + std::to_string(d) + " qs=" + std::to_string(qs));
+            // timer_mgr.PrintCurrentResults("DataGen d=" + std::to_string(d) + " qs=" + std::to_string(qs), fsswm::MILLISECONDS, true);
         }
     }
-    Logger::DebugLog(LOC, "FssFMI_Offline_Bench - Finished");
+    Logger::InfoLog(LOC, "FssFMI_Offline_Bench - Finished");
     FileIo io(".log");
     io.WriteToFile("./data/log/fssfmi_offline", Logger::GetLogList());
 }
 
 void FssFMI_Online_Bench(const oc::CLP &cmd) {
-    Logger::DebugLog(LOC, "FssFMI_Online_Bench...");
-    int party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+    Logger::InfoLog(LOC, "FssFMI_Online_Bench...");
+    int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+    std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
     for (auto text_bitsize : text_bitsizes) {
         for (auto query_size : query_sizes) {
@@ -296,14 +297,16 @@ void FssFMI_Online_Bench(const oc::CLP &cmd) {
             net_mgr.WaitForCompletion();
         }
     }
-    Logger::DebugLog(LOC, "FssFMI_Online_Bench - Finished");
+    Logger::InfoLog(LOC, "FssFMI_Online_Bench - Finished");
+
     FileIo io(".log");
+
     if (party_id == 0) {
-        io.WriteToFile("./data/log/fssfmi_online_p0", Logger::GetLogList());
+        io.WriteToFile("./data/log/fssfmi_online_p0_" + network, Logger::GetLogList());
     } else if (party_id == 1) {
-        io.WriteToFile("./data/log/fssfmi_online_p1", Logger::GetLogList());
+        io.WriteToFile("./data/log/fssfmi_online_p1_" + network, Logger::GetLogList());
     } else if (party_id == 2) {
-        io.WriteToFile("./data/log/fssfmi_online_p2", Logger::GetLogList());
+        io.WriteToFile("./data/log/fssfmi_online_p2_" + network, Logger::GetLogList());
     }
 }
 
