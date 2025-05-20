@@ -62,7 +62,7 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
 elseif(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og -g -Wall -Wextra")
 elseif(CMAKE_BUILD_TYPE MATCHES Profile)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -flto -fno-omit-frame-pointer")
 endif()
 
 # ############################

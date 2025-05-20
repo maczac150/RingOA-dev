@@ -4,13 +4,16 @@
 
 #include "FssWM_Bench/dpf_bench.h"
 #include "FssWM_Bench/fssfmi_bench.h"
+#include "FssWM_Bench/obliv_select_bench.h"
 
 namespace bench_fsswm {
 
 oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
-    t.add("Dpf_Fde_TwoKey_Bench", Dpf_Fde_TwoKey_Bench);
+    t.add("OblivSelect_Offline_Bench", OblivSelect_Offline_Bench);
+    t.add("OblivSelect_Online_Bench", OblivSelect_Online_Bench);
+    t.add("OblivSelect_DotProduct_Bench", OblivSelect_DotProduct_Bench);
     t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
     t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
 });

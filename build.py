@@ -27,9 +27,23 @@ def getParallel(args):
     return par
 
 
+def createDirectories(path_list):
+    for path in path_list:
+        try:
+            # Create a new directory if it does not exist
+            if not os.path.exists(path):
+                os.makedirs(path)
+                print(f"Created directory: {path}")
+            else:
+                print(f"Directory already exists: {path}")
+        except Exception as e:
+            print(
+                f"An error occurred while creating directory {path}: {str(e)}")
+
+
 def Setup(install, prefix, par):
     """
-    Setup all dependencies for the project.
+    Setup all dependencies for the project and create necessary directories.
 
     Args:
         install (bool): Whether to install dependencies.
@@ -48,6 +62,21 @@ def Setup(install, prefix, par):
 
     os.chdir(dir_path)
     print("Setup completed.")
+
+    paths_to_create = [
+        "./test/utils",
+        "./test/ss",
+        "./test/ss3",
+        "./test/wm",
+        "./test/fmi",
+        "./bench/fmi",
+        "./bench/os"
+        "./log"
+    ]
+    current_file_path = os.path.dirname(os.path.abspath(__file__))
+    paths_to_create = [current_file_path +
+                       '/' + path for path in paths_to_create]
+    createDirectories(paths_to_create)
 
 
 def Build(projectName, mainArgs, cmakeArgs, install, prefix, par):

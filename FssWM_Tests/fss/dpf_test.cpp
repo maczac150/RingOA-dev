@@ -69,153 +69,159 @@ using fsswm::fss::dpf::EvalType;
 
 void Dpf_Params_Test() {
     Logger::DebugLog(LOC, "Dpf_Params_Test...");
-    // Test parameters
-    std::vector<DpfParameters> params_list = {
-        DpfParameters(5, 5, false),
-        DpfParameters(5, 5, true),
-        DpfParameters(5, 1, false),
-        DpfParameters(5, 1, true),
-        DpfParameters(10, 10, false),
-        DpfParameters(10, 10, true),
-        DpfParameters(10, 1, false),
-        DpfParameters(10, 1, true),
-        DpfParameters(20, 20, false),
-        DpfParameters(20, 20, true),
-        DpfParameters(20, 1, false),
-        DpfParameters(20, 1, true),
-    };
 
-    for (const DpfParameters &params : params_list) {
-        params.PrintParameters();
-        DpfKeyGenerator gen(params);
-        DpfEvaluator    eval(params);
+    // Test parameters
+    const std::vector<std::pair<uint32_t, uint32_t>> size_pair = {
+        {3, 3},
+        {3, 1},
+        {9, 1},
+        {10, 1},
+        {8, 8},
+        {9, 9},
+        {17, 17},
+        {29, 29},
+    };
+    const std::vector<EvalType> evals = {
+        EvalType::kNaive,
+        EvalType::kRecursion,
+        EvalType::kIterSingleBatch};
+
+    // Test all combinations of parameters
+    for (auto [n, e] : size_pair) {
+        for (auto ev : evals) {
+            DpfParameters params(n, e, ev);
+            params.PrintParameters();
+            DpfKeyGenerator gen(params);
+            DpfEvaluator    eval(params);
+        }
     }
+
     Logger::DebugLog(LOC, "Dpf_Params_Test - Passed");
 }
 
 void Dpf_EvalAt_Test() {
     Logger::DebugLog(LOC, "Dpf_EvalAt_Test...");
     // Test parameters
-    std::vector<DpfParameters> params_list = {
-        DpfParameters(5, 5, false),
-        DpfParameters(5, 5, true),
-        DpfParameters(5, 1, false),
-        DpfParameters(5, 1, true),
-        DpfParameters(10, 10, false),
-        DpfParameters(10, 10, true),
-        DpfParameters(10, 1, false),
-        DpfParameters(10, 1, true),
-        DpfParameters(20, 20, false),
-        DpfParameters(20, 20, true),
-        DpfParameters(20, 1, false),
-        DpfParameters(20, 1, true),
+    const std::vector<std::pair<uint32_t, uint32_t>> size_pair = {
+        {3, 3},
+        {3, 1},
+        {9, 1},
+        {10, 1},
+        {8, 8},
+        {9, 9},
+        {17, 17},
+        {29, 29},
     };
+    const std::vector<EvalType> evals = {
+        EvalType::kNaive,
+        EvalType::kIterSingleBatch};
 
-    for (const DpfParameters &params : params_list) {
-        params.PrintParameters();
-        uint32_t                  e = params.GetOutputBitsize();
-        DpfKeyGenerator           gen(params);
-        DpfEvaluator              eval(params);
-        uint32_t                  alpha = 5;
-        uint32_t                  beta  = 1;
-        std::pair<DpfKey, DpfKey> keys  = gen.GenerateKeys(alpha, beta);
+    // Test all combinations of parameters
+    for (auto [n, e] : size_pair) {
+        for (auto ev : evals) {
+            DpfParameters param(n, e, ev);
+            param.PrintParameters();
+            uint32_t                  e = param.GetOutputBitsize();
+            DpfKeyGenerator           gen(param);
+            DpfEvaluator              eval(param);
+            uint32_t                  alpha = 5;
+            uint32_t                  beta  = 1;
+            std::pair<DpfKey, DpfKey> keys  = gen.GenerateKeys(alpha, beta);
 
-        uint32_t x   = 5;
-        uint32_t y_0 = eval.EvaluateAt(keys.first, x);
-        uint32_t y_1 = eval.EvaluateAt(keys.second, x);
-        uint32_t y   = Mod(y_0 + y_1, e);
+            uint32_t x   = 5;
+            uint32_t y_0 = eval.EvaluateAt(keys.first, x);
+            uint32_t y_1 = eval.EvaluateAt(keys.second, x);
+            uint32_t y   = Mod(y_0 + y_1, e);
 
-        if (y != beta)
-            throw oc::UnitTestFail("y is not equal to beta");
+            if (y != beta)
+                throw oc::UnitTestFail("y is not equal to beta");
 
-        x   = 10;
-        y_0 = eval.EvaluateAt(keys.first, x);
-        y_1 = eval.EvaluateAt(keys.second, x);
-        y   = Mod(y_0 + y_1, e);
+            x   = 7;
+            y_0 = eval.EvaluateAt(keys.first, x);
+            y_1 = eval.EvaluateAt(keys.second, x);
+            y   = Mod(y_0 + y_1, e);
 
-        if (y != 0)
-            throw oc::UnitTestFail("y is not equal to 0");
-    }
-    Logger::DebugLog(LOC, "Dpf_EvalAt_Test - Passed");
-}
-
-void Dpf_Fde_Type_Test() {
-    Logger::DebugLog(LOC, "Dpf_Fde_Type_Test...");
-    for (auto eval_type : {
-             EvalType::kNaive,
-             EvalType::kRecursion,
-             EvalType::kIterSingle,
-             EvalType::kIterDouble,
-             EvalType::kIterSingleBatch,
-             EvalType::kIterDoubleBatch,
-         }) {
-
-        Logger::DebugLog(LOC, "Evaluation type: " + GetEvalTypeString(eval_type));
-
-        std::vector<DpfParameters> params_list = {
-            DpfParameters(5, 5, false, eval_type),
-            DpfParameters(5, 1, false, eval_type),
-            DpfParameters(5, 5, true, eval_type),
-            DpfParameters(5, 1, true, eval_type),
-            DpfParameters(10, 10, false, eval_type),
-            DpfParameters(10, 1, false, eval_type),
-            DpfParameters(10, 10, true, eval_type),
-            DpfParameters(10, 1, true, eval_type),
-            DpfParameters(11, 11, false, eval_type),
-            DpfParameters(11, 1, false, eval_type),
-            DpfParameters(11, 11, true, eval_type),
-            DpfParameters(11, 1, true, eval_type),
-            DpfParameters(20, 20, false, eval_type),
-            DpfParameters(20, 1, false, eval_type),
-            DpfParameters(20, 20, true, eval_type),
-            DpfParameters(20, 1, true, eval_type),
-        };
-
-        for (const DpfParameters &params : params_list) {
-            params.PrintParameters();
-            DpfKeyGenerator gen(params);
-            DpfEvaluator    eval(params);
+            if (y != 0)
+                throw oc::UnitTestFail("y is not equal to 0");
         }
     }
-    Logger::DebugLog(LOC, "Dpf_Fde_Type_Test - Passed");
+
+    Logger::DebugLog(LOC, "Dpf_EvalAt_Test - Passed");
 }
 
 void Dpf_Fde_Test() {
     Logger::DebugLog(LOC, "Dpf_Fde_Test...");
-    for (auto eval_type : {
-             EvalType::kNaive,
-             EvalType::kRecursion,
-             EvalType::kIterSingle,
-             EvalType::kIterDouble,
-             EvalType::kIterSingleBatch,
-             EvalType::kIterDoubleBatch,
-         }) {
+    const std::vector<std::tuple<uint32_t, uint32_t, EvalType>> fde_param = {
+        {3, 3, EvalType::kNaive},
+        {8, 8, EvalType::kRecursion},
+        {8, 8, EvalType::kIterSingleBatch},
+        {9, 9, EvalType::kRecursion},
+        {9, 9, EvalType::kIterSingleBatch},
+        {17, 17, EvalType::kRecursion},
+        {17, 17, EvalType::kIterSingleBatch},
+    };
 
-        std::vector<DpfParameters> params_list = {
-            DpfParameters(5, 5, true, eval_type),
-            DpfParameters(10, 10, true, eval_type),
-            DpfParameters(15, 15, true, eval_type),
-            DpfParameters(20, 20, true, eval_type),
-        };
+    // Test all combinations of parameters
+    for (auto [n, e, eval_type] : fde_param) {
+        DpfParameters param(n, e, eval_type);
+        param.PrintParameters();
+        DpfKeyGenerator gen(param);
+        DpfEvaluator    eval(param);
+        uint32_t        alpha = Mod(SecureRng::Rand32(), n);
+        uint32_t        beta  = Mod(SecureRng::Rand32(), e);
 
-        for (const DpfParameters &params : params_list) {
-            params.PrintParameters();
-            uint32_t        n = params.GetInputBitsize();
-            uint32_t        e = params.GetOutputBitsize();
-            DpfKeyGenerator gen(params);
-            DpfEvaluator    eval(params);
-            uint32_t        alpha = Mod(SecureRng::Rand32(), n);
-            uint32_t        beta  = Mod(SecureRng::Rand32(), e);
+        // Generate keys
+        Logger::DebugLog(LOC, "alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
+        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
-            // Generate keys
-            Logger::DebugLog(LOC, "alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
-            std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
+        // Evaluate keys
+        std::vector<uint32_t> outputs_0, outputs_1;
+        eval.EvaluateFullDomain(keys.first, outputs_0);
+        eval.EvaluateFullDomain(keys.second, outputs_1);
 
-            // Evaluate keys
+        std::vector<uint32_t> outputs(outputs_0.size());
+        for (uint32_t i = 0; i < outputs_0.size(); ++i) {
+            outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
+        }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Outputs=" + ToString(outputs));
+#endif
+
+        // Check FDE
+        if (!DpfFullDomainCheck(alpha, beta, outputs))
+            throw oc::UnitTestFail("FDE check failed");
+    }
+    Logger::DebugLog(LOC, "Dpf_Fde_Test - Passed");
+}
+
+void Dpf_Fde_One_Test() {
+    Logger::DebugLog(LOC, "Dpf_Fde_One_Test...");
+    const std::vector<std::tuple<uint32_t, uint32_t, EvalType>> fde_param = {
+        {3, 1, EvalType::kNaive},
+        {9, 1, EvalType::kRecursion},
+        {9, 1, EvalType::kIterSingleBatch},
+        {10, 1, EvalType::kRecursion},
+        {10, 1, EvalType::kIterSingleBatch},
+    };
+    // Test all combinations of parameters
+    for (auto [n, e, eval_type] : fde_param) {
+        DpfParameters param(n, e, eval_type);
+        param.PrintParameters();
+        DpfKeyGenerator gen(param);
+        DpfEvaluator    eval(param);
+        uint32_t        alpha = Mod(SecureRng::Rand32(), n);
+        uint32_t        beta  = 1;
+
+        // Generate keys
+        Logger::DebugLog(LOC, "alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
+        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
+
+        // Evaluate keys
+        if (param.GetFdeEvalType() == EvalType::kNaive) {
             std::vector<uint32_t> outputs_0, outputs_1;
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);
-
             std::vector<uint32_t> outputs(outputs_0.size());
             for (uint32_t i = 0; i < outputs_0.size(); ++i) {
                 outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
@@ -224,120 +230,29 @@ void Dpf_Fde_Test() {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             Logger::DebugLog(LOC, "Outputs=" + ToString(outputs));
 #endif
-
             // Check FDE
             if (!DpfFullDomainCheck(alpha, beta, outputs))
                 throw oc::UnitTestFail("FDE check failed");
-        }
-    }
-    Logger::DebugLog(LOC, "Dpf_Fde_Test - Passed");
-}
 
-void Dpf_Fde_One_Test() {
-    Logger::DebugLog(LOC, "Dpf_Fde_One_Test...");
-    for (auto eval_type : {
-             //  EvalType::kNaive, // * Not supported
-             EvalType::kRecursion,
-             EvalType::kIterSingle,
-             EvalType::kIterDouble,
-             EvalType::kIterSingleBatch,
-             EvalType::kIterDoubleBatch,
-         }) {
-
-        std::vector<DpfParameters> params_list = {
-            // DpfParameters(5, 1, false), // * Not supported
-            DpfParameters(11, 1, true, eval_type),
-            DpfParameters(15, 1, true, eval_type),
-            // DpfParameters(20, 1, true, eval_type),
-            // DpfParameters(25, 1, true, eval_type),
-        };
-
-        for (const DpfParameters &params : params_list) {
-            params.PrintParameters();
-            uint32_t        n = params.GetInputBitsize();
-            DpfKeyGenerator gen(params);
-            DpfEvaluator    eval(params);
-            uint32_t        alpha = Mod(SecureRng::Rand32(), n);
-            uint32_t        beta  = 1;
-
-            // Generate keys
-            Logger::DebugLog(LOC, "alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
-            std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
-
-            // Evaluate keys
+        } else {
             std::vector<block> outputs_0, outputs_1;
-            eval.EvaluateFullDomainOneBit(keys.first, outputs_0);
-            eval.EvaluateFullDomainOneBit(keys.second, outputs_1);
+            eval.EvaluateFullDomain(keys.first, outputs_0);
+            eval.EvaluateFullDomain(keys.second, outputs_1);
             std::vector<block> outputs(outputs_0.size());
             for (uint32_t i = 0; i < outputs_0.size(); ++i) {
                 outputs[i] = outputs_0[i] ^ outputs_1[i];
             }
-
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             for (uint32_t i = 0; i < outputs.size(); ++i) {
-                Logger::InfoLog(LOC, "Outputs[" + std::to_string(i) + "]=" + fsswm::ToString(outputs[i], FormatType::kBin));
+                Logger::DebugLog(LOC, "Outputs[" + std::to_string(i) + "]=" + fsswm::ToString(outputs[i], FormatType::kBin));
             }
 #endif
-
             // Check FDE
             if (!DpfFullDomainCheckOneBit(alpha, beta, outputs))
                 throw oc::UnitTestFail("FDE check failed");
         }
     }
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test - Passed");
-}
-
-void Dpf_Fde_TwoKey_Test() {
-    Logger::DebugLog(LOC, "Dpf_Fde_TwoKey_Test...");
-    for (auto eval_type : {
-             EvalType::kIterSingleBatch_2Keys,
-         }) {
-
-        std::vector<DpfParameters> params_list = {
-            DpfParameters(10, 10, true, eval_type),
-            DpfParameters(15, 15, true, eval_type),
-            DpfParameters(20, 20, true, eval_type),
-        };
-
-        for (const DpfParameters &params : params_list) {
-            params.PrintParameters();
-            uint32_t        n = params.GetInputBitsize();
-            uint32_t        e = params.GetOutputBitsize();
-            DpfKeyGenerator gen(params);
-            DpfEvaluator    eval(params);
-            uint32_t        alpha1 = Mod(SecureRng::Rand32(), n);
-            uint32_t        beta1  = Mod(SecureRng::Rand32(), e);
-            uint32_t        alpha2 = Mod(SecureRng::Rand32(), n);
-            uint32_t        beta2  = Mod(SecureRng::Rand32(), e);
-
-            // Generate keys
-            Logger::DebugLog(LOC, "alpha1=" + std::to_string(alpha1) + ", beta1=" + std::to_string(beta1));
-            Logger::DebugLog(LOC, "alpha2=" + std::to_string(alpha2) + ", beta2=" + std::to_string(beta2));
-            std::pair<DpfKey, DpfKey> keys1 = gen.GenerateKeys(alpha1, beta1);
-            std::pair<DpfKey, DpfKey> keys2 = gen.GenerateKeys(alpha2, beta2);
-
-            // Evaluate keys
-            std::vector<uint32_t> out1_0, out1_1, out2_0, out2_1;
-            eval.EvaluateFullDomainTwoKeys(keys1.first, keys2.first, out1_0, out2_0);
-            eval.EvaluateFullDomainTwoKeys(keys1.second, keys2.second, out1_1, out2_1);
-
-            std::vector<uint32_t> out1(out1_0.size()), out2(out2_0.size());
-            for (uint32_t i = 0; i < out1_0.size(); ++i) {
-                out1[i] = Mod(out1_0[i] + out1_1[i], e);
-                out2[i] = Mod(out2_0[i] + out2_1[i], e);
-            }
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Outputs1=" + ToString(out1));
-            Logger::DebugLog(LOC, "Outputs2=" + ToString(out2));
-#endif
-
-            // Check FDE
-            if (!DpfFullDomainCheck(alpha1, beta1, out1) || !DpfFullDomainCheck(alpha2, beta2, out2))
-                throw oc::UnitTestFail("FDE check failed");
-        }
-    }
-    Logger::DebugLog(LOC, "Dpf_Fde_TwoKey_Test - Passed");
 }
 
 }    // namespace test_fsswm

@@ -18,7 +18,7 @@ public:
 
     // Share data
     std::array<RepShare, kNumParties>    ShareLocal(const uint32_t &x) const;
-    std::array<RepShareVec, kNumParties> ShareLocal(const UIntVec &x_vec) const;
+    std::array<RepShareVec, kNumParties> ShareLocal(const UIntVec &x_vec) const;    // TODO: Improve performance (memory access?)
     std::array<RepShareMat, kNumParties> ShareLocal(const UIntMat &x_mat) const;
 
     // Open data

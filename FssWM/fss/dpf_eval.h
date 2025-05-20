@@ -39,28 +39,12 @@ public:
     uint32_t EvaluateAt(const DpfKey &key, uint32_t x) const;
 
     /**
-     * @brief Evaluate the DPF key at the given x values.
+     * @brief Evaluate the DPF key for all possible x values.
      * @param keys The DPF keys to evaluate.
      * @param x The x values to evaluate the DPF keys.
-     * @param outputs The evaluated values at x.
+     * @param outputs The outputs for the DPF keys.
      */
     void EvaluateAt(const std::vector<DpfKey> &keys, const std::vector<uint32_t> &x, std::vector<uint32_t> &outputs) const;
-
-    /**
-     * @brief Evaluate the DPF key at the given x value using the naive approach.
-     * @param key The DPF key to evaluate.
-     * @param x The x value to evaluate the DPF key.
-     * @return The evaluated value at x.
-     */
-    uint32_t EvaluateAtNaive(const DpfKey &key, uint32_t x) const;
-
-    /**
-     * @brief Evaluate the DPF key at the given x value using the early termination approach.
-     * @param key The DPF key to evaluate.
-     * @param x The x value to evaluate the DPF key.
-     * @return The evaluated value at x.
-     */
-    uint32_t EvaluateAtOptimized(const DpfKey &key, uint32_t x) const;
 
     /**
      * @brief Evaluate the DPF key for all possible x values.
@@ -68,23 +52,7 @@ public:
      * @param outputs The outputs for the DPF key.
      */
     void EvaluateFullDomain(const DpfKey &key, std::vector<block> &outputs) const;
-
-    /**
-     * @brief Evaluate the DPF key for all possible x values.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     */
     void EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &outputs) const;
-
-    void EvaluateFullDomainTwoKeys(const DpfKey &key1, const DpfKey &key2, std::vector<uint32_t> &out1, std::vector<uint32_t> &out2) const;
-
-    /**
-     * @brief Evaluate the DPF key for all possible x values, domain of outputs is 1 bit.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     * @param eval_type The evaluation type for the DPF key (default: kNonRec_HalfPRG).
-     */
-    void EvaluateFullDomainOneBit(const DpfKey &key, std::vector<block> &outputs) const;
 
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */
@@ -96,6 +64,22 @@ private:
      * @return True if the input values are valid, false otherwise.
      */
     bool ValidateInput(const uint32_t x) const;
+
+    /**
+     * @brief Evaluate the DPF key at the given x value using the naive approach.
+     * @param key The DPF key to evaluate.
+     * @param x The x value to evaluate the DPF key.
+     * @return The evaluated value at x.
+     */
+    uint32_t EvaluateAtNaive(const DpfKey &key, uint32_t x) const;
+
+    /**
+     * @brief Evaluate the DPF key at the given x value using the optimized approach.
+     * @param key The DPF key to evaluate.
+     * @param x The x value to evaluate the DPF key.
+     * @return The evaluated value at x.
+     */
+    uint32_t EvaluateAtOptimized(const DpfKey &key, uint32_t x) const;
 
     /**
      * @brief Evaluate the next seed for the DPF key.
@@ -119,41 +103,11 @@ private:
     void FullDomainRecursion(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
-     * @brief Full domain evaluation of the DPF key using the iterative approach with single PRG.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     */
-    void FullDomainIterativeSingle(const DpfKey &key, std::vector<block> &outputs) const;
-
-    /**
-     * @brief Full domain evaluation of the DPF key using the iterative approach with double PRG.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     */
-    void FullDomainIterativeDouble(const DpfKey &key, std::vector<block> &outputs) const;
-
-    /**
      * @brief Full domain evaluation of the DPF key using the iterative approach with single PRG and parallel evaluation.
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
     void FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const;
-
-    /**
-     * @brief Full domain evaluation of the DPF key using the iterative approach with double PRG and parallel evaluation for two keys.
-     * @param key1 The first DPF key to evaluate.
-     * @param key2 The second DPF key to evaluate.
-     * @param out1 The outputs for the first DPF key.
-     * @param out2 The outputs for the second DPF key.
-     */
-    void FullDomainIterativeSingleBatchTwoKeys(const DpfKey &key1, const DpfKey &key2, std::vector<block> &out1, std::vector<block> &out2) const;
-
-    /**
-     * @brief Full domain evaluation of the DPF key using the iterative approach with double PRG and parallel evaluation.
-     * @param key The DPF key to evaluate.
-     * @param outputs The outputs for the DPF key.
-     */
-    void FullDomainIterativeDoubleBatch(const DpfKey &key, std::vector<block> &outputs) const;
 
     /**
      * @brief Full domain evaluation of the DPF key using the naive approach.

@@ -70,62 +70,6 @@ void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const 
     }
 }
 
-void ConvertVector(const std::vector<block> &b1,
-                   const std::vector<block> &b2,
-                   const uint32_t            split_bit,
-                   const uint32_t            bitsize,
-                   std::vector<uint32_t>    &out1,
-                   std::vector<uint32_t>    &out2) {
-    uint32_t mask            = (1U << bitsize) - 1U;
-    uint32_t num_nodes       = b1.size();
-    uint32_t remaining_nodes = 1U << split_bit;
-
-    if (split_bit == 2) {
-        alignas(16) uint32_t data32[4];
-        for (size_t i = 0; i < num_nodes; ++i) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(data32), b1[i]);
-            out1[i * remaining_nodes + 0] = data32[0] & mask;
-            out1[i * remaining_nodes + 1] = data32[1] & mask;
-            out1[i * remaining_nodes + 2] = data32[2] & mask;
-            out1[i * remaining_nodes + 3] = data32[3] & mask;
-        }
-        for (size_t i = 0; i < num_nodes; ++i) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(data32), b2[i]);
-            out2[i * remaining_nodes + 0] = data32[0] & mask;
-            out2[i * remaining_nodes + 1] = data32[1] & mask;
-            out2[i * remaining_nodes + 2] = data32[2] & mask;
-            out2[i * remaining_nodes + 3] = data32[3] & mask;
-        }
-    } else if (split_bit == 3) {
-        alignas(16) uint16_t data16[8];
-        for (size_t i = 0; i < num_nodes; ++i) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(data16), b1[i]);
-            out1[i * remaining_nodes + 0] = data16[0] & mask;
-            out1[i * remaining_nodes + 1] = data16[1] & mask;
-            out1[i * remaining_nodes + 2] = data16[2] & mask;
-            out1[i * remaining_nodes + 3] = data16[3] & mask;
-            out1[i * remaining_nodes + 4] = data16[4] & mask;
-            out1[i * remaining_nodes + 5] = data16[5] & mask;
-            out1[i * remaining_nodes + 6] = data16[6] & mask;
-            out1[i * remaining_nodes + 7] = data16[7] & mask;
-        }
-        for (size_t i = 0; i < num_nodes; ++i) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(data16), b2[i]);
-            out2[i * remaining_nodes + 0] = data16[0] & mask;
-            out2[i * remaining_nodes + 1] = data16[1] & mask;
-            out2[i * remaining_nodes + 2] = data16[2] & mask;
-            out2[i * remaining_nodes + 3] = data16[3] & mask;
-            out2[i * remaining_nodes + 4] = data16[4] & mask;
-            out2[i * remaining_nodes + 5] = data16[5] & mask;
-            out2[i * remaining_nodes + 6] = data16[6] & mask;
-            out2[i * remaining_nodes + 7] = data16[7] & mask;
-        }
-    } else {
-        Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        std::exit(EXIT_FAILURE);
-    }
-}
-
 uint32_t GetValueFromSplitBlock(block &b, const uint32_t split_bit, const uint32_t idx) {
     if (split_bit == 2) {
         alignas(16) uint32_t data32[4];

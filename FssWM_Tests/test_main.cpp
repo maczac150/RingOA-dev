@@ -6,6 +6,7 @@
 #include "FssWM_Tests/fm_index/fssfmi_test.h"
 #include "FssWM_Tests/fm_index/zt_test.h"
 #include "FssWM_Tests/fss/dpf_test.h"
+#include "FssWM_Tests/fss/libPSI_dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
 #include "FssWM_Tests/sharing/additive_2p_test.h"
 #include "FssWM_Tests/sharing/additive_3p_test.h"
@@ -28,10 +29,15 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Prg_Test", Prg_Test);
     t.add("Dpf_Params_Test", Dpf_Params_Test);
     t.add("Dpf_EvalAt_Test", Dpf_EvalAt_Test);
-    t.add("Dpf_Fde_Type_Test", Dpf_Fde_Type_Test);
     t.add("Dpf_Fde_Test", Dpf_Fde_Test);
     t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
-    t.add("Dpf_Fde_TwoKey_Test", Dpf_Fde_TwoKey_Test);
+    t.add("libPSI_DPF_KeyGen_128_Test", libPSI_DPF_KeyGen_128_Test);
+    t.add("libPSI_DPF_KeyGen_Test", libPSI_DPF_KeyGen_Test);
+    t.add("libPSI_DPF_PIR_Test", libPSI_DPF_PIR_Test);
+    t.add("libPSI_DPF_FullDomain_Test", libPSI_DPF_FullDomain_Test);
+    t.add("libPSI_DPF_FullDomain2_Test", libPSI_DPF_FullDomain2_Test);
+    t.add("libPSI_DPF_FullDomain_iterator_Test", libPSI_DPF_FullDomain_iterator_Test);
+    t.add("libPSI_DPF_FullDomain_multikey_Test", libPSI_DPF_FullDomain_multikey_Test);
     t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
     t.add("Additive2P_EvaluateAdd_Online_Test", Additive2P_EvaluateAdd_Online_Test);
     t.add("Additive2P_EvaluateMult_Offline_Test", Additive2P_EvaluateMult_Offline_Test);
@@ -56,12 +62,12 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("OblivSelect_Additive_Online_Test", OblivSelect_Additive_Online_Test);
     t.add("OblivSelect_Binary_Offline_Test", OblivSelect_Binary_Offline_Test);
     t.add("OblivSelect_Binary_Online_Test", OblivSelect_Binary_Online_Test);
-    t.add("WaveletMatrix_Test", WaveletMatrix_Test);
-    t.add("FMIndex_Test", FMIndex_Test);
     t.add("ZeroTest_Additive_Offline_Test", ZeroTest_Additive_Offline_Test);
     t.add("ZeroTest_Additive_Online_Test", ZeroTest_Additive_Online_Test);
     t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
     t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
+    t.add("WaveletMatrix_Test", WaveletMatrix_Test);
+    t.add("FMIndex_Test", FMIndex_Test);
     t.add("FssWM_Offline_Test", FssWM_Offline_Test);
     t.add("FssWM_Online_Test", FssWM_Online_Test);
     t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);

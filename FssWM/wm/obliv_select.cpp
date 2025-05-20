@@ -2,11 +2,13 @@
 
 #include <cstring>
 
+#include "FssWM/fss/prg.h"
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/timer.h"
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
@@ -215,7 +217,8 @@ OblivSelectEvaluator::OblivSelectEvaluator(
     const OblivSelectParameters        &params,
     sharing::ReplicatedSharing3P       &rss,
     sharing::BinaryReplicatedSharing3P &brss)
-    : params_(params), eval_(params.GetParameters()), rss_(rss), brss_(brss) {
+    : params_(params), eval_(params.GetParameters()), rss_(rss), brss_(brss),
+      G_(fss::prg::PseudoRandomGeneratorSingleton::GetInstance()) {
 }
 
 void OblivSelectEvaluator::EvaluateAdditive(sharing::Channels          &chls,
@@ -368,27 +371,11 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels          &chls,
 #endif
 
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
-    eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
-    eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
-
-    // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
-    uint32_t dp_prev = 0, dp_next = 0;
-    for (size_t i = 0; i < database.num_shares; ++i) {
-        size_t block_index = i / 128;
-        size_t bit_index   = i % 128;
-        size_t byte_index  = bit_index / 8;
-        size_t bit_in_byte = bit_index % 8;
-
-        alignas(16) uint8_t buffer_prev[16], buffer_next[16];
-        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_prev), uv_prev[block_index]);
-        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_next), uv_next[block_index]);
-
-        uint8_t bit_prev = (buffer_prev[byte_index] >> bit_in_byte) & 1;
-        uint8_t bit_next = (buffer_next[byte_index] >> bit_in_byte) & 1;
-
-        dp_prev ^= database[0][i ^ pr_prev] * bit_prev;
-        dp_next ^= database[1][i ^ pr_next] * bit_next;
-    }
+    // eval_.EvaluateFullDomain(key.prev_key, uv_prev);
+    // eval_.EvaluateFullDomain(key.next_key, uv_next);
+    // auto [dp_prev, dp_next] = BinaryDotProduct(uv_prev, uv_next, pr_prev, pr_next, database);
+    uint32_t dp_prev = FullDomainDotProduct(key.prev_key, database[0], pr_prev);
+    uint32_t dp_next = FullDomainDotProduct(key.next_key, database[1], pr_next);
 
     uint32_t          selected_sh = dp_prev ^ dp_next;
     sharing::RepShare r_sh;
@@ -424,23 +411,28 @@ void OblivSelectEvaluator::EvaluateBinary(sharing::Channels              &chls,
 #endif
 
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
-    eval_.EvaluateFullDomainOneBit(key.prev_key, uv_prev);
-    eval_.EvaluateFullDomainOneBit(key.next_key, uv_next);
+    eval_.EvaluateFullDomain(key.prev_key, uv_prev);
+    eval_.EvaluateFullDomain(key.next_key, uv_next);
 
     // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
     uint32_t dp_prev_1 = 0, dp_next_1 = 0, dp_prev_2 = 0, dp_next_2 = 0;
+    auto    *uv_prev_bytes = reinterpret_cast<const uint8_t *>(uv_prev.data());
+    auto    *uv_next_bytes = reinterpret_cast<const uint8_t *>(uv_next.data());
+
     for (size_t i = 0; i < database1.num_shares(); ++i) {
         size_t block_index = i / 128;
         size_t bit_index   = i % 128;
         size_t byte_index  = bit_index / 8;
         size_t bit_in_byte = bit_index % 8;
 
-        alignas(16) uint8_t buffer_prev[16], buffer_next[16];
-        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_prev), uv_prev[block_index]);
-        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_next), uv_next[block_index]);
+        size_t  offset    = block_index * 16 + byte_index;
+        uint8_t byte_prev = uv_prev_bytes[offset];
+        uint8_t byte_next = uv_next_bytes[offset];
+        // TODO: 無駄にやってるから内側に8個のループを作る
+        // TODO: それが無理ならDPF側と同時にやる
 
-        uint8_t bit_prev = (buffer_prev[byte_index] >> bit_in_byte) & 1;
-        uint8_t bit_next = (buffer_next[byte_index] >> bit_in_byte) & 1;
+        const uint32_t bit_prev = (byte_prev >> bit_in_byte) & 1u;
+        const uint32_t bit_next = (byte_next >> bit_in_byte) & 1u;
 
         dp_prev_1 ^= (database1[0][i ^ pr_prev] * bit_prev);
         dp_next_1 ^= (database1[1][i ^ pr_next] * bit_next);
@@ -499,54 +491,265 @@ std::pair<uint32_t, uint32_t> OblivSelectEvaluator::ReconstructPRBinary(sharing:
     }
 
     // Reconstruct p ^ r_i
-    sharing::RepShare p_r_sh;
+    sharing::RepShare pr_prev_sh;
+    sharing::RepShare pr_next_sh;
 
     if (chls.party_id == 0) {
         // p ^ r_1 between Party 0 and Party 2
-        brss_.EvaluateXor(index, r_1_sh, p_r_sh);
-        chls.prev.send(p_r_sh[0]);
-        uint32_t p_r_1_prev;
-        chls.prev.recv(p_r_1_prev);
-        pr_next = p_r_1_prev ^ p_r_sh[0] ^ p_r_sh[1];
-
         // p ^ r_2 between Party 0 and Party 1
-        brss_.EvaluateXor(index, r_2_sh, p_r_sh);
-        chls.next.send(p_r_sh[1]);
+        brss_.EvaluateXor(index, r_1_sh, pr_prev_sh);
+        brss_.EvaluateXor(index, r_2_sh, pr_next_sh);
+        chls.prev.send(pr_prev_sh[0]);
+        chls.next.send(pr_next_sh[1]);
+        uint32_t p_r_1_prev;
         uint32_t p_r_2_next;
+        chls.prev.recv(p_r_1_prev);
         chls.next.recv(p_r_2_next);
-        pr_prev = p_r_sh[0] ^ p_r_sh[1] ^ p_r_2_next;
+        pr_next = p_r_1_prev ^ pr_prev_sh[0] ^ pr_prev_sh[1];
+        pr_prev = pr_next_sh[0] ^ pr_next_sh[1] ^ p_r_2_next;
 
     } else if (chls.party_id == 1) {
         // p ^ r_0 between Party 1 and Party 2
-        brss_.EvaluateXor(index, r_0_sh, p_r_sh);
-        chls.next.send(p_r_sh[1]);
-        uint32_t p_r_0_next;
-        chls.next.recv(p_r_0_next);
-        pr_prev = p_r_sh[0] ^ p_r_sh[1] ^ p_r_0_next;
-
         // p ^ r_2 between Party 0 and Party 1
-        brss_.EvaluateXor(index, r_2_sh, p_r_sh);
+        brss_.EvaluateXor(index, r_0_sh, pr_next_sh);
+        brss_.EvaluateXor(index, r_2_sh, pr_prev_sh);
+        chls.next.send(pr_next_sh[1]);
+        chls.prev.send(pr_prev_sh[0]);
+        uint32_t p_r_0_next;
         uint32_t p_r_2_prev;
+        chls.next.recv(p_r_0_next);
         chls.prev.recv(p_r_2_prev);
-        chls.prev.send(p_r_sh[0]);
-        pr_next = p_r_2_prev ^ p_r_sh[0] ^ p_r_sh[1];
+        pr_next = p_r_2_prev ^ pr_prev_sh[0] ^ pr_prev_sh[1];
+        pr_prev = pr_next_sh[0] ^ pr_next_sh[1] ^ p_r_0_next;
 
     } else {
         // p ^ r_0 between Party 1 and Party 2
-        brss_.EvaluateXor(index, r_0_sh, p_r_sh);
-        uint32_t p_r_0_prev;
-        chls.prev.recv(p_r_0_prev);
-        chls.prev.send(p_r_sh[0]);
-        pr_next = p_r_0_prev ^ p_r_sh[0] ^ p_r_sh[1];
-
         // p ^ r_1 between Party 0 and Party 2
-        brss_.EvaluateXor(index, r_1_sh, p_r_sh);
+        brss_.EvaluateXor(index, r_0_sh, pr_prev_sh);
+        brss_.EvaluateXor(index, r_1_sh, pr_next_sh);
+        chls.prev.send(pr_prev_sh[0]);
+        chls.next.send(pr_next_sh[1]);
+
+        uint32_t p_r_0_prev;
         uint32_t p_r_1_next;
+        chls.prev.recv(p_r_0_prev);
         chls.next.recv(p_r_1_next);
-        chls.next.send(p_r_sh[1]);
-        pr_prev = p_r_sh[0] ^ p_r_sh[1] ^ p_r_1_next;
+        pr_next = p_r_0_prev ^ pr_prev_sh[0] ^ pr_prev_sh[1];
+        pr_prev = pr_next_sh[0] ^ pr_next_sh[1] ^ p_r_1_next;
     }
     return std::make_pair(pr_prev, pr_next);
+}
+
+std::pair<uint32_t, uint32_t> OblivSelectEvaluator::BinaryDotProduct(
+    std::vector<block>         &uv_prev,
+    std::vector<block>         &uv_next,
+    const uint32_t              pr_prev,
+    const uint32_t              pr_next,
+    const sharing::RepShareVec &database) const {
+    // Now use uv_prev_bits and uv_next_bits in place of the block vectors:
+    uint32_t dp_prev = 0, dp_next = 0;
+    for (size_t i = 0; i < database.num_shares; ++i) {
+        size_t block_index = i / 128;
+        size_t bit_index   = i % 128;
+        size_t byte_index  = bit_index / 8;
+        size_t bit_in_byte = bit_index % 8;
+
+        alignas(16) uint8_t buffer_prev[16], buffer_next[16];
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_prev), uv_prev[block_index]);
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer_next), uv_next[block_index]);
+
+        uint8_t bit_prev = (buffer_prev[byte_index] >> bit_in_byte) & 1;
+        uint8_t bit_next = (buffer_next[byte_index] >> bit_in_byte) & 1;
+
+        dp_prev ^= database[0][i ^ pr_prev] * bit_prev;
+        dp_next ^= database[1][i ^ pr_next] * bit_next;
+    }
+    // =================================================
+    // Optimized bit extraction + mask-based accumulation
+
+    // uint32_t dp_prev = 0, dp_next = 0;
+    // size_t   num_blocks = uv_prev.size();    // = num_shares / 128
+
+    // for (size_t block = 0; block < num_blocks; ++block) {
+    //     // Load one 128-bit block into registers
+    //     __m128i prev_block = uv_prev[block];
+    //     __m128i next_block = uv_next[block];
+
+    //     // Split into two 64-bit lanes
+    //     uint64_t prev_low  = static_cast<uint64_t>(_mm_cvtsi128_si64(prev_block));
+    //     uint64_t prev_high = static_cast<uint64_t>(_mm_extract_epi64(prev_block, 1));
+    //     uint64_t next_low  = static_cast<uint64_t>(_mm_cvtsi128_si64(next_block));
+    //     uint64_t next_high = static_cast<uint64_t>(_mm_extract_epi64(next_block, 1));
+
+    //     // Process all 128 bits in this block
+    //     for (int bit = 0; bit < 128; ++bit) {
+    //         size_t idx = block * 128 + bit;
+
+    //         // Compute permuted index
+    //         size_t db_idx_prev = idx ^ pr_prev;
+    //         size_t db_idx_next = idx ^ pr_next;
+
+    //         // Extract bit_prev/bit_next by shifting the right 64-bit lane
+    //         uint32_t bit_prev = static_cast<uint32_t>(
+    //             ((bit < 64 ? (prev_low >> bit) : (prev_high >> (bit - 64))) & 1));
+    //         uint32_t bit_next = static_cast<uint32_t>(
+    //             ((bit < 64 ? (next_low >> bit) : (next_high >> (bit - 64))) & 1));
+
+    //         // Avoid multiply: build a 0 or 0xFFFFFFFF mask from the bit
+    //         uint32_t mask_prev = 0u - bit_prev;
+    //         uint32_t mask_next = 0u - bit_next;
+
+    //         // XOR in only the selected database entry
+    //         dp_prev ^= (database.data[0][db_idx_prev] & mask_prev);
+    //         dp_next ^= (database.data[1][db_idx_next] & mask_next);
+    //     }
+    // }
+    return std::make_pair(dp_prev, dp_next);
+    // =================================================
+}
+
+uint32_t OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey      &key,
+                                                    const std::vector<uint32_t> &database,
+                                                    const uint32_t               pr) const {
+    uint32_t nu            = params_.GetParameters().GetTerminateBitsize();
+    uint32_t remaining_bit = params_.GetParameters().GetInputBitsize() - nu;
+
+    // Breadth-first traversal for 8 nodes
+    std::vector<block> start_seeds{key.init_seed}, next_seeds;
+    std::vector<bool>  start_control_bits{key.party_id != 0}, next_control_bits;
+
+    for (uint32_t i = 0; i < 3; ++i) {
+        alignas(16) std::array<block, 2> expanded_seeds;
+        std::array<bool, 2>              expanded_control_bits;
+        next_seeds.resize(1U << (i + 1));
+        next_control_bits.resize(1U << (i + 1));
+        for (size_t j = 0; j < start_seeds.size(); j++) {
+            EvaluateNextSeed(i, start_seeds[j], start_control_bits[j], expanded_seeds, expanded_control_bits, key);
+            next_seeds[j * 2]            = expanded_seeds[fss::kLeft];
+            next_seeds[j * 2 + 1]        = expanded_seeds[fss::kRight];
+            next_control_bits[j * 2]     = expanded_control_bits[fss::kLeft];
+            next_control_bits[j * 2 + 1] = expanded_control_bits[fss::kRight];
+        }
+        start_seeds        = std::move(next_seeds);
+        start_control_bits = std::move(next_control_bits);
+    }
+
+    // Initialize the variables
+    uint32_t current_level = 0;
+    uint32_t current_idx   = 0;
+    uint32_t last_depth    = std::max(static_cast<int32_t>(nu) - 3, 0);
+    uint32_t last_idx      = 1U << last_depth;
+    uint32_t dp            = 0;
+
+    // Store the seeds and control bits
+    std::array<block, 8>              expanded_seeds;
+    // uint8_t                          *seeds_view = reinterpret_cast<uint8_t *>(expanded_seeds.data());
+    std::array<bool, 8>               expanded_control_bits;
+    std::vector<std::array<block, 8>> prev_seeds(last_depth + 1);
+    std::vector<std::array<bool, 8>>  prev_control_bits(last_depth + 1);
+
+    // Evaluate the DPF key
+    for (uint32_t i = 0; i < 8; ++i) {
+        prev_seeds[0][i]        = start_seeds[i];
+        prev_control_bits[0][i] = start_control_bits[i];
+    }
+
+    while (current_idx < last_idx) {
+        while (current_level < last_depth) {
+            // Expand the seed and control bits
+            uint32_t mask        = (current_idx >> (last_depth - 1U - current_level));
+            bool     current_bit = mask & 1U;
+
+            G_.Expand(prev_seeds[current_level], expanded_seeds, current_bit);
+            for (uint32_t i = 0; i < 8; ++i) {
+                expanded_control_bits[i] = getLSB(expanded_seeds[i]);
+            }
+
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
+            std::string level_str = "|Level=" + std::to_string(current_level) + "| ";
+            for (uint32_t i = 0; i < 8; ++i) {
+                Logger::TraceLog(LOC, level_str + "Current bit: " + std::to_string(current_bit));
+                Logger::TraceLog(LOC, level_str + "Current seed (" + std::to_string(i) + "): " + ToString(prev_seeds[current_level][i]));
+                Logger::TraceLog(LOC, level_str + "Current control bit (" + std::to_string(i) + "): " + std::to_string(prev_control_bits[current_level][i]));
+                Logger::TraceLog(LOC, level_str + "Expanded seed (" + std::to_string(i) + "): " + ToString(expanded_seeds[i]));
+                Logger::TraceLog(LOC, level_str + "Expanded control bit (" + std::to_string(i) + "): " + std::to_string(expanded_control_bits[i]));
+            }
+#endif
+
+            // Apply correction word if control bit is true
+            bool  cw_control_bit = current_bit ? key.cw_control_right[current_level + 3] : key.cw_control_left[current_level + 3];
+            block cw_seed        = key.cw_seed[current_level + 3];
+            expanded_seeds[0]    = _mm_xor_si128(expanded_seeds[0], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][0]]));
+            expanded_seeds[1]    = _mm_xor_si128(expanded_seeds[1], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][1]]));
+            expanded_seeds[2]    = _mm_xor_si128(expanded_seeds[2], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][2]]));
+            expanded_seeds[3]    = _mm_xor_si128(expanded_seeds[3], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][3]]));
+            expanded_seeds[4]    = _mm_xor_si128(expanded_seeds[4], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][4]]));
+            expanded_seeds[5]    = _mm_xor_si128(expanded_seeds[5], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][5]]));
+            expanded_seeds[6]    = _mm_xor_si128(expanded_seeds[6], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][6]]));
+            expanded_seeds[7]    = _mm_xor_si128(expanded_seeds[7], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][7]]));
+
+            for (uint32_t i = 0; i < 8; ++i) {
+                // expanded_seeds[i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[prev_control_bits[current_level][i]]);
+                expanded_control_bits[i] ^= (cw_control_bit & prev_control_bits[current_level][i]);
+            }
+
+            // Update the current level
+            current_level++;
+
+            // Update the previous seeds and control bits
+            for (uint32_t i = 0; i < 8; ++i) {
+                prev_seeds[current_level][i]        = expanded_seeds[i];
+                prev_control_bits[current_level][i] = expanded_control_bits[i];
+            }
+        }
+
+        for (uint32_t i = 0; i < 8; ++i) {
+            block    output = _mm_xor_si128(prev_seeds[current_level][i], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][i]], key.output));
+            uint64_t low    = _mm_cvtsi128_si64(output);
+            uint64_t high   = _mm_extract_epi64(output, 1);
+
+            uint32_t idx = i * last_idx + current_idx;
+            for (int j = 0; j < 128; ++j) {
+                size_t   db_idx = (idx * 128 + j) ^ pr;
+                uint32_t bit    = static_cast<uint32_t>(
+                    ((j < 64 ? (low >> j) : (high >> (j - 64))) & 1));
+                uint32_t mask = 0u - bit;
+
+                // XOR in only the selected database entry
+                dp ^= (database[db_idx] & mask);
+            }
+        }
+
+        // Update the current index
+        int shift = (current_idx + 1U) ^ current_idx;
+        current_level -= log2floor(shift) + 1;
+        current_idx++;
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Dot product result: " + std::to_string(dp));
+#endif
+    return dp;
+}
+
+void OblivSelectEvaluator::EvaluateNextSeed(
+    const uint32_t current_level, const block &current_seed, const bool &current_control_bit,
+    std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
+    const fss::dpf::DpfKey &key) const {
+    // Expand the seed and control bits
+    G_.DoubleExpand(current_seed, expanded_seeds);
+    expanded_control_bits[fss::kLeft]  = getLSB(expanded_seeds[fss::kLeft]);
+    expanded_control_bits[fss::kRight] = getLSB(expanded_seeds[fss::kRight]);
+
+    // Apply correction word if control bit is true
+    const block mask            = key.cw_seed[current_level] & zero_and_all_one[current_control_bit];
+    expanded_seeds[fss::kLeft]  = _mm_xor_si128(expanded_seeds[fss::kLeft], mask);
+    expanded_seeds[fss::kRight] = _mm_xor_si128(expanded_seeds[fss::kRight], mask);
+
+    const bool control_mask_left  = key.cw_control_left[current_level] & current_control_bit;
+    const bool control_mask_right = key.cw_control_right[current_level] & current_control_bit;
+    expanded_control_bits[fss::kLeft] ^= control_mask_left;
+    expanded_control_bits[fss::kRight] ^= control_mask_right;
 }
 
 }    // namespace wm

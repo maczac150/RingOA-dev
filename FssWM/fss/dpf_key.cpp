@@ -15,87 +15,49 @@ std::string GetEvalTypeString(const EvalType eval_type) {
             return "Naive";
         case EvalType::kRecursion:
             return "Recursion";
-        case EvalType::kIterSingle:
-            return "IterSingle";
-        case EvalType::kIterDouble:
-            return "IterDouble";
         case EvalType::kIterSingleBatch:
             return "IterSingleBatch";
-        case EvalType::kIterDoubleBatch:
-            return "IterDoubleBatch";
-        case EvalType::kIterSingleBatch_2Keys:
-            return "IterSingleBatch_2Keys";
         default:
             return "Unknown";
     }
 }
 
-DpfParameters::DpfParameters(const uint32_t n, const uint32_t e, const bool enable_et, EvalType eval_type)
-    : input_bitsize_(n), element_bitsize_(e), enable_et_(enable_et) {
-    AdjustParameters(eval_type);
-    ComputeTerminateLevel();
-    DecideFdeEvalType(eval_type);
-    if (!ValidateParameters()) {
-        Logger::FatalLog(LOC, "Invalid DPF parameters");
-        std::exit(EXIT_FAILURE);
-    }
-}
+DpfParameters::DpfParameters(const uint32_t n, const uint32_t e, EvalType eval_type)
+    : input_bitsize_(n), element_bitsize_(e), enable_et_(true), fde_type_(eval_type) {
 
-void DpfParameters::AdjustParameters(EvalType &eval_type) {
-    // Restriction for domain size
-    if (input_bitsize_ <= kSmallDomainSize && enable_et_) {
-        Logger::WarnLog(LOC, "Disabling early termination for small input bitsize (<=" + std::to_string(kSmallDomainSize) + "bit): ET OFF");
+    if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
+        (element_bitsize_ > 1 && input_bitsize_ <= 8)) {
+        if (fde_type_ != EvalType::kNaive) {
+            Logger::WarnLog(LOC, "Switching to naive evaluation: EvalType -> Naive");
+        }
+        fde_type_ = EvalType::kNaive;
+    }
+
+    if (fde_type_ == EvalType::kNaive) {
         enable_et_ = false;
+        if (enable_et_) {
+            Logger::WarnLog(LOC, "Disabling early termination for naive evaluation: ET OFF");
+        }
     }
 
-    // Restriction for evaluation type
-    if (eval_type == EvalType::kNaive && enable_et_) {
-        Logger::WarnLog(LOC, "Disabling early termination for naive approach: ET OFF");
-        enable_et_ = false;
-    }
-
-    if (!enable_et_ && eval_type != EvalType::kNaive) {
-        Logger::WarnLog(LOC, "Early termination is disabled: Switching to naive approach: EvalType: " + GetEvalTypeString(eval_type) + " -> Naive");
-        eval_type = EvalType::kNaive;
-    }
-}
-
-void DpfParameters::ComputeTerminateLevel() {
     if (enable_et_) {
         int32_t nu = 0;
         if (element_bitsize_ == 1) {
             nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7 = 128
-        } else {
-            if (input_bitsize_ < 17) {
-                nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
-            } else if (input_bitsize_ < 33) {
-                nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
-            }
+        } else if (input_bitsize_ < 17) {
+            nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
+        } else if (input_bitsize_ < 33) {
+            nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
         }
         terminate_bitsize_ = std::max(nu, 0);
     } else {
         terminate_bitsize_ = input_bitsize_;
     }
-}
 
-void DpfParameters::DecideFdeEvalType(EvalType eval_type) {
-    if (enable_et_) {
-        if (element_bitsize_ == 1) {
-            if (input_bitsize_ < 10) {    // 7 (early termination) + 3 (non-recursive)
-                Logger::WarnLog(LOC, "Switching to non-recursive approach for the domain size less than 10 bits: EvalType: " + GetEvalTypeString(eval_type) + " -> Non-Recursive");
-                eval_type = kDefaultEvalType;
-            } else if (eval_type == EvalType::kIterDoubleBatch && input_bitsize_ < 11) {    // 7+1 (early termination) + 3 (non-recursive)
-                Logger::WarnLog(LOC, "Switching to non-recursive approach for the domain size less than 11 bits: EvalType: " + GetEvalTypeString(eval_type) + " -> Non-Recursive");
-                eval_type = kDefaultEvalType;
-            }
-        }
-    } else {
-        if (eval_type != EvalType::kNaive) {
-            Logger::WarnLog(LOC, "Early termination is disabled: Switching to naive approach: EvalType: " + GetEvalTypeString(eval_type) + " -> Naive");
-            eval_type = EvalType::kNaive;
-        }
+    if (!ValidateParameters()) {
+        Logger::FatalLog(LOC, "Invalid DPF parameters");
+        std::exit(EXIT_FAILURE);
     }
-    fde_type_ = eval_type;
 }
 
 bool DpfParameters::ValidateParameters() const {
@@ -137,13 +99,36 @@ void DpfParameters::ReconfigureParameters(const uint32_t n, const uint32_t e, co
     element_bitsize_ = e;
     enable_et_       = enable_et;
 
-    AdjustParameters(eval_type);
-    ComputeTerminateLevel();
-    DecideFdeEvalType(eval_type);
+    // If we are in one of the “too small” cases, force naive & disable ET:
+    if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
+        (element_bitsize_ > 1 && input_bitsize_ <= 8)) {
+        if (enable_et_) {
+            Logger::WarnLog(LOC,
+                            "Disabling early termination for small domain: ET OFF");
+        }
+        enable_et_ = false;
+        if (fde_type_ != EvalType::kNaive) {
+            Logger::WarnLog(LOC,
+                            "Switching to naive evaluation: EvalType -> Naive");
+        }
+        fde_type_ = EvalType::kNaive;
+    } else {
+        fde_type_ = eval_type;
+    }
 
-    if (!ValidateParameters()) {
-        Logger::FatalLog(LOC, "Invalid DPF parameters in Reconfigure()");
-        std::exit(EXIT_FAILURE);
+    // Compute terminate bitsize:
+    if (enable_et_) {
+        int32_t nu = 0;
+        if (element_bitsize_ == 1) {
+            nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7 = 128
+        } else if (input_bitsize_ < 17) {
+            nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
+        } else if (input_bitsize_ < 33) {
+            nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
+        }
+        terminate_bitsize_ = std::max(nu, 0);
+    } else {
+        terminate_bitsize_ = input_bitsize_;
     }
 }
 

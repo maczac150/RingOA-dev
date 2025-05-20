@@ -5,7 +5,6 @@ namespace bench_fsswm {
 
 void Dpf_Fde_Bench();
 void Dpf_Fde_One_Bench();
-void Dpf_Fde_TwoKey_Bench();
 
 }    // namespace bench_fsswm
 

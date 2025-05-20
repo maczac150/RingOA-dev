@@ -17,14 +17,9 @@ enum class EvalType
     // Evaluation types for DPF
     kNaive,
     kRecursion,
-    kIterSingle,
-    kIterDouble,
     kIterSingleBatch,
-    kIterSingleBatch_2Keys,    // ! Slower than two separate calls of kIterSingleBatch
-    kIterDoubleBatch,          // ! This is working but too slow
 };
 
-const EvalType kDefaultEvalType   = EvalType::kIterSingle;
 const EvalType kOptimizedEvalType = EvalType::kIterSingleBatch;
 
 /**
@@ -48,11 +43,9 @@ public:
      * @brief Parameterized constructor for DpfParameters.
      * @param n The input bitsize.
      * @param e The element bitsize.
-     * @param enable_et Toggle this flag to enable/disable early termination.
      * @param eval_type The evaluation type for the DPF.
      */
-    explicit DpfParameters(const uint32_t n, const uint32_t e,
-                           const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
+    explicit DpfParameters(const uint32_t n, const uint32_t e, EvalType eval_type = kOptimizedEvalType);
 
     /**
      * @brief Get the Input Bitsize object
@@ -93,24 +86,6 @@ public:
     EvalType GetFdeEvalType() const {
         return fde_type_;
     }
-
-    /**
-     * @brief Adjust the parameters based on the evaluation type.
-     * @param eval_type The evaluation type for the DPF.
-     */
-    void
-    AdjustParameters(EvalType &eval_type);
-
-    /**
-     * @brief Set the number of levels to terminate the DPF evaluation.
-     */
-    void ComputeTerminateLevel();
-
-    /**
-     * @brief Set the evaluation type for the DPF.
-     * @param eval_type The evaluation type for the DPF.
-     */
-    void DecideFdeEvalType(EvalType eval_type);
 
     /**
      * @brief Validate the parameters for the DPF.

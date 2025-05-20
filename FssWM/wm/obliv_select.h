@@ -26,6 +26,14 @@ struct Channels;
 
 }    // namespace sharing
 
+namespace fss {
+namespace prg {
+
+class PseudoRandomGenerator;
+
+}    // namespace prg
+}    // namespace fss
+
 namespace wm {
 
 /**
@@ -277,11 +285,26 @@ public:
                         sharing::RepShare              &result1,
                         sharing::RepShare              &result2) const;
 
+    std::pair<uint32_t, uint32_t> BinaryDotProduct(std::vector<block>         &uv_prev,
+                                                   std::vector<block>         &uv_next,
+                                                   const uint32_t              pr_prev,
+                                                   const uint32_t              pr_next,
+                                                   const sharing::RepShareVec &database) const;
+
+    uint32_t FullDomainDotProduct(const fss::dpf::DpfKey      &key,
+                                  const std::vector<uint32_t> &database,
+                                  const uint32_t               pr) const;
+
+    void EvaluateNextSeed(const uint32_t current_level, const block &current_seed, const bool &current_control_bit,
+                          std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
+                          const fss::dpf::DpfKey &key) const;
+
 private:
     OblivSelectParameters               params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */
     fss::dpf::DpfEvaluator              eval_;   /**< DPF evaluator for the OblivSelectEvaluator. */
     sharing::ReplicatedSharing3P       &rss_;    /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
+    fss::prg::PseudoRandomGenerator    &G_;      /**< Pseudo random generator for the OblivSelectEvaluator. */
 
     // Internal functions
     std::pair<uint32_t, uint32_t> ReconstructPRAdditive(sharing::Channels       &chls,
