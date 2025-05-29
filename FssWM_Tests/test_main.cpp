@@ -1,8 +1,10 @@
-#include "cryptoTools/Common/CLP.h"
-#include "cryptoTools/Common/TestCollection.h"
-#include "tests_cryptoTools/UnitTests.h"
+#include <cryptoTools/Common/CLP.h>
+#include <cryptoTools/Common/TestCollection.h>
+#include <random>
+#include <tests_cryptoTools/UnitTests.h>
 
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/rng.h"
 #include "FssWM_Tests/fm_index/fssfmi_test.h"
 #include "FssWM_Tests/fm_index/zt_test.h"
 #include "FssWM_Tests/fss/dpf_test.h"
@@ -15,13 +17,15 @@
 #include "FssWM_Tests/utils/file_io_test.h"
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
+#include "FssWM_Tests/utils/utils_test.h"
 #include "FssWM_Tests/wm/fsswm_test.h"
 #include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
 
 namespace test_fsswm {
 
-oc::TestCollection Tests([](oc::TestCollection &t) {
+osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
+    t.add("Utils_Test", Utils_Test);
     t.add("Timer_Test", Timer_Test);
     t.add("Network_TwoPartyManager_Test", Network_TwoPartyManager_Test);
     t.add("Network_ThreePartyManager_Test", Network_ThreePartyManager_Test);
@@ -37,6 +41,7 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("libPSI_DPF_FullDomain_Test", libPSI_DPF_FullDomain_Test);
     t.add("libPSI_DPF_FullDomain2_Test", libPSI_DPF_FullDomain2_Test);
     t.add("libPSI_DPF_FullDomain_iterator_Test", libPSI_DPF_FullDomain_iterator_Test);
+    t.add("libPSI_DPF_FullDomain2_iterator_Test", libPSI_DPF_FullDomain2_iterator_Test);
     t.add("libPSI_DPF_FullDomain_multikey_Test", libPSI_DPF_FullDomain_multikey_Test);
     t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
     t.add("Additive2P_EvaluateAdd_Online_Test", Additive2P_EvaluateAdd_Online_Test);
@@ -58,16 +63,12 @@ oc::TestCollection Tests([](oc::TestCollection &t) {
     t.add("Binary3P_EvaluateXor_Online_Test", Binary3P_EvaluateXor_Online_Test);
     t.add("Binary3P_EvaluateAnd_Online_Test", Binary3P_EvaluateAnd_Online_Test);
     t.add("Binary3P_EvaluateSelect_Online_Test", Binary3P_EvaluateSelect_Online_Test);
-    t.add("OblivSelect_Additive_Offline_Test", OblivSelect_Additive_Offline_Test);
-    t.add("OblivSelect_Additive_Online_Test", OblivSelect_Additive_Online_Test);
     t.add("OblivSelect_Binary_Offline_Test", OblivSelect_Binary_Offline_Test);
     t.add("OblivSelect_Binary_Online_Test", OblivSelect_Binary_Online_Test);
-    t.add("ZeroTest_Additive_Offline_Test", ZeroTest_Additive_Offline_Test);
-    t.add("ZeroTest_Additive_Online_Test", ZeroTest_Additive_Online_Test);
-    t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
-    t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
+    t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
+    t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
     t.add("FssWM_Offline_Test", FssWM_Offline_Test);
     t.add("FssWM_Online_Test", FssWM_Online_Test);
     t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);
@@ -101,8 +102,18 @@ void PrintHelp() {
 
 int main(int argc, char **argv) {
     try {
-        oc::CLP cmd(argc, argv);
-        auto    tests = test_fsswm::Tests;
+#ifndef USE_FIXED_RANDOM_SEED
+        {
+            std::random_device rd;
+            osuCrypto::block   seed = osuCrypto::toBlock(rd(), rd());
+            fsswm::GlobalRng::Initialize(seed);
+        }
+#else
+        fsswm::GlobalRng::Initialize();
+#endif
+
+        osuCrypto::CLP cmd(argc, argv);
+        auto           tests = test_fsswm::Tests;
 
         // Display help message
         if (cmd.isSet(helpTags)) {
@@ -118,7 +129,7 @@ int main(int argc, char **argv) {
 
         // Handle test execution
         if (cmd.hasValue(testTags)) {
-            auto testIdxs    = cmd.getMany<oc::u64>(testTags);
+            auto testIdxs    = cmd.getMany<osuCrypto::u64>(testTags);
             int  repeatCount = cmd.getOr(repeatTags, 1);
             int  loopCount   = cmd.getOr(loopTags, 1);
 

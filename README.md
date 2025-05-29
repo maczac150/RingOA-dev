@@ -1,6 +1,10 @@
 # FssWM
 A repository for wavelet matrix using function secret sharing.
 
+## Requirements
+- gcc/g++ 11
+- c++20
+
 ## Install
 
 Our library has been tested on Linux. There are several library dependencies including [cryptoTools](https://github.com/ladnir/cryptoTools). 

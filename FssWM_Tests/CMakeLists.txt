@@ -7,6 +7,7 @@ project(FssWM_Tests)
 
 # Add the test sources
 set(TEST_SOURCES
+    utils/utils_test.cpp
     utils/timer_test.cpp
     utils/network_test.cpp
     utils/file_io_test.cpp

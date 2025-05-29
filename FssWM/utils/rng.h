@@ -1,68 +1,44 @@
 #ifndef UTILS_RNG_H_
 #define UTILS_RNG_H_
 
-#include <array>
-#include <openssl/rand.h>
-#include <random>
+#include <cryptoTools/Crypto/PRNG.h>
 
-namespace {
-
-constexpr uint32_t kFixedSeed = 6;       // Fixed seed for random number generator
-std::mt19937       mtrng(kFixedSeed);    // Mersenne Twister 19937 random number generator with fixed seed
-
-}    // namespace
+#include "FssWM/utils/block.h"
 
 namespace fsswm {
 
-using byte = uint8_t;    // Alias for a byte
-
-class SecureRng {
+class GlobalRng {
 public:
-    // Generate a random 16-bit number.
-    static inline uint16_t Rand16() {
-        return Rand<uint16_t>();
+    // Call once at program startup.
+    // You can override the default seed by passing your own.
+    // e.g. std::random_device rd;
+    //      GlobalRng::Initialize(osuCrypto::toBlock(rd(), rd()));
+    static void Initialize(
+        const block seed = osuCrypto::toBlock(0xDEADBEEF, 0xFEEDFACE)) {
+        prng().SetSeed(seed);
     }
 
-    // Generate a random 32-bit number.
-    static inline uint32_t Rand32() {
-        return Rand<uint32_t>();
+    // Generate a POD of type T.
+    template <typename T>
+    static T Rand() {
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>,
+                      "GlobalRng::Rand<T> requires a POD type");
+        return prng().get<T>();
     }
 
-    // Generate a random 64-bit number.
-    static inline uint64_t Rand64() {
-        return Rand<uint64_t>();
-    }
-
-    // Generate a random boolean value.
-    static inline bool RandBool() {
-        return (Rand<uint16_t>() & 0x01) != 0;
+    // Generate a random bit.
+    static bool RandBit() {
+        return prng().getBit() != 0;
     }
 
 private:
-    template <typename T>
-    static T Rand() {
-
-#ifdef USE_FIXED_RANDOM_SEED
-        std::uniform_int_distribution<T> dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
-        return dist(mtrng);
-#else
-        std::array<byte, sizeof(T)> rand{};
-        int                         success = RAND_bytes(rand.data(), rand.size());
-        if (!success) {
-            std::perror("failed to create randomness");
-            std::exit(EXIT_FAILURE);
-        } else {
-            T rand_num = rand[0];
-            for (int i = 1; i < static_cast<int>(sizeof(T)); ++i) {
-                rand_num <<= 8;
-                rand_num |= static_cast<T>(rand[i]);
-            }
-            return rand_num;
-        }
-#endif
+    // Thread-local AES-NI PRNG instance.
+    static inline osuCrypto::PRNG &prng() {
+        static thread_local osuCrypto::PRNG instance;
+        return instance;
     }
 };
 
 }    // namespace fsswm
 
-#endif    // RNG_RNG_H_
+#endif    // UTILS_RNG_H_

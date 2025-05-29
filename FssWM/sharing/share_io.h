@@ -3,16 +3,9 @@
 
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
-#include "share3_types.h"
 
 namespace fsswm {
 namespace sharing {
-
-enum class ShareType
-{
-    kRepShare,
-    kRepShareVec
-};
 
 class ShareIo {
 public:

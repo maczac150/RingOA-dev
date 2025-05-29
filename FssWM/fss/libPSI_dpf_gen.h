@@ -2,8 +2,8 @@
 #define FSS_LIBPSI_DPF_GEN_H_
 
 #include "boost/multiprecision/cpp_int.hpp"
-#include "cryptoTools/Common/Defines.h"
-#include "cryptoTools/Network/Channel.h"
+#include <cryptoTools/Common/Defines.h>
+#include <cryptoTools/Network/Channel.h>
 
 namespace osuCrypto {
 
@@ -22,6 +22,7 @@ public:
 
     static void keyGen(span<u8> idx, block seed, span<block> k0, span<block> g0, span<block> k1, span<block> g1);
     static void keyGen(uint128_t idx, block seed, span<block> k0, span<block> g0, span<block> k1, span<block> g1);
+    static void keyGenSingleGroup(uint128_t idx, block seed, span<block> k0, span<block> g0, span<block> k1, span<block> g1);
 };
 
 }    // namespace osuCrypto

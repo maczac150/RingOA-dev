@@ -19,11 +19,11 @@ void FssWMParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[FssWM Parameters]" + GetParametersInfo());
 }
 
-FssWMKey::FssWMKey(const uint32_t id, const FssWMParameters &params)
+FssWMKey::FssWMKey(const uint64_t id, const FssWMParameters &params)
     : num_os_keys(params.GetSigma()),
       params_(params) {
     os_keys.reserve(num_os_keys);
-    for (uint32_t i = 0; i < num_os_keys; ++i) {
+    for (uint64_t i = 0; i < num_os_keys; ++i) {
         os_keys.emplace_back(OblivSelectKey(id, params.GetOSParameters()));
     }
     serialized_size_ = CalculateSerializedSize();
@@ -31,7 +31,7 @@ FssWMKey::FssWMKey(const uint32_t id, const FssWMParameters &params)
 
 size_t FssWMKey::CalculateSerializedSize() const {
     size_t size = sizeof(num_os_keys);
-    for (uint32_t i = 0; i < num_os_keys; ++i) {
+    for (uint64_t i = 0; i < num_os_keys; ++i) {
         size += os_keys[i].GetSerializedSize();
     }
     return size;
@@ -54,7 +54,7 @@ void FssWMKey::Serialize(std::vector<uint8_t> &buffer) const {
 
     // Check size
     if (buffer.size() != serialized_size_) {
-        Logger::ErrorLog(LOC, "Serialized size mismatch: " + std::to_string(buffer.size()) + " != " + std::to_string(serialized_size_));
+        Logger::ErrorLog(LOC, "Serialized size mismatch: " + ToString(buffer.size()) + " != " + ToString(serialized_size_));
         return;
     }
 }
@@ -79,32 +79,29 @@ void FssWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
 
 void FssWMKey::PrintKey(const bool detailed) const {
     Logger::DebugLog(LOC, Logger::StrWithSep("FssWM Key"));
-    Logger::DebugLog(LOC, "Number of OblivSelect Keys: " + std::to_string(num_os_keys));
-    for (uint32_t i = 0; i < num_os_keys; ++i) {
+    Logger::DebugLog(LOC, "Number of OblivSelect Keys: " + ToString(num_os_keys));
+    for (uint64_t i = 0; i < num_os_keys; ++i) {
         os_keys[i].PrintKey(detailed);
     }
 }
 
 FssWMKeyGenerator::FssWMKeyGenerator(
     const FssWMParameters              &params,
-    sharing::AdditiveSharing2P         &ass,
     sharing::BinarySharing2P           &bss,
     sharing::BinaryReplicatedSharing3P &brss)
     : params_(params),
-      os_gen_(params.GetOSParameters(), ass, bss),
+      os_gen_(params.GetOSParameters(), bss),
       brss_(brss) {
 }
 
-std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> FssWMKeyGenerator::GenerateDatabaseShare(const FMIndex &fm) {
-    std::array<sharing::RepShareMat, 3> rank0_sh = brss_.ShareLocal(fm.GetRank0Tables());
-    std::array<sharing::RepShareMat, 3> rank1_sh = brss_.ShareLocal(fm.GetRank1Tables());
-
-    std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> db_sh;
-    for (size_t p = 0; p < sharing::kNumParties; ++p) {
-        db_sh[p].first  = std::move(rank0_sh[p]);
-        db_sh[p].second = std::move(rank1_sh[p]);
+std::array<sharing::RepShareMatBlock, 3> FssWMKeyGenerator::GenerateDatabaseShare(const FMIndex &fm) {
+    const std::vector<uint64_t> &rank0_tables = fm.GetRank0Tables();
+    const std::vector<uint64_t> &rank1_tables = fm.GetRank1Tables();
+    std::vector<block>           database(rank0_tables.size());
+    for (size_t i = 0; i < rank0_tables.size(); ++i) {
+        database[i] = osuCrypto::toBlock(rank1_tables[i], rank0_tables[i]);
     }
-    return db_sh;
+    return brss_.ShareLocal(database, rank0_tables.size(), fm.GetWaveletMatrix().GetSigma());
 }
 
 std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
@@ -119,7 +116,7 @@ std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
     Logger::DebugLog(LOC, Logger::StrWithSep("Generate FssWM keys"));
 #endif
 
-    for (uint32_t i = 0; i < keys[0].num_os_keys; ++i) {
+    for (uint64_t i = 0; i < keys[0].num_os_keys; ++i) {
         // Generate the OblivSelect keys
         std::array<OblivSelectKey, 3> os_key = os_gen_.GenerateKeys();
 
@@ -142,72 +139,38 @@ std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
 
 FssWMEvaluator::FssWMEvaluator(
     const FssWMParameters              &params,
-    sharing::ReplicatedSharing3P       &rss,
     sharing::BinaryReplicatedSharing3P &brss)
     : params_(params),
-      os_eval_(params.GetOSParameters(), rss, brss),
-      rss_(rss), brss_(brss) {
+      os_eval_(params.GetOSParameters(), brss),
+      brss_(brss) {
 }
 
-void FssWMEvaluator::EvaluateRankCF(sharing::Channels          &chls,
-                                    std::vector<block>         &uv_prev,
-                                    std::vector<block>         &uv_next,
-                                    const FssWMKey             &key,
-                                    const sharing::RepShareMat &wm_table0,
-                                    const sharing::RepShareMat &wm_table1,
-                                    const sharing::RepShareVec &char_sh,
-                                    sharing::RepShare          &position_sh,
-                                    sharing::RepShare          &result) const {
+void FssWMEvaluator::EvaluateRankCF(Channels                        &chls,
+                                    const FssWMKey                  &key,
+                                    const sharing::RepShareMatBlock &wm_tables,
+                                    const sharing::RepShareView64   &char_sh,
+                                    sharing::RepShare64             &position_sh,
+                                    sharing::RepShare64             &result) const {
 
-    uint32_t d        = params_.GetDatabaseBitSize();
-    uint32_t ds       = params_.GetDatabaseSize();
-    uint32_t sigma    = params_.GetSigma();
-    uint32_t party_id = chls.party_id;
+    uint64_t d        = params_.GetDatabaseBitSize();
+    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssWM key"));
-    Logger::DebugLog(LOC, "Database bit size: " + std::to_string(d));
-    Logger::DebugLog(LOC, "Database size: " + std::to_string(ds));
-    Logger::DebugLog(LOC, "Sigma: " + std::to_string(sigma));
-    Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
-    std::string party_str = "[P" + std::to_string(party_id) + "] ";
+    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
+    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
 #endif
 
-    for (uint32_t i = 0; i < sigma; ++i) {
-        sharing::RepShare rank0_sh, rank1_sh;
-        os_eval_.EvaluateBinary(chls, uv_prev, uv_next, key.os_keys[i], wm_table0.RowView(i), wm_table1.RowView(i), position_sh, rank0_sh, rank1_sh);
-        brss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
-    }
-    result = position_sh;
-}
-
-void FssWMEvaluator::EvaluateRankCF(sharing::Channels              &chls,
-                                    std::vector<block>             &uv_prev,
-                                    std::vector<block>             &uv_next,
-                                    const FssWMKey                 &key,
-                                    const sharing::RepShareMat     &wm_table0,
-                                    const sharing::RepShareMat     &wm_table1,
-                                    const sharing::RepShareVecView &char_sh,
-                                    sharing::RepShare              &position_sh,
-                                    sharing::RepShare              &result) const {
-
-    uint32_t d        = params_.GetDatabaseBitSize();
-    uint32_t ds       = params_.GetDatabaseSize();
-    uint32_t sigma    = params_.GetSigma();
-    uint32_t party_id = chls.party_id;
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssWM key"));
-    Logger::DebugLog(LOC, "Database bit size: " + std::to_string(d));
-    Logger::DebugLog(LOC, "Database size: " + std::to_string(ds));
-    Logger::DebugLog(LOC, "Sigma: " + std::to_string(sigma));
-    Logger::DebugLog(LOC, "Party ID: " + std::to_string(party_id));
-    std::string party_str = "[P" + std::to_string(party_id) + "] ";
-#endif
-
-    for (uint32_t i = 0; i < sigma; ++i) {
-        sharing::RepShare rank0_sh, rank1_sh;
-        os_eval_.EvaluateBinary(chls, uv_prev, uv_next, key.os_keys[i], wm_table0.RowView(i), wm_table1.RowView(i), position_sh, rank0_sh, rank1_sh);
+    for (uint64_t i = 0; i < sigma; ++i) {
+        sharing::RepShareBlock rank01_sh;
+        os_eval_.Evaluate(chls, key.os_keys[i], wm_tables.RowView(i), position_sh, rank01_sh);
+        sharing::RepShare64 rank0_sh, rank1_sh;
+        // TODO: rank01_shをrank0_shとrank1_shに分離する
         brss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
     }
     result = position_sh;

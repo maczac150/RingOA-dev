@@ -4,8 +4,8 @@
 #include <functional>
 #include <thread>
 
-#include "cryptoTools/Network/Channel.h"
-#include "cryptoTools/Network/IOService.h"
+#include <cryptoTools/Network/Channel.h>
+#include <cryptoTools/Network/IOService.h>
 
 namespace fsswm {
 
@@ -32,13 +32,13 @@ public:
      * @brief Start the server
      * @param server_task Task to execute on the server
      */
-    void StartServer(std::function<void(oc::Channel &)> server_task);
+    void StartServer(std::function<void(osuCrypto::Channel &)> server_task);
 
     /**
      * @brief Start the client
      * @param client_task Task to execute on the client
      */
-    void StartClient(std::function<void(oc::Channel &)> client_task);
+    void StartClient(std::function<void(osuCrypto::Channel &)> client_task);
 
     /**
      * @brief Automatically configure server and client based on party ID.
@@ -46,9 +46,9 @@ public:
      * @param server_task Task to execute on the server
      * @param client_task Task to execute on the client
      */
-    void AutoConfigure(int                                party_id,
-                       std::function<void(oc::Channel &)> server_task,
-                       std::function<void(oc::Channel &)> client_task);
+    void AutoConfigure(int                                       party_id,
+                       std::function<void(osuCrypto::Channel &)> server_task,
+                       std::function<void(osuCrypto::Channel &)> client_task);
 
     /**
      * @brief Wait for both server and client threads to complete
@@ -56,12 +56,12 @@ public:
     void WaitForCompletion();
 
 private:
-    std::string   channel_name_;
-    std::string   ip_address_;
-    uint16_t      port_;
-    oc::IOService ios_;
-    std::thread   server_thread_;
-    std::thread   client_thread_;
+    std::string          channel_name_;
+    std::string          ip_address_;
+    uint16_t             port_;
+    osuCrypto::IOService ios_;
+    std::thread          server_thread_;
+    std::thread          client_thread_;
 };
 
 /**
@@ -81,22 +81,44 @@ public:
     ThreePartyNetworkManager(const std::string &ip_address = DEFAULT_IP,
                              uint16_t           port       = DEFAULT_PORT);
 
-    void Start(const uint32_t party_id, std::function<void(oc::Channel &, oc::Channel &)> task);
+    void Start(const uint32_t party_id, std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> task);
 
-    void AutoConfigure(int                                               party_id,
-                       std::function<void(oc::Channel &, oc::Channel &)> party0_task,
-                       std::function<void(oc::Channel &, oc::Channel &)> party1_task,
-                       std::function<void(oc::Channel &, oc::Channel &)> party2_task);
+    void AutoConfigure(int                                                             party_id,
+                       std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party0_task,
+                       std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party1_task,
+                       std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party2_task);
 
     void WaitForCompletion();
 
 private:
-    std::string   ip_address_;
-    uint16_t      port_;
-    oc::IOService ios_;
-    std::thread   party0_thread_;
-    std::thread   party1_thread_;
-    std::thread   party2_thread_;
+    std::string          ip_address_;
+    uint16_t             port_;
+    osuCrypto::IOService ios_;
+    std::thread          party0_thread_;
+    std::thread          party1_thread_;
+    std::thread          party2_thread_;
+};
+
+/**
+ * @brief Channels structure for managing three-party communication
+ */
+struct Channels {
+    uint32_t           party_id;
+    osuCrypto::Channel prev;
+    osuCrypto::Channel next;
+
+    Channels(const uint32_t party_id, osuCrypto::Channel &prev, osuCrypto::Channel &next)
+        : party_id(party_id), prev(prev), next(next) {
+    }
+
+    uint64_t GetStats() {
+        return prev.getTotalDataSent() + next.getTotalDataSent();
+    }
+
+    void ResetStats() {
+        prev.resetStats();
+        next.resetStats();
+    }
 };
 
 }    // namespace fsswm

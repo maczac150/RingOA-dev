@@ -10,10 +10,10 @@ TwoPartyNetworkManager::TwoPartyNetworkManager(const std::string &channel_name,
     : channel_name_(channel_name), ip_address_(ip_address), port_(port), ios_() {
 }
 
-void TwoPartyNetworkManager::StartServer(std::function<void(oc::Channel &)> server_task) {
+void TwoPartyNetworkManager::StartServer(std::function<void(osuCrypto::Channel &)> server_task) {
     server_thread_ = std::thread([&, server_task]() {
-        oc::Session server(ios_, ip_address_, port_, oc::SessionMode::Server);
-        auto        chl = server.addChannel(channel_name_, channel_name_);
+        osuCrypto::Session server(ios_, ip_address_, port_, osuCrypto::SessionMode::Server);
+        auto               chl = server.addChannel(channel_name_, channel_name_);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         Logger::DebugLog(LOC, "=============================");
@@ -30,10 +30,10 @@ void TwoPartyNetworkManager::StartServer(std::function<void(oc::Channel &)> serv
     });
 }
 
-void TwoPartyNetworkManager::StartClient(std::function<void(oc::Channel &)> client_task) {
+void TwoPartyNetworkManager::StartClient(std::function<void(osuCrypto::Channel &)> client_task) {
     client_thread_ = std::thread([&, client_task]() {
-        oc::Session client(ios_, ip_address_, port_, oc::SessionMode::Client);
-        auto        chl = client.addChannel(channel_name_, channel_name_);
+        osuCrypto::Session client(ios_, ip_address_, port_, osuCrypto::SessionMode::Client);
+        auto               chl = client.addChannel(channel_name_, channel_name_);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         Logger::DebugLog(LOC, "=============================");
@@ -50,9 +50,9 @@ void TwoPartyNetworkManager::StartClient(std::function<void(oc::Channel &)> clie
     });
 }
 
-void TwoPartyNetworkManager::AutoConfigure(int                                party_id,
-                                           std::function<void(oc::Channel &)> server_task,
-                                           std::function<void(oc::Channel &)> client_task) {
+void TwoPartyNetworkManager::AutoConfigure(int                                       party_id,
+                                           std::function<void(osuCrypto::Channel &)> server_task,
+                                           std::function<void(osuCrypto::Channel &)> client_task) {
     if (party_id == 0) {
         StartServer(server_task);
     } else if (party_id == 1) {
@@ -77,7 +77,7 @@ ThreePartyNetworkManager::ThreePartyNetworkManager(const std::string &ip_address
     : ip_address_(ip_address), port_(port), ios_() {
 }
 
-void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void(oc::Channel &, oc::Channel &)> task) {
+void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> task) {
     // Start the thread for the specified party
     std::thread *party_thread = nullptr;
     switch (party_id) {
@@ -97,20 +97,20 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
 
     *party_thread = std::thread([&, party_id, task]() {
         // Set up the network configuration
-        uint32_t        id_next           = (party_id + 1) % 3;
-        uint32_t        id_prev           = (party_id + 2) % 3;
-        std::string     session_name_next = "P" + std::to_string(std::min(party_id, id_next)) + "_P" + std::to_string(std::max(party_id, id_next));
-        std::string     session_name_prev = "P" + std::to_string(std::min(party_id, id_prev)) + "_P" + std::to_string(std::max(party_id, id_prev));
-        oc::SessionMode mode_next         = (party_id < id_next) ? oc::SessionMode::Server : oc::SessionMode::Client;
-        oc::SessionMode mode_prev         = (party_id < id_prev) ? oc::SessionMode::Server : oc::SessionMode::Client;
-        uint16_t        port_next         = port_ + std::min(party_id, id_next);
-        uint16_t        port_prev         = port_ + std::min(party_id, id_prev);
+        uint32_t               id_next           = (party_id + 1) % 3;
+        uint32_t               id_prev           = (party_id + 2) % 3;
+        std::string            session_name_next = "P" + std::to_string(std::min(party_id, id_next)) + "_P" + std::to_string(std::max(party_id, id_next));
+        std::string            session_name_prev = "P" + std::to_string(std::min(party_id, id_prev)) + "_P" + std::to_string(std::max(party_id, id_prev));
+        osuCrypto::SessionMode mode_next         = (party_id < id_next) ? osuCrypto::SessionMode::Server : osuCrypto::SessionMode::Client;
+        osuCrypto::SessionMode mode_prev         = (party_id < id_prev) ? osuCrypto::SessionMode::Server : osuCrypto::SessionMode::Client;
+        uint16_t               port_next         = port_ + std::min(party_id, id_next);
+        uint16_t               port_prev         = port_ + std::min(party_id, id_prev);
 
         // Create sessions for next and previous parties
-        oc::Session session_next(ios_, ip_address_, port_next, mode_next, session_name_next);
-        oc::Session session_prev(ios_, ip_address_, port_prev, mode_prev, session_name_prev);
-        auto        chl_next = session_next.addChannel();
-        auto        chl_prev = session_prev.addChannel();
+        osuCrypto::Session session_next(ios_, ip_address_, port_next, mode_next, session_name_next);
+        osuCrypto::Session session_prev(ios_, ip_address_, port_prev, mode_prev, session_name_prev);
+        auto               chl_next = session_next.addChannel();
+        auto               chl_prev = session_prev.addChannel();
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         Logger::DebugLog(LOC, "=============================");
@@ -119,8 +119,8 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
         Logger::DebugLog(LOC, "IP Address  : " + ip_address_);
         Logger::DebugLog(LOC, "Next Port   : " + std::to_string(port_next));
         Logger::DebugLog(LOC, "Prev Port   : " + std::to_string(port_prev));
-        std::string mode_next_str = ((mode_next == oc::SessionMode::Server) ? "Server" : "Client");
-        std::string mode_prev_str = ((mode_prev == oc::SessionMode::Server) ? "Server" : "Client");
+        std::string mode_next_str = ((mode_next == osuCrypto::SessionMode::Server) ? "Server" : "Client");
+        std::string mode_prev_str = ((mode_prev == osuCrypto::SessionMode::Server) ? "Server" : "Client");
         Logger::DebugLog(LOC, "Next Mode   : " + mode_next_str);
         Logger::DebugLog(LOC, "Prev Mode   : " + mode_prev_str);
         Logger::DebugLog(LOC, "Next Channel: " + session_name_next);
@@ -156,10 +156,10 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
     });
 }
 
-void ThreePartyNetworkManager::AutoConfigure(int                                               party_id,
-                                             std::function<void(oc::Channel &, oc::Channel &)> party0_task,
-                                             std::function<void(oc::Channel &, oc::Channel &)> party1_task,
-                                             std::function<void(oc::Channel &, oc::Channel &)> party2_task) {
+void ThreePartyNetworkManager::AutoConfigure(int                                                             party_id,
+                                             std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party0_task,
+                                             std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party1_task,
+                                             std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party2_task) {
     if (party_id == 0) {
         Start(0, party0_task);
     } else if (party_id == 1) {

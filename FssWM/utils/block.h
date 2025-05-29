@@ -2,13 +2,13 @@
 #define UTILS_BLOCK_H_
 
 #include <array>
-#include <immintrin.h>
-
-#include "utils.h"
+#include <cryptoTools/Common/block.h>
+#include <iomanip>
+#include <sstream>
 
 namespace fsswm {
 
-using block = __m128i;
+using block = osuCrypto::block;
 
 /**
  * @brief Create a block from two 64-bit integers.
@@ -16,8 +16,8 @@ using block = __m128i;
  * @param low The lower 64-bit integer.
  * @return The block created from the two integers.
  */
-inline block makeBlock(uint64_t high, uint64_t low) {
-    return _mm_set_epi64x(high, low);
+inline block MakeBlock(uint64_t high, uint64_t low) {
+    return osuCrypto::toBlock(high, low);
 }
 
 /**
@@ -25,45 +25,27 @@ inline block makeBlock(uint64_t high, uint64_t low) {
  * @param x The block to be checked.
  * @return The least significant bit of the block.
  */
-inline bool getLSB(const block &x) {
-    return (x[0] & 1) == 1;
+inline bool GetLsb(const block &x) {
+    // Extract low 64 bits then check bit-0
+    return (_mm_extract_epi64(x.mData, 0) & 1) != 0;
 }
 
 /**
- * @brief Get the most significant bit of a block.
- * @param x The block to be checked.
- * @return The most significant bit of the block.
+ * @brief Set the least significant bit of a block to zero.
+ * @param x The block to be modified.
  */
-inline int log2floor(uint32_t x) {
-    return x == 0 ? -1 : 31 - __builtin_clz(x);
+inline void SetLsbZero(block &x) {
+    // Set the least significant bit to zero
+    x.mData = _mm_andnot_si128(_mm_set_epi64x(0, 1), x.mData);
 }
 
-const block                zero_block       = makeBlock(0, 0);
-const block                one_block        = makeBlock(0, 1);
-const block                all_one_block    = makeBlock(uint64_t(-1), uint64_t(-1));
-const std::array<block, 2> zero_and_all_one = {zero_block, all_one_block};
-
-/**
- * @brief Converts a block to a std::string representation.
- * @param b The block to be converted.
- * @param format The format type of the output string.
- * @return A std::string representation of the block.
- */
-std::string ToString(const block &blk, FormatType format = FormatType::kHex);
-
-/**
- * @brief Compares two blocks for equality.
- * @param lhs The first block to be compared.
- * @param rhs The second block to be compared.
- * @return A boolean value indicating whether the two blocks are equal.
- */
-bool Equal(const block &lhs, const block &rhs);
-
-/**
- * @brief Sets a random block.
- * @return A random block.
- */
-block SetRandomBlock();
+// Predefined constants
+static const block                zero_block         = MakeBlock(0, 0);
+static const block                one_block          = MakeBlock(0, 1);
+static const block                not_one_block      = MakeBlock(uint64_t(-1), uint64_t(-2));
+static const block                all_one_block      = MakeBlock(uint64_t(-1), uint64_t(-1));
+static const std::array<block, 2> zero_and_all_one   = {zero_block, all_one_block};
+static const block                all_bytes_one_mask = _mm_set1_epi8(0x01);
 
 }    // namespace fsswm
 

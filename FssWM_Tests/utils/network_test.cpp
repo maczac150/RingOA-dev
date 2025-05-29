@@ -1,6 +1,6 @@
 #include "network_test.h"
 
-#include "cryptoTools/Common/TestCollection.h"
+#include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/network.h"
@@ -14,7 +14,7 @@ using fsswm::ThreePartyNetworkManager;
 using fsswm::ToString;
 using fsswm::TwoPartyNetworkManager;
 
-void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
+void Network_TwoPartyManager_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "Network_Manager_Test...");
 
     // Create NetworkManager
@@ -35,7 +35,7 @@ void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
     std::array<uint32_t, 5> arr_server_received, arr_client_received;
 
     // Server task
-    auto server_task = [&](oc::Channel &chl) {
+    auto server_task = [&](osuCrypto::Channel &chl) {
         chl.recv(str_server_received);
         Logger::DebugLog(LOC, "1. Server received string: " + str_server_received);
 
@@ -43,10 +43,10 @@ void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
         Logger::DebugLog(LOC, "1. Server sent string: " + str_server);
 
         chl.recv(val_server_received);
-        Logger::DebugLog(LOC, "2. Server received value: " + std::to_string(val_server_received));
+        Logger::DebugLog(LOC, "2. Server received value: " + ToString(val_server_received));
 
         chl.send(val_server);
-        Logger::DebugLog(LOC, "2. Server sent value: " + std::to_string(val_server));
+        Logger::DebugLog(LOC, "2. Server sent value: " + ToString(val_server));
 
         chl.recv(vec_server_received);
         Logger::DebugLog(LOC, "3. Server received vector: " + ToString(vec_server_received));
@@ -62,7 +62,7 @@ void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
     };
 
     // Client task
-    auto client_task = [&](oc::Channel &chl) {
+    auto client_task = [&](osuCrypto::Channel &chl) {
         chl.send(str_client);
         Logger::DebugLog(LOC, "1. Client sent string: " + str_client);
 
@@ -70,10 +70,10 @@ void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
         Logger::DebugLog(LOC, "1. Client received string: " + str_client_received);
 
         chl.send(val_client);
-        Logger::DebugLog(LOC, "2. Client sent value: " + std::to_string(val_client));
+        Logger::DebugLog(LOC, "2. Client sent value: " + ToString(val_client));
 
         chl.recv(val_client_received);
-        Logger::DebugLog(LOC, "2. Client received value: " + std::to_string(val_client_received));
+        Logger::DebugLog(LOC, "2. Client received value: " + ToString(val_client_received));
 
         chl.send(vec_client);
         Logger::DebugLog(LOC, "3. Client sent vector: " + ToString(vec_client));
@@ -100,45 +100,45 @@ void Network_TwoPartyManager_Test(const oc::CLP &cmd) {
     // Assertions
     if (party_id == 0) {    // Server
         if (str_server_received != str_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (val_server_received != val_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (vec_server_received != vec_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (arr_server_received != arr_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
     } else if (party_id == 1) {    // Client
         if (str_client_received != str_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
         if (val_client_received != val_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
         if (vec_client_received != vec_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
         if (arr_client_received != arr_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
     } else {
         if (str_server_received != str_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (str_client_received != str_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
         if (val_server_received != val_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (val_client_received != val_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
         if (vec_server_received != vec_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (vec_client_received != vec_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
         if (arr_server_received != arr_client)
-            throw oc::UnitTestFail("Server received wrong message");
+            throw osuCrypto::UnitTestFail("Server received wrong message");
         if (arr_client_received != arr_server)
-            throw oc::UnitTestFail("Client received wrong message");
+            throw osuCrypto::UnitTestFail("Client received wrong message");
     }
 
     Logger::DebugLog(LOC, "Network_Manager_Test - Passed");
 }
 
-void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
+void Network_ThreePartyManager_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "Network_ThreePartyManager_Test...");
 
     // Create NetworkManager
@@ -159,7 +159,7 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
     std::vector<uint32_t> vec_p0_from_p1, vec_p0_from_p2, vec_p1_from_p0, vec_p1_from_p2, vec_p2_from_p0, vec_p2_from_p1;
 
     // Party 0 task
-    auto task_p0 = [&](oc::Channel &chl_next, oc::Channel &chl_prev) {
+    auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
         chl_next.send(str_p0);
         chl_prev.send(str_p0);
         chl_next.recv(str_p0_from_p1);
@@ -171,8 +171,8 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
         chl_prev.send(val_p0);
         chl_next.recv(val_p0_from_p1);
         chl_prev.recv(val_p0_from_p2);
-        Logger::DebugLog(LOC, "[Party 0] received value from Party 1: " + std::to_string(val_p0_from_p1));
-        Logger::DebugLog(LOC, "[Party 0] received value from Party 2: " + std::to_string(val_p0_from_p2));
+        Logger::DebugLog(LOC, "[Party 0] received value from Party 1: " + ToString(val_p0_from_p1));
+        Logger::DebugLog(LOC, "[Party 0] received value from Party 2: " + ToString(val_p0_from_p2));
 
         chl_next.send(vec_p0);
         chl_prev.send(vec_p0);
@@ -183,7 +183,7 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
     };
 
     // Party 1 task
-    auto task_p1 = [&](oc::Channel &chl_next, oc::Channel &chl_prev) {
+    auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
         chl_prev.recv(str_p1_from_p0);
         chl_next.send(str_p1);
         chl_prev.send(str_p1);
@@ -195,8 +195,8 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
         chl_next.send(val_p1);
         chl_prev.send(val_p1);
         chl_next.recv(val_p1_from_p2);
-        Logger::DebugLog(LOC, "[Party 1] received value from Party 0: " + std::to_string(val_p1_from_p0));
-        Logger::DebugLog(LOC, "[Party 1] received value from Party 2: " + std::to_string(val_p1_from_p2));
+        Logger::DebugLog(LOC, "[Party 1] received value from Party 0: " + ToString(val_p1_from_p0));
+        Logger::DebugLog(LOC, "[Party 1] received value from Party 2: " + ToString(val_p1_from_p2));
 
         chl_prev.recv(vec_p1_from_p0);
         chl_next.send(vec_p1);
@@ -207,7 +207,7 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
     };
 
     // Party 2 task
-    auto task_p2 = [&](oc::Channel &chl_next, oc::Channel &chl_prev) {
+    auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
         chl_prev.recv(str_p2_from_p1);
         chl_next.recv(str_p2_from_p0);
         chl_prev.send(str_p2);
@@ -219,8 +219,8 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
         chl_next.recv(val_p2_from_p0);
         chl_prev.send(val_p2);
         chl_next.send(val_p2);
-        Logger::DebugLog(LOC, "[Party 2] received value from Party 0: " + std::to_string(val_p2_from_p0));
-        Logger::DebugLog(LOC, "[Party 2] received value from Party 1: " + std::to_string(val_p2_from_p1));
+        Logger::DebugLog(LOC, "[Party 2] received value from Party 0: " + ToString(val_p2_from_p0));
+        Logger::DebugLog(LOC, "[Party 2] received value from Party 1: " + ToString(val_p2_from_p1));
 
         chl_prev.recv(vec_p2_from_p1);
         chl_next.recv(vec_p2_from_p0);
@@ -242,80 +242,80 @@ void Network_ThreePartyManager_Test(const oc::CLP &cmd) {
     // Assertions
     if (party_id == 0) {
         if (str_p0_from_p1 != str_p1)
-            throw oc::UnitTestFail("Party 0 received wrong message from Party 1");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong message from Party 1");
         if (str_p0_from_p2 != str_p2)
-            throw oc::UnitTestFail("Party 0 received wrong message from Party 2");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong message from Party 2");
         if (val_p0_from_p1 != val_p1)
-            throw oc::UnitTestFail("Party 0 received wrong value from Party 1");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong value from Party 1");
         if (val_p0_from_p2 != val_p2)
-            throw oc::UnitTestFail("Party 0 received wrong value from Party 2");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong value from Party 2");
         if (vec_p0_from_p1 != vec_p1)
-            throw oc::UnitTestFail("Party 0 received wrong vector from Party 1");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong vector from Party 1");
         if (vec_p0_from_p2 != vec_p2)
-            throw oc::UnitTestFail("Party 0 received wrong vector from Party 2");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong vector from Party 2");
     } else if (party_id == 1) {
         if (str_p1_from_p0 != str_p0)
-            throw oc::UnitTestFail("Party 1 received wrong message from Party 0");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong message from Party 0");
         if (str_p1_from_p2 != str_p2)
-            throw oc::UnitTestFail("Party 1 received wrong message from Party 2");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong message from Party 2");
         if (val_p1_from_p0 != val_p0)
-            throw oc::UnitTestFail("Party 1 received wrong value from Party 0");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong value from Party 0");
         if (val_p1_from_p2 != val_p2)
-            throw oc::UnitTestFail("Party 1 received wrong value from Party 2");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong value from Party 2");
         if (vec_p1_from_p0 != vec_p0)
-            throw oc::UnitTestFail("Party 1 received wrong vector from Party 0");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong vector from Party 0");
         if (vec_p1_from_p2 != vec_p2)
-            throw oc::UnitTestFail("Party 1 received wrong vector from Party 2");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong vector from Party 2");
     } else if (party_id == 2) {
         if (str_p2_from_p0 != str_p0)
-            throw oc::UnitTestFail("Party 2 received wrong message from Party 0");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong message from Party 0");
         if (str_p2_from_p1 != str_p1)
-            throw oc::UnitTestFail("Party 2 received wrong message from Party 1");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong message from Party 1");
         if (val_p2_from_p0 != val_p0)
-            throw oc::UnitTestFail("Party 2 received wrong value from Party 0");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong value from Party 0");
         if (val_p2_from_p1 != val_p1)
-            throw oc::UnitTestFail("Party 2 received wrong value from Party 1");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong value from Party 1");
         if (vec_p2_from_p0 != vec_p0)
-            throw oc::UnitTestFail("Party 2 received wrong vector from Party 0");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong vector from Party 0");
         if (vec_p2_from_p1 != vec_p1)
-            throw oc::UnitTestFail("Party 2 received wrong vector from Party 1");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong vector from Party 1");
     } else {
         if (str_p0_from_p1 != str_p1)
-            throw oc::UnitTestFail("Party 0 received wrong message from Party 1");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong message from Party 1");
         if (str_p0_from_p2 != str_p2)
-            throw oc::UnitTestFail("Party 0 received wrong message from Party 2");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong message from Party 2");
         if (str_p1_from_p0 != str_p0)
-            throw oc::UnitTestFail("Party 1 received wrong message from Party 0");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong message from Party 0");
         if (str_p1_from_p2 != str_p2)
-            throw oc::UnitTestFail("Party 1 received wrong message from Party 2");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong message from Party 2");
         if (str_p2_from_p0 != str_p0)
-            throw oc::UnitTestFail("Party 2 received wrong message from Party 0");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong message from Party 0");
         if (str_p2_from_p1 != str_p1)
-            throw oc::UnitTestFail("Party 2 received wrong message from Party 1");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong message from Party 1");
         if (val_p0_from_p1 != val_p1)
-            throw oc::UnitTestFail("Party 0 received wrong value from Party 1");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong value from Party 1");
         if (val_p0_from_p2 != val_p2)
-            throw oc::UnitTestFail("Party 0 received wrong value from Party 2");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong value from Party 2");
         if (val_p1_from_p0 != val_p0)
-            throw oc::UnitTestFail("Party 1 received wrong value from Party 0");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong value from Party 0");
         if (val_p1_from_p2 != val_p2)
-            throw oc::UnitTestFail("Party 1 received wrong value from Party 2");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong value from Party 2");
         if (val_p2_from_p0 != val_p0)
-            throw oc::UnitTestFail("Party 2 received wrong value from Party 0");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong value from Party 0");
         if (val_p2_from_p1 != val_p1)
-            throw oc::UnitTestFail("Party 2 received wrong value from Party 1");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong value from Party 1");
         if (vec_p0_from_p1 != vec_p1)
-            throw oc::UnitTestFail("Party 0 received wrong vector from Party 1");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong vector from Party 1");
         if (vec_p0_from_p2 != vec_p2)
-            throw oc::UnitTestFail("Party 0 received wrong vector from Party 2");
+            throw osuCrypto::UnitTestFail("Party 0 received wrong vector from Party 2");
         if (vec_p1_from_p0 != vec_p0)
-            throw oc::UnitTestFail("Party 1 received wrong vector from Party 0");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong vector from Party 0");
         if (vec_p1_from_p2 != vec_p2)
-            throw oc::UnitTestFail("Party 1 received wrong vector from Party 2");
+            throw osuCrypto::UnitTestFail("Party 1 received wrong vector from Party 2");
         if (vec_p2_from_p0 != vec_p0)
-            throw oc::UnitTestFail("Party 2 received wrong vector from Party 0");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong vector from Party 0");
         if (vec_p2_from_p1 != vec_p1)
-            throw oc::UnitTestFail("Party 2 received wrong vector from Party 1");
+            throw osuCrypto::UnitTestFail("Party 2 received wrong vector from Party 1");
     }
 
     Logger::DebugLog(LOC, "Network_ThreePartyManager_Test - Passed");

@@ -1,6 +1,6 @@
 #include "file_io_test.h"
 
-#include "cryptoTools/Common/TestCollection.h"
+#include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
@@ -33,12 +33,12 @@ void File_Io_Test() {
     std::vector<uint32_t>   vec_bin = {0x12345678, 0x87654321};
     std::array<uint32_t, 2> arr_bin = {0x12345678, 0x87654321};
 
-    Logger::DebugLog(LOC, "val: " + std::to_string(val));
+    Logger::DebugLog(LOC, "val: " + ToString(val));
     Logger::DebugLog(LOC, "str: " + str);
     Logger::DebugLog(LOC, "vec: " + ToString(vec));
     Logger::DebugLog(LOC, "str_vec: " + ToString(str_vec));
     Logger::DebugLog(LOC, "arr: " + ToString(arr));
-    Logger::DebugLog(LOC, "val_bin: " + std::to_string(val_bin));
+    Logger::DebugLog(LOC, "val_bin: " + ToString(val_bin));
     Logger::DebugLog(LOC, "vec_bin: " + ToString(vec_bin));
     Logger::DebugLog(LOC, "arr_bin: " + ToString(arr_bin));
 
@@ -70,32 +70,32 @@ void File_Io_Test() {
     io.ReadFromFileBinary(kTestFileIoPath + "vec_bin", vec_bin_read);
     io.ReadFromFileBinary(kTestFileIoPath + "arr_bin", arr_bin_read);
 
-    Logger::DebugLog(LOC, "val_read: " + std::to_string(val_read));
+    Logger::DebugLog(LOC, "val_read: " + ToString(val_read));
     Logger::DebugLog(LOC, "str_read: " + str_read);
     Logger::DebugLog(LOC, "vec_read: " + ToString(vec_read));
     Logger::DebugLog(LOC, "str_vec_read: " + ToString(str_vec_read));
     Logger::DebugLog(LOC, "arr_read: " + ToString(arr_read));
-    Logger::DebugLog(LOC, "val_bin_read: " + std::to_string(val_bin_read));
+    Logger::DebugLog(LOC, "val_bin_read: " + ToString(val_bin_read));
     Logger::DebugLog(LOC, "vec_bin_read: " + ToString(vec_bin_read));
     Logger::DebugLog(LOC, "arr_bin_read: " + ToString(arr_bin_read));
 
     // Check if the data was read correctly
     if (val != val_read)
-        throw oc::UnitTestFail("Failed to read val correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read val correctly.");
     if (str != str_read)
-        throw oc::UnitTestFail("Failed to read str correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read str correctly.");
     if (vec != vec_read)
-        throw oc::UnitTestFail("Failed to read vec correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read vec correctly.");
     if (str_vec != str_vec_read)
-        throw oc::UnitTestFail("Failed to read str_vec correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read str_vec correctly.");
     if (arr != arr_read)
-        throw oc::UnitTestFail("Failed to read arr correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read arr correctly.");
     if (val_bin != val_bin_read)
-        throw oc::UnitTestFail("Failed to read val_bin correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read val_bin correctly.");
     if (vec_bin != vec_bin_read)
-        throw oc::UnitTestFail("Failed to read vec_bin correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read vec_bin correctly.");
     if (arr_bin != arr_bin_read)
-        throw oc::UnitTestFail("Failed to read arr_bin correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read arr_bin correctly.");
 
     //
     // --- Additional tests (keep original code above) ---
@@ -116,13 +116,13 @@ void File_Io_Test() {
     std::array<int, 3> arr_int_bin   = {1001, 1002, 1003};
 
     // Log original data
-    Logger::DebugLog(LOC, "val_int: " + std::to_string(val_int));
-    Logger::DebugLog(LOC, "val_double: " + std::to_string(val_double));
-    Logger::DebugLog(LOC, "val_float: " + std::to_string(val_float));
+    Logger::DebugLog(LOC, "val_int: " + ToString(val_int));
+    Logger::DebugLog(LOC, "val_double: " + ToString(val_double));
+    Logger::DebugLog(LOC, "val_float: " + ToString(val_float));
     Logger::DebugLog(LOC, "vec_float: " + ToString(vec_float));
     Logger::DebugLog(LOC, "arr_int: " + ToString(arr_int));
     Logger::DebugLog(LOC, "vec_int: " + ToString(vec_int));
-    Logger::DebugLog(LOC, "val_int_bin: " + std::to_string(val_int_bin));
+    Logger::DebugLog(LOC, "val_int_bin: " + ToString(val_int_bin));
     Logger::DebugLog(LOC, "vec_float_bin: " + ToString(vec_float_bin));
     Logger::DebugLog(LOC, "arr_int_bin: " + ToString(arr_int_bin));
 
@@ -165,42 +165,42 @@ void File_Io_Test() {
     io.ReadFromFileBinary(kTestFileIoPath + "arr_int_bin", arr_int_bin_read);
 
     // Log read data
-    Logger::DebugLog(LOC, "val_int_read: " + std::to_string(val_int_read));
-    Logger::DebugLog(LOC, "val_double_read: " + std::to_string(val_double_read));
-    Logger::DebugLog(LOC, "val_float_read: " + std::to_string(val_float_read));
+    Logger::DebugLog(LOC, "val_int_read: " + ToString(val_int_read));
+    Logger::DebugLog(LOC, "val_double_read: " + ToString(val_double_read));
+    Logger::DebugLog(LOC, "val_float_read: " + ToString(val_float_read));
     Logger::DebugLog(LOC, "vec_float_read: " + ToString(vec_float_read));
     Logger::DebugLog(LOC, "arr_int_read: " + ToString(arr_int_read));
     Logger::DebugLog(LOC, "vec_int_read: " + ToString(vec_int_read));
-    Logger::DebugLog(LOC, "val_int_bin_read: " + std::to_string(val_int_bin_read));
+    Logger::DebugLog(LOC, "val_int_bin_read: " + ToString(val_int_bin_read));
     Logger::DebugLog(LOC, "vec_float_bin_read: " + ToString(vec_float_bin_read));
     Logger::DebugLog(LOC, "arr_int_bin_read: " + ToString(arr_int_bin_read));
 
     // Check if the data was read correctly
     if (val_int != val_int_read)
-        throw oc::UnitTestFail("Failed to read val_int correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read val_int correctly.");
     if (std::fabs(val_double - val_double_read) > 1e-5)
-        throw oc::UnitTestFail("Failed to read val_double correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read val_double correctly.");
     if (std::fabs(val_float - val_float_read) > 1e-6f)
-        throw oc::UnitTestFail("Failed to read val_float correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read val_float correctly.");
     if (vec_float != vec_float_read)
-        throw oc::UnitTestFail("Failed to read vec_float correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read vec_float correctly.");
     if (arr_int != arr_int_read)
-        throw oc::UnitTestFail("Failed to read arr_int correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read arr_int correctly.");
     if (vec_int != vec_int_read)
-        throw oc::UnitTestFail("Failed to read vec_int correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read vec_int correctly.");
 
     if (val_int_bin != val_int_bin_read)
-        throw oc::UnitTestFail("Failed to read val_int_bin correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read val_int_bin correctly.");
     if (vec_float_bin.size() != vec_float_bin_read.size()) {
-        throw oc::UnitTestFail("Failed to read vec_float_bin size correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read vec_float_bin size correctly.");
     } else {
         for (size_t i = 0; i < vec_float_bin.size(); ++i) {
             if (std::fabs(vec_float_bin[i] - vec_float_bin_read[i]) > 1e-6f)
-                throw oc::UnitTestFail("Failed to read vec_float_bin correctly (value mismatch).");
+                throw osuCrypto::UnitTestFail("Failed to read vec_float_bin correctly (value mismatch).");
         }
     }
     if (arr_int_bin != arr_int_bin_read)
-        throw oc::UnitTestFail("Failed to read arr_int_bin correctly.");
+        throw osuCrypto::UnitTestFail("Failed to read arr_int_bin correctly.");
 
     Logger::DebugLog(LOC, "File_Io_Test - Passed");
 }

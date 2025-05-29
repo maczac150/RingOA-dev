@@ -36,7 +36,7 @@ public:
      * @param x The x value to evaluate the DPF key.
      * @return The evaluated value at x.
      */
-    uint32_t EvaluateAt(const DpfKey &key, uint32_t x) const;
+    uint64_t EvaluateAt(const DpfKey &key, uint64_t x) const;
 
     /**
      * @brief Evaluate the DPF key for all possible x values.
@@ -44,7 +44,7 @@ public:
      * @param x The x values to evaluate the DPF keys.
      * @param outputs The outputs for the DPF keys.
      */
-    void EvaluateAt(const std::vector<DpfKey> &keys, const std::vector<uint32_t> &x, std::vector<uint32_t> &outputs) const;
+    void EvaluateAt(const std::vector<DpfKey> &keys, const std::vector<uint64_t> &x, std::vector<uint64_t> &outputs) const;
 
     /**
      * @brief Evaluate the DPF key for all possible x values.
@@ -52,7 +52,7 @@ public:
      * @param outputs The outputs for the DPF key.
      */
     void EvaluateFullDomain(const DpfKey &key, std::vector<block> &outputs) const;
-    void EvaluateFullDomain(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void EvaluateFullDomain(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */
@@ -63,7 +63,7 @@ private:
      * @param x The x value to evaluate the DPF key.
      * @return True if the input values are valid, false otherwise.
      */
-    bool ValidateInput(const uint32_t x) const;
+    bool ValidateInput(const uint64_t x) const;
 
     /**
      * @brief Evaluate the DPF key at the given x value using the naive approach.
@@ -71,7 +71,7 @@ private:
      * @param x The x value to evaluate the DPF key.
      * @return The evaluated value at x.
      */
-    uint32_t EvaluateAtNaive(const DpfKey &key, uint32_t x) const;
+    uint64_t EvaluateAtNaive(const DpfKey &key, uint64_t x) const;
 
     /**
      * @brief Evaluate the DPF key at the given x value using the optimized approach.
@@ -79,7 +79,7 @@ private:
      * @param x The x value to evaluate the DPF key.
      * @return The evaluated value at x.
      */
-    uint32_t EvaluateAtOptimized(const DpfKey &key, uint32_t x) const;
+    uint64_t EvaluateAtOptimized(const DpfKey &key, uint64_t x) const;
 
     /**
      * @brief Evaluate the next seed for the DPF key.
@@ -91,7 +91,7 @@ private:
      * @param key The DPF key to evaluate.
      */
     void EvaluateNextSeed(
-        const uint32_t current_level, const block &current_seed, const bool &current_control_bit,
+        const uint64_t current_level, const block &current_seed, const bool &current_control_bit,
         std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
         const DpfKey &key) const;
 
@@ -114,7 +114,7 @@ private:
      * @param key The DPF key to evaluate.
      * @param outputs The outputs for the DPF key.
      */
-    void FullDomainNaive(const DpfKey &key, std::vector<uint32_t> &outputs) const;
+    void FullDomainNaive(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
     /**
      * @brief Traverse the DPF key for the given seed and control bit.
@@ -125,7 +125,7 @@ private:
      * @param j The current index of the DPF key.
      * @param outputs The outputs for the DPF key.
      */
-    void Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint32_t i, uint32_t j, std::vector<block> &outputs) const;
+    void Traverse(const block &current_seed, const bool current_control_bit, const DpfKey &key, uint64_t i, uint64_t j, std::vector<block> &outputs) const;
 
     /**
      * @brief Compute the output block for the DPF key.

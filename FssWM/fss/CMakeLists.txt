@@ -17,4 +17,4 @@ add_library(fss
 target_include_directories(fss PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Link libraries
-target_link_libraries(fss PRIVATE emp-tool oc::cryptoTools utils)
+target_link_libraries(fss PRIVATE oc::cryptoTools utils)

@@ -1,14 +1,17 @@
-#include "cryptoTools/Common/CLP.h"
-#include "cryptoTools/Common/TestCollection.h"
-#include "tests_cryptoTools/UnitTests.h"
+#include <cryptoTools/Common/CLP.h>
+#include <cryptoTools/Common/TestCollection.h>
+#include <random>
+#include <tests_cryptoTools/UnitTests.h>
 
+#include "FssWM/utils/logger.h"
+#include "FssWM/utils/rng.h"
 #include "FssWM_Bench/dpf_bench.h"
 #include "FssWM_Bench/fssfmi_bench.h"
 #include "FssWM_Bench/obliv_select_bench.h"
 
 namespace bench_fsswm {
 
-oc::TestCollection Tests([](oc::TestCollection &t) {
+osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
     t.add("OblivSelect_Offline_Bench", OblivSelect_Offline_Bench);
@@ -43,8 +46,17 @@ void PrintHelp() {
 
 int main(int argc, char **argv) {
     try {
-        oc::CLP cmd(argc, argv);
-        auto    tests = bench_fsswm::Tests;
+#ifndef USE_FIXED_RANDOM_SEED
+        {
+            std::random_device rd;
+            osuCrypto::block   seed = osuCrypto::toBlock(rd(), rd());
+            fsswm::GlobalRng::Initialize(seed);
+        }
+#else
+        fsswm::GlobalRng::Initialize();
+#endif
+        osuCrypto::CLP cmd(argc, argv);
+        auto           tests = bench_fsswm::Tests;
 
         // Display help message
         if (cmd.isSet(helpTags)) {
@@ -60,7 +72,7 @@ int main(int argc, char **argv) {
 
         // Handle test execution
         if (cmd.hasValue(benchTags)) {
-            auto testIdxs    = cmd.getMany<oc::u64>(benchTags);
+            auto testIdxs    = cmd.getMany<osuCrypto::u64>(benchTags);
             int  repeatCount = cmd.getOr(repeatTags, 1);
             int  loopCount   = cmd.getOr(loopTags, 1);
 

@@ -28,18 +28,18 @@ public:
     CharMapper(CharType type = CharType::DNA);
     void Initialize(CharType type);
 
-    const std::unordered_map<char, uint32_t> &GetMap() const;
+    const std::unordered_map<char, uint64_t> &GetMap() const;
     size_t                                    GetSigma() const;
     CharType                                  GetType() const;
     bool                                      IsValidChar(char c) const;
 
-    std::vector<uint32_t> ToIds(const std::string &s) const;
-    uint32_t              ToId(char c) const;
-    std::string           ToString(const std::vector<uint32_t> &v) const;
+    std::vector<uint64_t> ToIds(const std::string &s) const;
+    uint64_t              ToId(char c) const;
+    std::string           ToString(const std::vector<uint64_t> &v) const;
     std::string           MapToString() const;
 
 private:
-    std::unordered_map<char, uint32_t> char2id_;
+    std::unordered_map<char, uint64_t> char2id_;
     std::vector<char>                  id2char_;
     size_t                             sigma_;
     CharType                           type_;
@@ -51,36 +51,31 @@ private:
 class WaveletMatrix {
 public:
     WaveletMatrix()                                     = default;
-    WaveletMatrix(const WaveletMatrix &)                = default;
-    WaveletMatrix(WaveletMatrix &&) noexcept            = default;
-    WaveletMatrix &operator=(const WaveletMatrix &)     = default;
-    WaveletMatrix &operator=(WaveletMatrix &&) noexcept = default;
 
     explicit WaveletMatrix(const std::string &data, const CharType type = CharType::DNA);
-    explicit WaveletMatrix(const std::vector<uint32_t> &data, const size_t sigma);
+    explicit WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma);
 
-    size_t                                    GetLength() const;
-    size_t                                    GetSigma() const;
-    const CharMapper                         &GetMapper() const;
-    std::string                               GetMapString() const;
-    const std::vector<uint32_t>              &GetData() const;
-    const std::vector<std::vector<uint32_t>> &GetRank0Tables() const;
-    const std::vector<std::vector<uint32_t>> &GetRank1Tables() const;
-    void                                      PrintRank0Tables() const;
-    void                                      PrintRank1Tables() const;
+    size_t                       GetLength() const;
+    size_t                       GetSigma() const;
+    const CharMapper            &GetMapper() const;
+    std::string                  GetMapString() const;
+    const std::vector<uint64_t> &GetData() const;
+    const std::vector<uint64_t> &GetRank0Tables() const;
+    const std::vector<uint64_t> &GetRank1Tables() const;
+    void                         PrintRank0Tables() const;
+    void                         PrintRank1Tables() const;
 
-    uint32_t RankCF(uint32_t c, size_t position) const;
+    uint64_t RankCF(uint64_t c, size_t position) const;
 
 private:
-    size_t                             length_;
-    size_t                             sigma_;
-    CharMapper                         mapper_;
-    std::vector<uint32_t>              data_;
-    std::vector<std::vector<uint32_t>> rank0_tables_;
-    std::vector<std::vector<uint32_t>> rank1_tables_;
+    size_t                length_;
+    size_t                sigma_;
+    CharMapper            mapper_;
+    std::vector<uint64_t> data_;
+    std::vector<uint64_t> rank0_tables_;
+    std::vector<uint64_t> rank1_tables_;
 
-    void Build(const std::vector<uint32_t> &data);
-    void SetRank1Tables();
+    void Build(const std::vector<uint64_t> &data);
 };
 
 class FMIndex {
@@ -91,15 +86,15 @@ public:
     FMIndex &operator=(const FMIndex &)     = default;
     FMIndex &operator=(FMIndex &&) noexcept = default;
 
-    const WaveletMatrix                      &GetWaveletMatrix() const;
-    const std::vector<std::vector<uint32_t>> &GetRank0Tables() const;
-    const std::vector<std::vector<uint32_t>> &GetRank1Tables() const;
+    const WaveletMatrix         &GetWaveletMatrix() const;
+    const std::vector<uint64_t> &GetRank0Tables() const;
+    const std::vector<uint64_t> &GetRank1Tables() const;
 
-    std::vector<std::vector<uint32_t>> ConvertToBitMatrix(const std::string &query) const;
+    std::vector<uint64_t> ConvertToBitMatrix(const std::string &query) const;
 
     // Search query in text, returns the Longest Prefix Match Length
-    uint32_t ComputeLPMfromWM(const std::string &query) const;
-    uint32_t ComputeLPMfromBWT(const std::string &query) const;
+    uint64_t ComputeLPMfromWM(const std::string &query) const;
+    uint64_t ComputeLPMfromBWT(const std::string &query) const;
 
 private:
     std::string   text_;    /**< original text + sentinel */
@@ -110,7 +105,7 @@ private:
     void BuildBwt();
 
     // Backward search [top, bottom) range
-    void BackwardSearch(char c, uint32_t &left, uint32_t &right) const;
+    void BackwardSearch(char c, uint64_t &left, uint64_t &right) const;
 };
 
 }    // namespace wm

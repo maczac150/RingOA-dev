@@ -1,6 +1,6 @@
 #include "binary_2p.h"
 
-#include "cryptoTools/Network/Channel.h"
+#include <cryptoTools/Network/Channel.h>
 
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
@@ -10,14 +10,13 @@
 namespace fsswm {
 namespace sharing {
 
-BinarySharing2P::BinarySharing2P(const uint32_t bitsize)
+BinarySharing2P::BinarySharing2P(const uint64_t bitsize)
     : bitsize_(bitsize), triples_(0), triple_index_(0) {
-    prng_.SetSeed(oc::toBlock(SecureRng::Rand64(), SecureRng::Rand64()));
 }
 
-void BinarySharing2P::OfflineSetUp(const uint32_t num_triples, const std::string &file_path) const {
+void BinarySharing2P::OfflineSetUp(const uint64_t num_triples, const std::string &file_path) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Offline setup for BinarySharing2P with " + std::to_string(num_triples) + " triples.");
+    Logger::DebugLog(LOC, "Offline setup for BinarySharing2P with " + ToString(num_triples) + " triples.");
 #endif
 
     // Generate Beaver triples
@@ -25,8 +24,7 @@ void BinarySharing2P::OfflineSetUp(const uint32_t num_triples, const std::string
     GenerateBeaverTriples(num_triples, bitsize_, triples);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Generated Beaver triples");
-    triples.DebugLog();
+    Logger::DebugLog(LOC, "Generated Beaver triples: " + triples.ToString());
 #endif
 
     // Save Beaver triples
@@ -34,57 +32,55 @@ void BinarySharing2P::OfflineSetUp(const uint32_t num_triples, const std::string
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Shared Beaver triples");
-    Logger::DebugLog(LOC, "Party 0:");
-    triples_sh.first.DebugLog();
-    Logger::DebugLog(LOC, "Party 1:");
-    triples_sh.second.DebugLog();
+    Logger::DebugLog(LOC, "Party 0: " + triples_sh.first.ToString());
+    Logger::DebugLog(LOC, "Party 1: " + triples_sh.second.ToString());
 #endif
     SaveTriplesShareToFile(triples_sh.first, triples_sh.second, file_path);
 }
 
-void BinarySharing2P::OnlineSetUp(const uint32_t party_id, const std::string &file_path) {
+void BinarySharing2P::OnlineSetUp(const uint64_t party_id, const std::string &file_path) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Party " + std::to_string(party_id) + ": Online setup for BinarySharing2P.");
+    Logger::DebugLog(LOC, "Party " + ToString(party_id) + ": Online setup for BinarySharing2P.");
 #endif
     LoadTriplesShareFromFile(party_id, file_path);
 }
 
-std::pair<uint32_t, uint32_t> BinarySharing2P::Share(const uint32_t &x) const {
-    uint32_t x_0 = Mod(prng_.get<uint32_t>(), bitsize_);
-    uint32_t x_1 = x ^ x_0;
+std::pair<uint64_t, uint64_t> BinarySharing2P::Share(const uint64_t &x) const {
+    uint64_t x_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    uint64_t x_1 = x ^ x_0;
     return std::make_pair(x_0, x_1);
 }
 
-std::pair<std::array<uint32_t, 2>, std::array<uint32_t, 2>> BinarySharing2P::Share(const std::array<uint32_t, 2> &x) const {
-    std::array<uint32_t, 2> x_0, x_1;
-    x_0[0] = Mod(prng_.get<uint32_t>(), bitsize_);
-    x_0[1] = Mod(prng_.get<uint32_t>(), bitsize_);
+std::pair<std::array<uint64_t, 2>, std::array<uint64_t, 2>> BinarySharing2P::Share(const std::array<uint64_t, 2> &x) const {
+    std::array<uint64_t, 2> x_0, x_1;
+    x_0[0] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    x_0[1] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
     x_1[0] = x[0] ^ x_0[0];
     x_1[1] = x[1] ^ x_0[1];
     return {std::move(x_0), std::move(x_1)};
 }
 
-std::pair<std::vector<uint32_t>, std::vector<uint32_t>> BinarySharing2P::Share(const std::vector<uint32_t> &x) const {
-    std::vector<uint32_t> x_0(x.size()), x_1(x.size());
+std::pair<std::vector<uint64_t>, std::vector<uint64_t>> BinarySharing2P::Share(const std::vector<uint64_t> &x) const {
+    std::vector<uint64_t> x_0(x.size()), x_1(x.size());
     for (size_t i = 0; i < x.size(); ++i) {
-        x_0[i] = Mod(prng_.get<uint32_t>(), bitsize_);
+        x_0[i] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
         x_1[i] = x[i] ^ x_0[i];
     }
     return {std::move(x_0), std::move(x_1)};
 }
 
 std::pair<BeaverTriples, BeaverTriples> BinarySharing2P::Share(const BeaverTriples &triples) const {
-    uint32_t      num_triples = triples.num_triples;
+    uint64_t      num_triples = triples.num_triples;
     BeaverTriples triples_0(num_triples), triples_1(num_triples);
 
-    for (uint32_t i = 0; i < num_triples; ++i) {
-        uint32_t a_0 = Mod(prng_.get<uint32_t>(), bitsize_);
-        uint32_t b_0 = Mod(prng_.get<uint32_t>(), bitsize_);
-        uint32_t c_0 = Mod(prng_.get<uint32_t>(), bitsize_);
+    for (uint64_t i = 0; i < num_triples; ++i) {
+        uint64_t a_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t b_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t c_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
 
-        uint32_t a_1 = triples.triples[i].a ^ a_0;
-        uint32_t b_1 = triples.triples[i].b ^ b_0;
-        uint32_t c_1 = triples.triples[i].c ^ c_0;
+        uint64_t a_1 = triples.triples[i].a ^ a_0;
+        uint64_t b_1 = triples.triples[i].b ^ b_0;
+        uint64_t c_1 = triples.triples[i].c ^ c_0;
 
         triples_0.triples[i] = {a_0, b_0, c_0};
         triples_1.triples[i] = {a_1, b_1, c_1};
@@ -93,19 +89,19 @@ std::pair<BeaverTriples, BeaverTriples> BinarySharing2P::Share(const BeaverTripl
     return {std::move(triples_0), std::move(triples_1)};
 }
 
-void BinarySharing2P::ReconstLocal(const uint32_t &x_0, const uint32_t &x_1, uint32_t &x) const {
+void BinarySharing2P::ReconstLocal(const uint64_t &x_0, const uint64_t &x_1, uint64_t &x) const {
     x = x_0 ^ x_1;
 }
 
-void BinarySharing2P::ReconstLocal(const std::array<uint32_t, 2> &x_0, const std::array<uint32_t, 2> &x_1, std::array<uint32_t, 2> &x) const {
+void BinarySharing2P::ReconstLocal(const std::array<uint64_t, 2> &x_0, const std::array<uint64_t, 2> &x_1, std::array<uint64_t, 2> &x) const {
     x[0] = x_0[0] ^ x_1[0];
     x[1] = x_0[1] ^ x_1[1];
 }
 
-void BinarySharing2P::ReconstLocal(const std::vector<uint32_t> &x_0, const std::vector<uint32_t> &x_1, std::vector<uint32_t> &x) const {
+void BinarySharing2P::ReconstLocal(const std::vector<uint64_t> &x_0, const std::vector<uint64_t> &x_1, std::vector<uint64_t> &x) const {
     if (x_0.size() != x_1.size()) {
-        Logger::ErrorLog(LOC, "Size mismatch between x_0 (" + std::to_string(x_0.size()) +
-                                  ") and x_1 (" + std::to_string(x_1.size()) + ").");
+        Logger::ErrorLog(LOC, "Size mismatch between x_0 (" + ToString(x_0.size()) +
+                                  ") and x_1 (" + ToString(x_1.size()) + ").");
         return;
     }
     if (x.size() != x_0.size()) {
@@ -118,8 +114,8 @@ void BinarySharing2P::ReconstLocal(const std::vector<uint32_t> &x_0, const std::
 
 void BinarySharing2P::ReconstLocal(const BeaverTriples &triples_0, const BeaverTriples &triples_1, BeaverTriples &triples) const {
     if (triples_0.num_triples != triples_1.num_triples) {
-        Logger::ErrorLog(LOC, "Size mismatch between triples_0 (" + std::to_string(triples_0.num_triples) +
-                                  ") and triples_1 (" + std::to_string(triples_1.num_triples) + ").");
+        Logger::ErrorLog(LOC, "Size mismatch between triples_0 (" + ToString(triples_0.num_triples) +
+                                  ") and triples_1 (" + ToString(triples_1.num_triples) + ").");
         return;
     }
     if (triples.num_triples != triples_0.num_triples) {
@@ -134,7 +130,7 @@ void BinarySharing2P::ReconstLocal(const BeaverTriples &triples_0, const BeaverT
     }
 }
 
-void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, uint32_t &x_0, uint32_t &x_1, uint32_t &x) const {
+void BinarySharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, uint64_t &x_0, uint64_t &x_1, uint64_t &x) const {
     if (party_id == 0) {
         chl.send(x_0);
         chl.recv(x_1);
@@ -145,7 +141,7 @@ void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, uint32_
     x = x_0 ^ x_1;
 }
 
-void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::array<uint32_t, 2> &x_0, std::array<uint32_t, 2> &x_1, std::array<uint32_t, 2> &x) const {
+void BinarySharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 2> &x_0, std::array<uint64_t, 2> &x_1, std::array<uint64_t, 2> &x) const {
     if (party_id == 0) {
         chl.send(x_0);
         chl.recv(x_1);
@@ -157,7 +153,7 @@ void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::ar
     x[1] = x_0[1] ^ x_1[1];
 }
 
-void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::array<uint32_t, 4> &x_0, std::array<uint32_t, 4> &x_1, std::array<uint32_t, 4> &x) const {
+void BinarySharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 4> &x_0, std::array<uint64_t, 4> &x_1, std::array<uint64_t, 4> &x) const {
     if (party_id == 0) {
         chl.send(x_0);
         chl.recv(x_1);
@@ -171,7 +167,7 @@ void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::ar
     x[3] = x_0[3] ^ x_1[3];
 }
 
-void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::vector<uint32_t> &x_0, std::vector<uint32_t> &x_1, std::vector<uint32_t> &x) const {
+void BinarySharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::vector<uint64_t> &x_0, std::vector<uint64_t> &x_1, std::vector<uint64_t> &x) const {
     if (party_id == 0) {
         chl.send(x_0);
         chl.recv(x_1);
@@ -187,7 +183,7 @@ void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::ve
     }
 }
 
-void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::array<std::vector<uint32_t>, 2> &x_0, std::array<std::vector<uint32_t>, 2> &x_1, std::array<std::vector<uint32_t>, 2> &x) const {
+void BinarySharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<std::vector<uint64_t>, 2> &x_0, std::array<std::vector<uint64_t>, 2> &x_1, std::array<std::vector<uint64_t>, 2> &x) const {
     if (party_id == 0) {
         chl.send(x_0[0]);
         chl.send(x_0[1]);
@@ -214,16 +210,16 @@ void BinarySharing2P::Reconst(const uint32_t party_id, oc::Channel &chl, std::ar
     }
 }
 
-void BinarySharing2P::EvaluateXor(const uint32_t &x, const uint32_t &y, uint32_t &z) const {
+void BinarySharing2P::EvaluateXor(const uint64_t &x, const uint64_t &y, uint64_t &z) const {
     z = x ^ y;
 }
 
-void BinarySharing2P::EvaluateXor(const std::array<uint32_t, 2> &x, const std::array<uint32_t, 2> &y, std::array<uint32_t, 2> &z) const {
+void BinarySharing2P::EvaluateXor(const std::array<uint64_t, 2> &x, const std::array<uint64_t, 2> &y, std::array<uint64_t, 2> &z) const {
     z[0] = x[0] ^ y[0];
     z[1] = x[1] ^ y[1];
 }
 
-void BinarySharing2P::EvaluateXor(const std::vector<uint32_t> &x, const std::vector<uint32_t> &y, std::vector<uint32_t> &z) const {
+void BinarySharing2P::EvaluateXor(const std::vector<uint64_t> &x, const std::vector<uint64_t> &y, std::vector<uint64_t> &z) const {
     if (x.size() != y.size()) {
         Logger::ErrorLog(LOC, "Size mismatch: x.size() != y.size() in EvaluateXor.");
         return;
@@ -236,7 +232,7 @@ void BinarySharing2P::EvaluateXor(const std::vector<uint32_t> &x, const std::vec
     }
 }
 
-void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, const uint32_t &x, const uint32_t &y, uint32_t &z) {
+void BinarySharing2P::EvaluateAnd(const uint64_t party_id, osuCrypto::Channel &chl, const uint64_t &x, const uint64_t &y, uint64_t &z) {
     if (triple_index_ >= triples_.num_triples) {
         Logger::ErrorLog(LOC, "No more Beaver triples available.");
         return;
@@ -257,7 +253,7 @@ void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, con
     // Then we 'Reconst' them into a single array 'de' = { d_reconst, e_reconst }
 
     // We'll define them as std::array<T, 2> so that each of d, e is of type T.
-    std::array<uint32_t, 2> de_0, de_1;
+    std::array<uint64_t, 2> de_0, de_1;
 
     if (party_id == 0) {
         de_0[0] = x ^ triple.a;    // d
@@ -271,7 +267,7 @@ void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, con
     // 2) Reconstruct d, e across both parties
     //    We'll store it in 'de': { d_reconst, e_reconst }
     // -------------------------------------------------------
-    std::array<uint32_t, 2> de;    // d_reconst = de[0], e_reconst = de[1]
+    std::array<uint64_t, 2> de;    // d_reconst = de[0], e_reconst = de[1]
 
     Reconst(party_id, chl, de_0, de_1, de);
 
@@ -291,7 +287,7 @@ void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, con
     }
 }
 
-void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, const std::array<uint32_t, 2> &x, const std::array<uint32_t, 2> &y, std::array<uint32_t, 2> &z) {
+void BinarySharing2P::EvaluateAnd(const uint64_t party_id, osuCrypto::Channel &chl, const std::array<uint64_t, 2> &x, const std::array<uint64_t, 2> &y, std::array<uint64_t, 2> &z) {
     // Use two different Beaver triples for each element of array x, y
     if (triple_index_ + 1 >= triples_.num_triples) {
         Logger::ErrorLog(LOC, "No more Beaver triples available.");
@@ -314,7 +310,7 @@ void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, con
     // Then we 'Reconst' them into a single array 'de' = { d0_reconst, e0_reconst, d1_reconst, e1_reconst }
 
     // We'll define them as std::array<T, 4> so that each of d, e is of type T.
-    std::array<uint32_t, 4> de_0, de_1;
+    std::array<uint64_t, 4> de_0, de_1;
 
     if (party_id == 0) {
         de_0[0] = x[0] ^ triple_0.a;    // d0
@@ -332,7 +328,7 @@ void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, con
     // 2) Reconstruct d, e across both parties
     //    We'll store it in 'de': { d0_reconst, e0_reconst, d1_reconst, e1_reconst }
     // -------------------------------------------------------
-    std::array<uint32_t, 4> de;    // d0_reconst = de[0], e0_reconst = de[1], d1_reconst = de[2], e1_reconst = de[3]
+    std::array<uint64_t, 4> de;    // d0_reconst = de[0], e0_reconst = de[1], d1_reconst = de[2], e1_reconst = de[3]
     Reconst(party_id, chl, de_0, de_1, de);
 
     // -------------------------------------------------------
@@ -358,28 +354,27 @@ void BinarySharing2P::EvaluateAnd(const uint32_t party_id, oc::Channel &chl, con
     }
 }
 
-uint32_t BinarySharing2P::GenerateRandomValue() const {
-    return Mod(SecureRng::Rand32(), bitsize_);
+uint64_t BinarySharing2P::GenerateRandomValue() const {
+    return Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
 }
 
-void BinarySharing2P::PrintTriples() const {
-    Logger::DebugLog(LOC, "Beaver triples:");
-    triples_.DebugLog();
+void BinarySharing2P::PrintTriples(const size_t limit) const {
+    Logger::DebugLog(LOC, "Beaver triples:" + triples_.ToString(limit));
 }
 
-uint32_t BinarySharing2P::GetBitSize() const {
+uint64_t BinarySharing2P::GetBitSize() const {
     return bitsize_;
 }
 
-uint32_t BinarySharing2P::GetCurrentTripleIndex() const {
+uint64_t BinarySharing2P::GetCurrentTripleIndex() const {
     return triple_index_;
 }
 
-uint32_t BinarySharing2P::GetNumTriples() const {
+uint64_t BinarySharing2P::GetNumTriples() const {
     return triples_.num_triples;
 }
 
-uint32_t BinarySharing2P::GetRemainingTripleCount() const {
+uint64_t BinarySharing2P::GetRemainingTripleCount() const {
     return triples_.num_triples - triple_index_;
 }
 
@@ -387,7 +382,7 @@ uint32_t BinarySharing2P::GetRemainingTripleCount() const {
 // Internal functions
 // ----------------------------------------------------
 
-void BinarySharing2P::GenerateBeaverTriples(const uint32_t num_triples, const uint32_t bitsize, BeaverTriples &triples) const {
+void BinarySharing2P::GenerateBeaverTriples(const uint64_t num_triples, const uint64_t bitsize, BeaverTriples &triples) const {
     if (num_triples == 0) {
         Logger::ErrorLog(LOC, "Number of triples must be greater than 0.");
         return;
@@ -395,10 +390,10 @@ void BinarySharing2P::GenerateBeaverTriples(const uint32_t num_triples, const ui
     if (triples.num_triples != num_triples) {
         triples.triples.resize(num_triples);
     }
-    for (uint32_t i = 0; i < num_triples; ++i) {
-        uint32_t a         = Mod(prng_.get<uint32_t>(), bitsize);
-        uint32_t b         = Mod(prng_.get<uint32_t>(), bitsize);
-        uint32_t c         = Mod(a & b, bitsize);
+    for (uint64_t i = 0; i < num_triples; ++i) {
+        uint64_t a         = Mod(GlobalRng::Rand<uint64_t>(), bitsize);
+        uint64_t b         = Mod(GlobalRng::Rand<uint64_t>(), bitsize);
+        uint64_t c         = Mod(a & b, bitsize);
         triples.triples[i] = {a, b, c};
     }
 }
@@ -417,10 +412,10 @@ void BinarySharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, con
 #endif
 }
 
-void BinarySharing2P::LoadTriplesShareFromFile(const uint32_t party_id, const std::string &file_path) {
+void BinarySharing2P::LoadTriplesShareFromFile(const uint64_t party_id, const std::string &file_path) {
     std::vector<uint8_t> buffer;
     FileIo               io(".bt.bin");
-    io.ReadFromFileBinary(file_path + "_" + std::to_string(party_id), buffer);
+    io.ReadFromFileBinary(file_path + "_" + ToString(party_id), buffer);
 
     BeaverTriples triples;
     triples.Deserialize(buffer);

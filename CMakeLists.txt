@@ -36,13 +36,6 @@ if(NOT cryptoTools_FOUND)
     message(FATAL_ERROR "cryptoTools library not found. Please install it or set the path correctly.")
 endif()
 
-# Find emp-tool library
-find_package(emp-tool REQUIRED)
-
-if(NOT emp-tool_FOUND)
-    message(FATAL_ERROR "emp-tool library not found. Ensure it is installed on the system.")
-endif()
-
 # ############################
 # Build Settings
 # ############################
@@ -61,6 +54,7 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -flto -funroll-loops")
 elseif(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og -g -Wall -Wextra")
+    add_compile_definitions(USE_FIXED_RANDOM_SEED)
 elseif(CMAKE_BUILD_TYPE MATCHES Profile)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -flto -fno-omit-frame-pointer")
 endif()
@@ -76,7 +70,6 @@ if(NOT DEFINED LOG_LEVEL) # LOG_LEVELがユーザーによって指定されて�
         set(USE_FIXED_RANDOM_SEED 0)
     elseif(CMAKE_BUILD_TYPE MATCHES Debug)
         set(LOG_LEVEL 5) # DEBUG
-        add_compile_definitions(USE_FIXED_RANDOM_SEED)
     elseif(CMAKE_BUILD_TYPE MATCHES Profile)
         set(LOG_LEVEL 0) # NONE
     endif()
@@ -100,7 +93,6 @@ message(STATUS "[Directories]")
 message(STATUS "  Source Directory          : ${CMAKE_SOURCE_DIR}")
 message(STATUS "  Binary Directory          : ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "[Libraries]")
-message(STATUS "  emp-tool Library          : ${EMP-TOOL_LIBRARIES}")
 message(STATUS "  cryptoTools Directory     : ${cryptoTools_DIR}")
 message(STATUS "  Boost Version             : ${Boost_VERSION}")
 message(STATUS "  Boost Include Directories : ${Boost_INCLUDE_DIRS}")

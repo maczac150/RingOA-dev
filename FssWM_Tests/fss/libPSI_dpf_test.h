@@ -10,6 +10,7 @@ void libPSI_DPF_FullDomain_Test();
 void libPSI_DPF_FullDomain_iterator_Test();
 void libPSI_DPF_FullDomain_multikey_Test();
 void libPSI_DPF_FullDomain2_Test();
+void libPSI_DPF_FullDomain2_iterator_Test();
 
 }    // namespace test_fsswm
 

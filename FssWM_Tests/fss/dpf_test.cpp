@@ -1,6 +1,6 @@
 #include "dpf_test.h"
 
-#include "cryptoTools/Common/TestCollection.h"
+#include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/fss/dpf_eval.h"
 #include "FssWM/fss/dpf_gen.h"
@@ -11,41 +11,39 @@
 
 namespace {
 
-bool DpfFullDomainCheck(const uint32_t alpha, const uint32_t beta, const std::vector<uint32_t> &res) {
+bool DpfFullDomainCheck(const uint64_t alpha, const uint64_t beta, const std::vector<uint64_t> &res) {
     bool check = true;
-    for (uint32_t i = 0; i < res.size(); ++i) {
+    for (uint64_t i = 0; i < res.size(); ++i) {
         if ((i == alpha && res[i] == beta) || (i != alpha && res[i] == 0)) {
             check &= true;
         } else {
             check &= false;
-            fsswm::Logger::DebugLog(LOC, "FDE check failed at x=" + std::to_string(i) + " -> Result: " + std::to_string(res[i]));
+            fsswm::Logger::DebugLog(LOC, "FDE check failed at x=" + fsswm::ToString(i) + " -> Result: " + fsswm::ToString(res[i]));
         }
     }
     return check;
 }
 
 // Check if the XOR sum of all blocks matches the expected block (Note: Can detect only error exists, not the position)
-bool DpfFullDomainCheckOneBit(const uint32_t alpha, const uint32_t beta, const std::vector<fsswm::block> &res) {
+bool DpfFullDomainCheckOneBit(const uint64_t alpha, const uint64_t beta, const std::vector<fsswm::block> &res) {
     // Compute XOR sum of all blocks
     fsswm::block xor_sum = fsswm::zero_block;
     for (const auto &r : res) {
         xor_sum = xor_sum ^ r;
     }
     // Calculate bit position
-    uint32_t bit_position = alpha % (sizeof(fsswm::block) * 8);
-    // Generate block with only the bit_position set to 1
-    uint64_t high = 0, low = 0;
-    // Set the bit_position to 1
-    if (bit_position < 64) {
-        low = 1ULL << bit_position;
-    } else {
-        high = 1ULL << (bit_position - 64);
-    }
-    fsswm::block expected_block = fsswm::makeBlock(high, low);
+    uint64_t bit_position = alpha % 128;
+    uint64_t byte_idx     = bit_position % 16;
+    uint64_t bit_idx      = bit_position / 16;
+
+    fsswm::block expected_block = fsswm::zero_block;
+    auto         expected_byte  = reinterpret_cast<uint8_t *>(&expected_block);
+    expected_byte[byte_idx] ^= static_cast<uint8_t>(1) << bit_idx;
+
     // Check if XOR sum matches the expected block
-    bool is_match = fsswm::Equal(xor_sum, expected_block);
+    bool is_match = xor_sum == expected_block;
     if (!is_match) {
-        fsswm::Logger::DebugLog(LOC, "FDE check failed for alpha=" + std::to_string(alpha) + " and beta=" + std::to_string(beta));
+        fsswm::Logger::DebugLog(LOC, "FDE check failed for alpha=" + fsswm::ToString(alpha) + " and beta=" + fsswm::ToString(beta));
     }
     return is_match;
 }
@@ -56,9 +54,9 @@ namespace test_fsswm {
 
 using fsswm::block;
 using fsswm::FormatType;
+using fsswm::GlobalRng;
 using fsswm::Logger;
 using fsswm::Mod;
-using fsswm::SecureRng;
 using fsswm::TimerManager;
 using fsswm::ToString;
 using fsswm::fss::dpf::DpfEvaluator;
@@ -71,7 +69,7 @@ void Dpf_Params_Test() {
     Logger::DebugLog(LOC, "Dpf_Params_Test...");
 
     // Test parameters
-    const std::vector<std::pair<uint32_t, uint32_t>> size_pair = {
+    const std::vector<std::pair<uint64_t, uint64_t>> size_pair = {
         {3, 3},
         {3, 1},
         {9, 1},
@@ -102,7 +100,7 @@ void Dpf_Params_Test() {
 void Dpf_EvalAt_Test() {
     Logger::DebugLog(LOC, "Dpf_EvalAt_Test...");
     // Test parameters
-    const std::vector<std::pair<uint32_t, uint32_t>> size_pair = {
+    const std::vector<std::pair<uint64_t, uint64_t>> size_pair = {
         {3, 3},
         {3, 1},
         {9, 1},
@@ -121,20 +119,20 @@ void Dpf_EvalAt_Test() {
         for (auto ev : evals) {
             DpfParameters param(n, e, ev);
             param.PrintParameters();
-            uint32_t                  e = param.GetOutputBitsize();
+            uint64_t                  e = param.GetOutputBitsize();
             DpfKeyGenerator           gen(param);
             DpfEvaluator              eval(param);
-            uint32_t                  alpha = 5;
-            uint32_t                  beta  = 1;
+            uint64_t                  alpha = 5;
+            uint64_t                  beta  = 1;
             std::pair<DpfKey, DpfKey> keys  = gen.GenerateKeys(alpha, beta);
 
-            uint32_t x   = 5;
-            uint32_t y_0 = eval.EvaluateAt(keys.first, x);
-            uint32_t y_1 = eval.EvaluateAt(keys.second, x);
-            uint32_t y   = Mod(y_0 + y_1, e);
+            uint64_t x   = 5;
+            uint64_t y_0 = eval.EvaluateAt(keys.first, x);
+            uint64_t y_1 = eval.EvaluateAt(keys.second, x);
+            uint64_t y   = Mod(y_0 + y_1, e);
 
             if (y != beta)
-                throw oc::UnitTestFail("y is not equal to beta");
+                throw osuCrypto::UnitTestFail("y is not equal to beta");
 
             x   = 7;
             y_0 = eval.EvaluateAt(keys.first, x);
@@ -142,7 +140,7 @@ void Dpf_EvalAt_Test() {
             y   = Mod(y_0 + y_1, e);
 
             if (y != 0)
-                throw oc::UnitTestFail("y is not equal to 0");
+                throw osuCrypto::UnitTestFail("y is not equal to 0");
         }
     }
 
@@ -151,7 +149,7 @@ void Dpf_EvalAt_Test() {
 
 void Dpf_Fde_Test() {
     Logger::DebugLog(LOC, "Dpf_Fde_Test...");
-    const std::vector<std::tuple<uint32_t, uint32_t, EvalType>> fde_param = {
+    const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
         {3, 3, EvalType::kNaive},
         {8, 8, EvalType::kRecursion},
         {8, 8, EvalType::kIterSingleBatch},
@@ -167,20 +165,20 @@ void Dpf_Fde_Test() {
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
-        uint32_t        alpha = Mod(SecureRng::Rand32(), n);
-        uint32_t        beta  = Mod(SecureRng::Rand32(), e);
+        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
+        uint64_t        beta  = Mod(GlobalRng::Rand<uint64_t>(), e);
 
         // Generate keys
-        Logger::DebugLog(LOC, "alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
+        Logger::DebugLog(LOC, "alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
         std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
         // Evaluate keys
-        std::vector<uint32_t> outputs_0, outputs_1;
+        std::vector<uint64_t> outputs_0, outputs_1;
         eval.EvaluateFullDomain(keys.first, outputs_0);
         eval.EvaluateFullDomain(keys.second, outputs_1);
 
-        std::vector<uint32_t> outputs(outputs_0.size());
-        for (uint32_t i = 0; i < outputs_0.size(); ++i) {
+        std::vector<uint64_t> outputs(outputs_0.size());
+        for (uint64_t i = 0; i < outputs_0.size(); ++i) {
             outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
         }
 
@@ -190,14 +188,14 @@ void Dpf_Fde_Test() {
 
         // Check FDE
         if (!DpfFullDomainCheck(alpha, beta, outputs))
-            throw oc::UnitTestFail("FDE check failed");
+            throw osuCrypto::UnitTestFail("FDE check failed");
     }
     Logger::DebugLog(LOC, "Dpf_Fde_Test - Passed");
 }
 
 void Dpf_Fde_One_Test() {
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test...");
-    const std::vector<std::tuple<uint32_t, uint32_t, EvalType>> fde_param = {
+    const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
         {3, 1, EvalType::kNaive},
         {9, 1, EvalType::kRecursion},
         {9, 1, EvalType::kIterSingleBatch},
@@ -210,20 +208,20 @@ void Dpf_Fde_One_Test() {
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
-        uint32_t        alpha = Mod(SecureRng::Rand32(), n);
-        uint32_t        beta  = 1;
+        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
+        uint64_t        beta  = 1;
 
         // Generate keys
-        Logger::DebugLog(LOC, "alpha=" + std::to_string(alpha) + ", beta=" + std::to_string(beta));
+        Logger::DebugLog(LOC, "alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
         std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
         // Evaluate keys
         if (param.GetFdeEvalType() == EvalType::kNaive) {
-            std::vector<uint32_t> outputs_0, outputs_1;
+            std::vector<uint64_t> outputs_0, outputs_1;
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);
-            std::vector<uint32_t> outputs(outputs_0.size());
-            for (uint32_t i = 0; i < outputs_0.size(); ++i) {
+            std::vector<uint64_t> outputs(outputs_0.size());
+            for (uint64_t i = 0; i < outputs_0.size(); ++i) {
                 outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
             }
 
@@ -232,24 +230,24 @@ void Dpf_Fde_One_Test() {
 #endif
             // Check FDE
             if (!DpfFullDomainCheck(alpha, beta, outputs))
-                throw oc::UnitTestFail("FDE check failed");
+                throw osuCrypto::UnitTestFail("FDE check failed");
 
         } else {
             std::vector<block> outputs_0, outputs_1;
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);
             std::vector<block> outputs(outputs_0.size());
-            for (uint32_t i = 0; i < outputs_0.size(); ++i) {
+            for (uint64_t i = 0; i < outputs_0.size(); ++i) {
                 outputs[i] = outputs_0[i] ^ outputs_1[i];
             }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            for (uint32_t i = 0; i < outputs.size(); ++i) {
-                Logger::DebugLog(LOC, "Outputs[" + std::to_string(i) + "]=" + fsswm::ToString(outputs[i], FormatType::kBin));
+            for (uint64_t i = 0; i < outputs.size(); ++i) {
+                Logger::DebugLog(LOC, "Outputs[" + ToString(i) + "]=" + fsswm::ToString(outputs[i], FormatType::kBin));
             }
 #endif
             // Check FDE
             if (!DpfFullDomainCheckOneBit(alpha, beta, outputs))
-                throw oc::UnitTestFail("FDE check failed");
+                throw osuCrypto::UnitTestFail("FDE check failed");
         }
     }
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test - Passed");

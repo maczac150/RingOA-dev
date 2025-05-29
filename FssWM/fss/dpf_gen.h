@@ -36,7 +36,7 @@ public:
      * @param beta The beta value for the DPF key.
      * @return A pair of DpfKey for the DPF key.
      */
-    std::pair<DpfKey, DpfKey> GenerateKeys(uint32_t alpha, uint32_t beta) const;
+    std::pair<DpfKey, DpfKey> GenerateKeys(uint64_t alpha, uint64_t beta) const;
 
     /**
      * @brief Generate a DPF key using the naive approach.
@@ -44,7 +44,7 @@ public:
      * @param beta The beta value for the DPF key.
      * @param key_pair The pair of DpfKey for the DPF key.
      */
-    void GenerateKeysNaive(uint32_t alpha, uint32_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
+    void GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
 
     /**
      * @brief Generate a DPF key using the early termination approach.
@@ -52,7 +52,7 @@ public:
      * @param beta The beta value for the DPF key.
      * @param key_pair The pair of DpfKey for the DPF key.
      */
-    void GenerateKeysOptimized(uint32_t alpha, uint32_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
+    void GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
 
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */
@@ -64,7 +64,7 @@ private:
      * @param beta The beta value for the DPF key.
      * @return True if the input values are valid, false otherwise.
      */
-    bool ValidateInput(const uint32_t alpha, const uint32_t beta) const;
+    bool ValidateInput(const uint64_t alpha, const uint64_t beta) const;
 
     /**
      * @brief Generate the next seed for the DPF key.
@@ -74,7 +74,7 @@ private:
      * @param current_seeds The current seeds for the DPF key.
      * @param current_control_bits The current control bits for the DPF key.
      */
-    void GenerateNextSeed(const uint32_t current_level, const bool current_bit,
+    void GenerateNextSeed(const uint64_t current_level, const bool current_bit,
                           block &current_seed_0, bool &current_control_bit_0,
                           block &current_seed_1, bool &current_control_bit_1,
                           std::pair<DpfKey, DpfKey> &key_pair) const;
@@ -88,7 +88,7 @@ private:
      * @param final_control_bit_1 The control bit for party 1.
      * @param key_pair The pair of DpfKey for the DPF key.
      */
-    void SetOutput(uint32_t alpha, uint32_t beta,
+    void SetOutput(uint64_t alpha, uint64_t beta,
                    block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
                    std::pair<DpfKey, DpfKey> &key_pair) const;
 };

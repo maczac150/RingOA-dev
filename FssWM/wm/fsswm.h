@@ -4,6 +4,14 @@
 #include "obliv_select.h"
 
 namespace fsswm {
+
+namespace sharing {
+
+class BinaryReplicatedSharing3P;
+class BinarySharing2P;
+
+}    // namespace sharing
+
 namespace wm {
 
 class FMIndex;
@@ -21,51 +29,49 @@ public:
     /**
      * @brief Parameterized constructor for FssWMParameters.
      * @param database_bitsize The database size for the FssWMParameters.
-     * @param type The type of sharing for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
      */
-    FssWMParameters(const uint32_t database_bitsize, const ShareType type, const uint32_t sigma = 3)
+    FssWMParameters(const uint64_t database_bitsize, const uint64_t sigma = 3)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
           sigma_(sigma),
-          os_params_(database_bitsize, type) {
+          os_params_(database_bitsize) {
     }
 
     /**
      * @brief Reconfigure the parameters for the FssWMParameters.
      * @param database_bitsize The database size for the FssWMParameters.
      * @param query_size The query size for the FssWMParameters.
-     * @param type The type of sharing for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
      */
-    void ReconfigureParameters(const uint32_t database_bitsize, const ShareType type, const uint32_t sigma = 3) {
+    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3) {
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
         sigma_            = sigma;
-        os_params_.ReconfigureParameters(database_bitsize, type);
+        os_params_.ReconfigureParameters(database_bitsize);
     }
 
     /**
      * @brief Get the database bit size for the FssWMParameters.
-     * @return uint32_t The database size for the FssWMParameters.
+     * @return uint64_t The database size for the FssWMParameters.
      */
-    uint32_t GetDatabaseBitSize() const {
+    uint64_t GetDatabaseBitSize() const {
         return database_bitsize_;
     }
 
     /**
      * @brief Get the database size for the FssWMParameters.
-     * @return uint32_t The database size for the FssWMParameters.
+     * @return uint64_t The database size for the FssWMParameters.
      */
-    uint32_t GetDatabaseSize() const {
+    uint64_t GetDatabaseSize() const {
         return database_size_;
     }
 
     /**
      * @brief Get the alphabet size for the FssWMParameters.
-     * @return uint32_t The alphabet size for the FssWMParameters.
+     * @return uint64_t The alphabet size for the FssWMParameters.
      */
-    uint32_t GetSigma() const {
+    uint64_t GetSigma() const {
         return sigma_;
     }
 
@@ -93,9 +99,9 @@ public:
     void PrintParameters() const;
 
 private:
-    uint32_t              database_bitsize_; /**< The database bit size for the FssWMParameters. */
-    uint32_t              database_size_;    /**< The database size for the FssWMParameters. */
-    uint32_t              sigma_;            /**< The alphabet size for the FssWMParameters. */
+    uint64_t              database_bitsize_; /**< The database bit size for the FssWMParameters. */
+    uint64_t              database_size_;    /**< The database size for the FssWMParameters. */
+    uint64_t              sigma_;            /**< The alphabet size for the FssWMParameters. */
     OblivSelectParameters os_params_;        /**< The OblivSelectParameters for the FssWMParameters. */
 };
 
@@ -103,7 +109,7 @@ private:
  * @brief A struct to hold the FssWM key.
  */
 struct FssWMKey {
-    uint32_t                    num_os_keys;
+    uint64_t                    num_os_keys;
     std::vector<OblivSelectKey> os_keys;
 
     /**
@@ -116,7 +122,7 @@ struct FssWMKey {
      * @param id The ID for the FssWMKey.
      * @param params The FssWMParameters for the FssWMKey.
      */
-    FssWMKey(const uint32_t id, const FssWMParameters &params);
+    FssWMKey(const uint64_t id, const FssWMParameters &params);
 
     /**
      * @brief Default destructor for FssWMKey.
@@ -198,22 +204,20 @@ public:
     /**
      * @brief Parameterized constructor for FssWMKeyGenerator.
      * @param params FssWMParameters for the FssWMKeyGenerator.
-     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
      * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
      * @param brss Binary replicated sharing for 3-party for the sharing.
      */
     FssWMKeyGenerator(
         const FssWMParameters              &params,
-        sharing::AdditiveSharing2P         &ass,
         sharing::BinarySharing2P           &bss,
         sharing::BinaryReplicatedSharing3P &brss);
 
     /**
      * @brief Generate replicated shares for the database.
      * @param fm The FMIndex used to generate the shares.
-     * @return std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> The replicated shares for the database.
+     * @return std::array<std::pair<sharing::RepShareMat64, sharing::RepShareMat64>, 3> The replicated shares for the database.
      */
-    std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> GenerateDatabaseShare(const FMIndex &fm);
+    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseShare(const FMIndex &fm);
 
     /**
      * @brief Generate keys for the FssWM.
@@ -240,37 +244,21 @@ public:
     /**
      * @brief Parameterized constructor for FssWMEvaluator.
      * @param params FssWMParameters for the FssWMEvaluator.
-     * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
      * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
     FssWMEvaluator(const FssWMParameters              &params,
-                   sharing::ReplicatedSharing3P       &rss,
                    sharing::BinaryReplicatedSharing3P &brss);
 
-    void EvaluateRankCF(sharing::Channels          &chls,
-                        std::vector<block>         &uv_prev,
-                        std::vector<block>         &uv_next,
-                        const FssWMKey             &key,
-                        const sharing::RepShareMat &wm_table0,
-                        const sharing::RepShareMat &wm_table1,
-                        const sharing::RepShareVec &char_sh,
-                        sharing::RepShare          &position_sh,
-                        sharing::RepShare          &result) const;
-
-    void EvaluateRankCF(sharing::Channels              &chls,
-                        std::vector<block>             &uv_prev,
-                        std::vector<block>             &uv_next,
-                        const FssWMKey                 &key,
-                        const sharing::RepShareMat     &wm_table0,
-                        const sharing::RepShareMat     &wm_table1,
-                        const sharing::RepShareVecView &char_sh,
-                        sharing::RepShare              &position_sh,
-                        sharing::RepShare              &result) const;
+    void EvaluateRankCF(Channels                        &chls,
+                        const FssWMKey                  &key,
+                        const sharing::RepShareMatBlock &wm_tables,
+                        const sharing::RepShareView64   &char_sh,
+                        sharing::RepShare64             &position_sh,
+                        sharing::RepShare64             &result) const;
 
 private:
     FssWMParameters                     params_;  /**< FssWMParameters for the FssWMEvaluator. */
     OblivSelectEvaluator                os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
-    sharing::ReplicatedSharing3P       &rss_;     /**< Replicated sharing for 3-party for the FssWMEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;    /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
 };
 

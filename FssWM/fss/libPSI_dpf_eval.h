@@ -2,9 +2,9 @@
 #define FSS_LIBPSI_DPF_EVAL_H_
 
 #include "boost/multiprecision/cpp_int.hpp"
-#include "cryptoTools/Common/BitVector.h"
-#include "cryptoTools/Common/Matrix.h"
-#include "cryptoTools/Network/Channel.h"
+#include <cryptoTools/Common/BitVector.h>
+#include <cryptoTools/Common/Matrix.h>
+#include <cryptoTools/Network/Channel.h>
 
 namespace osuCrypto {
 
@@ -24,7 +24,7 @@ public:
     static block traverseOne(const block &s, const block &k, const osuCrypto::u8 &keep);
     static block fullDomainNaive(span<block> data, span<block> k, span<block> g);
     static block fullDomain(span<block> data, span<block> k, span<block> g);
-    // static BitVector BgiPirServer_bv;
+    static block fullDomainSingleGroup(span<block> data, span<block> k, span<block> g);
 
     struct FullDomainGenerator {
         span<block>        k, g;

@@ -22,7 +22,7 @@ std::string GetEvalTypeString(const EvalType eval_type) {
     }
 }
 
-DpfParameters::DpfParameters(const uint32_t n, const uint32_t e, EvalType eval_type)
+DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_type)
     : input_bitsize_(n), element_bitsize_(e), enable_et_(true), fde_type_(eval_type) {
 
     if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
@@ -68,22 +68,22 @@ bool DpfParameters::ValidateParameters() const {
     }
     if (input_bitsize_ > 32) {
         valid = false;
-        Logger::FatalLog(LOC, "The input bitsize must be less than or equal to 32 (current: " + std::to_string(input_bitsize_) + ")");
+        Logger::FatalLog(LOC, "The input bitsize must be less than or equal to 32 (current: " + ToString(input_bitsize_) + ")");
     }
     if (enable_et_) {
         if (terminate_bitsize_ > input_bitsize_) {
             valid = false;
             Logger::FatalLog(LOC,
-                             "terminate_bitsize_ (" + std::to_string(terminate_bitsize_) +
-                                 ") must be <= input_bitsize_ (" + std::to_string(input_bitsize_) +
+                             "terminate_bitsize_ (" + ToString(terminate_bitsize_) +
+                                 ") must be <= input_bitsize_ (" + ToString(input_bitsize_) +
                                  ") when early termination is enabled.");
         }
     } else {
         if (terminate_bitsize_ != input_bitsize_) {
             valid = false;
             Logger::FatalLog(LOC,
-                             "terminate_bitsize_ (" + std::to_string(terminate_bitsize_) +
-                                 ") must be == input_bitsize_ (" + std::to_string(input_bitsize_) +
+                             "terminate_bitsize_ (" + ToString(terminate_bitsize_) +
+                                 ") must be == input_bitsize_ (" + ToString(input_bitsize_) +
                                  ") when early termination is disabled.");
         }
     }
@@ -94,7 +94,7 @@ bool DpfParameters::ValidateParameters() const {
     return valid;
 }
 
-void DpfParameters::ReconfigureParameters(const uint32_t n, const uint32_t e, const bool enable_et, EvalType eval_type) {
+void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, const bool enable_et, EvalType eval_type) {
     input_bitsize_   = n;
     element_bitsize_ = e;
     enable_et_       = enable_et;
@@ -144,7 +144,7 @@ void DpfParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[DPF Parameters] " + GetParametersInfo());
 }
 
-DpfKey::DpfKey(const uint32_t id, const DpfParameters &params)
+DpfKey::DpfKey(const uint64_t id, const DpfParameters &params)
     : party_id(id),
       init_seed(zero_block),
       cw_length(params.GetTerminateBitsize()),
@@ -192,7 +192,7 @@ void DpfKey::Serialize(std::vector<uint8_t> &buffer) const {
 
     // Check size
     if (buffer.size() != serialized_size_) {
-        Logger::ErrorLog(LOC, "Serialized size mismatch: " + std::to_string(buffer.size()) + " != " + std::to_string(serialized_size_));
+        Logger::ErrorLog(LOC, "Serialized size mismatch: " + ToString(buffer.size()) + " != " + ToString(serialized_size_));
         return;
     }
 }
@@ -231,13 +231,13 @@ void DpfKey::PrintKey(const bool detailed) const {
     if (detailed) {
         Logger::DebugLog(LOC, Logger::StrWithSep("DPF Key"));
         std::string et_status = params_.GetEnableEarlyTermination() ? "ON" : "OFF";
-        Logger::DebugLog(LOC, "Party ID: " + std::to_string(this->party_id));
+        Logger::DebugLog(LOC, "Party ID: " + ToString(this->party_id));
         Logger::DebugLog(LOC, "Early termination: " + et_status);
         Logger::DebugLog(LOC, "Initial seed: " + ToString(init_seed));
         Logger::DebugLog(LOC, Logger::StrWithSep("Correction words"));
-        for (uint32_t i = 0; i < this->cw_length; ++i) {
-            Logger::DebugLog(LOC, "Level(" + std::to_string(i) + ") Seed: " + ToString(this->cw_seed[i]));
-            Logger::DebugLog(LOC, "Level(" + std::to_string(i) + ") Control bit (L, R): " + std::to_string(this->cw_control_left[i]) + ", " + std::to_string(this->cw_control_right[i]));
+        for (uint64_t i = 0; i < this->cw_length; ++i) {
+            Logger::DebugLog(LOC, "Level(" + ToString(i) + ") Seed: " + ToString(this->cw_seed[i]));
+            Logger::DebugLog(LOC, "Level(" + ToString(i) + ") Control bit (L, R): " + ToString(this->cw_control_left[i]) + ", " + ToString(this->cw_control_right[i]));
         }
         Logger::DebugLog(LOC, "Output: " + ToString(output));
         Logger::DebugLog(LOC, kDash);

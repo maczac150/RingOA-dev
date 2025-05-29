@@ -45,21 +45,21 @@ public:
      * @param e The element bitsize.
      * @param eval_type The evaluation type for the DPF.
      */
-    explicit DpfParameters(const uint32_t n, const uint32_t e, EvalType eval_type = kOptimizedEvalType);
+    explicit DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_type = kOptimizedEvalType);
 
     /**
      * @brief Get the Input Bitsize object
-     * @return uint32_t The size of input in bits.
+     * @return uint64_t The size of input in bits.
      */
-    uint32_t GetInputBitsize() const {
+    uint64_t GetInputBitsize() const {
         return input_bitsize_;
     }
 
     /**
      * @brief Get the Element Bitsize object
-     * @return uint32_t The size of each element in bits.
+     * @return uint64_t The size of each element in bits.
      */
-    uint32_t GetOutputBitsize() const {
+    uint64_t GetOutputBitsize() const {
         return element_bitsize_;
     }
 
@@ -73,9 +73,9 @@ public:
 
     /**
      * @brief Get the Terminate Bitsize object
-     * @return uint32_t The size of the termination bits.
+     * @return uint64_t The size of the termination bits.
      */
-    uint32_t GetTerminateBitsize() const {
+    uint64_t GetTerminateBitsize() const {
         return terminate_bitsize_;
     }
 
@@ -100,7 +100,7 @@ public:
      * @param enable_et Toggle this flag to enable/disable early termination.
      * @param eval_type The evaluation type for the DPF.
      */
-    void ReconfigureParameters(const uint32_t n, const uint32_t e, const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
+    void ReconfigureParameters(const uint64_t n, const uint64_t e, const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
 
     /**
      * @brief Get the string representation of the DpfParameters.
@@ -114,10 +114,10 @@ public:
     void PrintParameters() const;
 
 private:
-    uint32_t input_bitsize_;     /**< The size of input in bits. */
-    uint32_t element_bitsize_;   /**< The size of each element in bits. */
+    uint64_t input_bitsize_;     /**< The size of input in bits. */
+    uint64_t element_bitsize_;   /**< The size of each element in bits. */
     bool     enable_et_;         /**< Toggle this flag to enable/disable early termination. */
-    uint32_t terminate_bitsize_; /**< The size of the termination bits. */
+    uint64_t terminate_bitsize_; /**< The size of the termination bits. */
     EvalType fde_type_;          /**< The evaluation type for full domain evaluation. */
 };
 
@@ -126,9 +126,9 @@ private:
  * @warning `DpfKey` must call initialize before use.
  */
 struct DpfKey {
-    uint32_t                 party_id;         /**< The ID of the party associated with the key. */
+    uint64_t                 party_id;         /**< The ID of the party associated with the key. */
     block                    init_seed;        /**< Seed for the DPF key. */
-    uint32_t                 cw_length;        /**< Size of Correction words. */
+    uint64_t                 cw_length;        /**< Size of Correction words. */
     std::unique_ptr<block[]> cw_seed;          /**< Correction words for the seed. */
     std::unique_ptr<bool[]>  cw_control_left;  /**< Correction words for the left control bits. */
     std::unique_ptr<bool[]>  cw_control_right; /**< Correction words for the right control bits. */
@@ -144,7 +144,7 @@ struct DpfKey {
      * @param id The ID of the party associated with the key.
      * @param params DpfParameters for the DpfKey.
      */
-    explicit DpfKey(const uint32_t id, const DpfParameters &params);
+    explicit DpfKey(const uint64_t id, const DpfParameters &params);
 
     /**
      * @brief Destructor for DpfKey.
@@ -170,14 +170,14 @@ struct DpfKey {
      */
     bool operator==(const DpfKey &rhs) const {
         bool result = (party_id == rhs.party_id) &&
-                      (Equal(init_seed, rhs.init_seed)) &&
+                      (init_seed == rhs.init_seed) &&
                       (cw_length == rhs.cw_length);
-        for (uint32_t i = 0; i < cw_length; ++i) {
-            result &= (Equal(cw_seed[i], rhs.cw_seed[i])) &&
+        for (uint64_t i = 0; i < cw_length; ++i) {
+            result &= (cw_seed[i] == rhs.cw_seed[i]) &&
                       (cw_control_left[i] == rhs.cw_control_left[i]) &&
                       (cw_control_right[i] == rhs.cw_control_right[i]);
         }
-        return result & (Equal(output, rhs.output));
+        return result & (output == rhs.output);
     }
 
     bool operator!=(const DpfKey &rhs) const {

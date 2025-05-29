@@ -6,90 +6,134 @@
 namespace fsswm {
 namespace fss {
 
-uint32_t Convert(const block &b, const uint32_t bitsize) {
-    return _mm_cvtsi128_si32(b) & ((1U << bitsize) - 1U);
+uint64_t Convert(const block &b, const uint64_t bitsize) {
+    return b.get<uint64_t>()[0] & ((1U << bitsize) - 1U);
 }
 
-void ConvertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output) {
-    uint32_t mask = (1U << bitsize) - 1U;
-    if (split_bit == 2) {
-        alignas(16) uint32_t data32[4];
-        _mm_store_si128(reinterpret_cast<__m128i *>(data32), b);
-        for (uint32_t i = 0; i < 4; ++i) {
-            output[i] = data32[i] & mask;
-        }
-    } else if (split_bit == 3) {
-        alignas(16) uint16_t data16[8];
-        _mm_store_si128(reinterpret_cast<__m128i *>(data16), b);
-        for (uint32_t i = 0; i < 8; ++i) {
-            output[i] = data16[i] & mask;
-        }
-    } else if (split_bit == 7) {
-        uint8_t bytes[16];
-        _mm_store_si128((__m128i *)bytes, b);
-        for (int i = 0; i < 128; ++i) {
-            uint8_t byte = bytes[i / 8];
-            output[i]    = (byte >> (i % 8)) & 0x01 & mask;
-        }
-    } else {
-        Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        std::exit(EXIT_FAILURE);
+void SplitBlockToFieldVector(
+    const block           &blk,
+    uint64_t               chunk_exp,
+    uint64_t               field_bits,
+    std::vector<uint64_t> &out) {
+
+    const size_t chunk_count = size_t{1} << chunk_exp;
+
+    if (chunk_exp != 2 && chunk_exp != 3 && chunk_exp != 7) {
+        throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
+    }
+
+    out.assign(chunk_count, 0);
+    const uint64_t mask = (1UL << field_bits) - 1;
+
+    alignas(16) uint8_t raw_bytes[16];
+    _mm_store_si128(reinterpret_cast<__m128i *>(raw_bytes), blk);
+
+    switch (chunk_exp) {
+        case 2: {
+            // 32bit element ×4
+            auto data32 = reinterpret_cast<const uint32_t *>(raw_bytes);
+            for (size_t i = 0; i < 4; ++i) {
+                out[i] = uint64_t(data32[i]) & mask;
+            }
+        } break;
+        case 3: {
+            // 16bit element ×8
+            auto data16 = reinterpret_cast<const uint16_t *>(raw_bytes);
+            for (size_t i = 0; i < 8; ++i) {
+                out[i] = uint64_t(data16[i]) & mask;
+            }
+        } break;
+        case 7: {
+            // 1bit element ×128
+            for (size_t bit = 0; bit < 128; ++bit) {
+                uint8_t  byte   = raw_bytes[bit / 8];
+                uint64_t bitval = uint64_t((byte >> (bit & 7)) & 1);
+                out[bit]        = bitval & mask;
+            }
+        } break;
+        default:
+            throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
     }
 }
 
-void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output) {
-    uint32_t mask            = (1U << bitsize) - 1U;
-    uint32_t num_nodes       = b.size();
-    uint32_t remaining_nodes = 1U << split_bit;
+void SplitBlockToFieldVector(
+    const std::vector<block> &blks,
+    uint64_t                  chunk_exp,
+    uint64_t                  field_bits,
+    std::vector<uint64_t>    &out) {
+    const size_t   num_blocks  = blks.size();
+    const size_t   chunk_count = size_t{1} << chunk_exp;
+    const uint64_t mask        = (field_bits >= 64)
+                                     ? ~0ULL
+                                     : ((1ULL << field_bits) - 1ULL);
 
-    if (split_bit == 2) {
-        alignas(16) uint32_t data32[4];
-        for (size_t i = 0; i < num_nodes; ++i) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(data32), b[i]);
-            output[i * remaining_nodes + 0] = data32[0] & mask;
-            output[i * remaining_nodes + 1] = data32[1] & mask;
-            output[i * remaining_nodes + 2] = data32[2] & mask;
-            output[i * remaining_nodes + 3] = data32[3] & mask;
+    out.resize(num_blocks * chunk_count);
+
+    alignas(16) uint8_t raw_bytes[16];
+
+    switch (chunk_exp) {
+        case 2: {    // 32bit ×4
+            for (size_t i = 0; i < num_blocks; ++i) {
+                _mm_store_si128(reinterpret_cast<__m128i *>(raw_bytes), blks[i]);
+                auto   data32 = reinterpret_cast<const uint32_t *>(raw_bytes);
+                size_t base   = i * chunk_count;
+                out[base + 0] = data32[0] & mask;
+                out[base + 1] = data32[1] & mask;
+                out[base + 2] = data32[2] & mask;
+                out[base + 3] = data32[3] & mask;
+            }
+            break;
         }
-    } else if (split_bit == 3) {
-        alignas(16) uint16_t data16[8];
-        for (size_t i = 0; i < num_nodes; ++i) {
-            _mm_store_si128(reinterpret_cast<__m128i *>(data16), b[i]);
-            output[i * remaining_nodes + 0] = data16[0] & mask;
-            output[i * remaining_nodes + 1] = data16[1] & mask;
-            output[i * remaining_nodes + 2] = data16[2] & mask;
-            output[i * remaining_nodes + 3] = data16[3] & mask;
-            output[i * remaining_nodes + 4] = data16[4] & mask;
-            output[i * remaining_nodes + 5] = data16[5] & mask;
-            output[i * remaining_nodes + 6] = data16[6] & mask;
-            output[i * remaining_nodes + 7] = data16[7] & mask;
+        case 3: {    // 16bit ×8
+            for (size_t i = 0; i < num_blocks; ++i) {
+                _mm_store_si128(reinterpret_cast<__m128i *>(raw_bytes), blks[i]);
+                auto   data16 = reinterpret_cast<const uint16_t *>(raw_bytes);
+                size_t base   = i * chunk_count;
+                out[base + 0] = data16[0] & mask;
+                out[base + 1] = data16[1] & mask;
+                out[base + 2] = data16[2] & mask;
+                out[base + 3] = data16[3] & mask;
+                out[base + 4] = data16[4] & mask;
+                out[base + 5] = data16[5] & mask;
+                out[base + 6] = data16[6] & mask;
+                out[base + 7] = data16[7] & mask;
+            }
+            break;
         }
-    } else {
-        Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        std::exit(EXIT_FAILURE);
+        default:
+            throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
     }
 }
 
-uint32_t GetValueFromSplitBlock(block &b, const uint32_t split_bit, const uint32_t idx) {
-    if (split_bit == 2) {
-        alignas(16) uint32_t data32[4];
-        _mm_store_si128(reinterpret_cast<__m128i *>(data32), b);
-        return data32[idx];
-    } else if (split_bit == 3) {
-        alignas(16) uint16_t data16[8];
-        _mm_store_si128(reinterpret_cast<__m128i *>(data16), b);
-        return data16[idx];
-    } else if (split_bit == 7) {
-        uint64_t low  = _mm_extract_epi64(b, 0);
-        uint64_t high = _mm_extract_epi64(b, 1);
-        if (idx < 64) {
-            return (low >> idx) & 1;
-        } else {
-            return (high >> (idx - 64)) & 1;
+uint64_t GetSplitBlockValue(
+    const block &blk,
+    uint64_t     chunk_exp,
+    uint64_t     element_idx) {
+
+    const size_t count = size_t{1} << chunk_exp;
+    if (element_idx >= count)
+        throw std::out_of_range("element_idx out of range");
+
+    alignas(16) uint8_t bytes[16];
+    _mm_store_si128(reinterpret_cast<__m128i *>(bytes), blk);
+
+    switch (chunk_exp) {
+        case 2: {    // 4 element × 32bit
+            auto data32 = reinterpret_cast<const uint32_t *>(bytes);
+            return uint64_t(data32[element_idx]);
         }
-    } else {
-        Logger::FatalLog(LOC, "Unsupported spilt bit: " + std::to_string(split_bit));
-        std::exit(EXIT_FAILURE);
+        case 3: {    // 8 element × 16bit
+            auto data16 = reinterpret_cast<const uint16_t *>(bytes);
+            return uint64_t(data16[element_idx]);
+        }
+        case 7: {    // 128 element × 1bit
+            uint64_t byte_idx   = element_idx % 16;
+            uint64_t bit_idx    = element_idx / 16;
+            auto     seed_bytes = reinterpret_cast<const uint8_t *>(&blk);
+            return (seed_bytes[byte_idx] >> bit_idx) & 0x01;
+        }
+        default:
+            throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
     }
 }
 

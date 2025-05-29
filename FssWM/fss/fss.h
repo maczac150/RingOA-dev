@@ -5,55 +5,57 @@
 #include <vector>
 
 #include "FssWM/utils/block.h"
+#include "FssWM/utils/utils.h"
 
 namespace fsswm {
-
-enum class ShareType
-{
-    kAdditive,
-    kBinary,
-};
-
 namespace fss {
 
-constexpr uint32_t kSecurityParameter = 128;
-constexpr uint32_t kLeft              = 0;
-constexpr uint32_t kRight             = 1;
+constexpr uint64_t kSecurityParameter = 128;
+constexpr uint64_t kLeft              = 0;
+constexpr uint64_t kRight             = 1;
 
 /**
- * @brief Converts a block to a uint32_t value.
+ * @brief Converts a block to a uint64_t value.
  * @param b The block to be converted.
  * @param bitsize The bitsize of the output value.
- * @return A uint32_t value converted from the block.
+ * @return A uint64_t value converted from the block.
  */
-uint32_t Convert(const block &b, const uint32_t bitsize);
+uint64_t Convert(const block &b, const uint64_t bitsize);
 
 /**
- * @brief Splits a block into some blocks and covert them into a vector.
- * @param b The block to be converted.
- * @param split_bit The number of bits to split the block into.
- * @param bitsize The bitsize of the output value.
- * @param output The vector to store the output values.
+ * @brief Splits a 128-bit block into 2^chunk_exp elements, masks each element with field_bits width, and stores them in a uint64_t vector.
+ * @param blk         Input 128-bit block.
+ * @param chunk_exp   Exponent for the number of elements (number of elements = 1 << chunk_exp). Only 2, 3, and 7 are supported (4, 8, 128 elements).
+ * @param field_bits  Bit width to mask each element (1–64). If 64, all bits are valid.
+ * @param out         Output vector. The size is automatically adjusted.
  */
-void ConvertVector(const block &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output);
+void SplitBlockToFieldVector(const block           &blk,
+                             uint64_t               chunk_exp,
+                             uint64_t               field_bits,
+                             std::vector<uint64_t> &out);
 
 /**
- * @brief Splits a vector of blocks into some blocks and covert them into a vector.
- * @param b The vector of blocks to be converted.
- * @param split_bit The number of bits to split the block into.
- * @param bitsize The bitsize of the output value.
- * @param output The vector to store the output values.
+ * @brief Splits a vector of 128-bit blocks into 2^chunk_exp elements per block, masks each element with field_bits width, and stores them in a uint64_t vector.
+ * @param blks        Input vector of blocks.
+ * @param chunk_exp   Exponent for the number of elements (number of elements = 1 << chunk_exp). Only 2, 3, and 7 are supported (4, 8, 128 elements).
+ * @param field_bits  Bit width to mask each element (1–64). If 64, all bits are valid.
+ * @param out         Output vector. The size is automatically adjusted.
  */
-void ConvertVector(const std::vector<block> &b, const uint32_t split_bit, const uint32_t bitsize, std::vector<uint32_t> &output);
+void SplitBlockToFieldVector(const std::vector<block> &blks,
+                             uint64_t                  chunk_exp,
+                             uint64_t                  field_bits,
+                             std::vector<uint64_t>    &out);
 
 /**
- * @brief Split a block into some blocks and get the `idx`-th value.
- * @param b The block to be split.
- * @param split_bit The number of bits to split the block into.
- * @param idx The index of the block to retrieve.
- * @return The `idx`-th block after splitting `b` into `num` blocks.
+ * @brief Splits a 128-bit block into 2^chunk_exp elements and returns the specified element as a uint64_t.
+ * @param blk          Input 128-bit block
+ * @param chunk_exp    Split exponent (2 → 4 elements, 3 → 8 elements, 7 → 128 elements)
+ * @param element_idx  Index of the element to retrieve [0, 2^chunk_exp)
+ * @return             The value of the element as uint64_t
  */
-uint32_t GetValueFromSplitBlock(block &b, const uint32_t split_bit, const uint32_t idx);
+uint64_t GetSplitBlockValue(const block &blk,
+                            uint64_t     chunk_exp,
+                            uint64_t     element_idx);
 
 }    // namespace fss
 }    // namespace fsswm

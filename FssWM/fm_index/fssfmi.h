@@ -21,58 +21,56 @@ public:
      * @brief Parameterized constructor for FssFMIParameters.
      * @param database_bitsize The database size for the FssFMIParameters.
      * @param query_size The query size for the FssFMIParameters.
-     * @param type The type of sharing for the FssFMIParameters.
      * @param sigma The alphabet size for the FssFMIParameters.
      */
-    FssFMIParameters(const uint32_t database_bitsize, const uint32_t query_size, const ShareType type, const uint32_t sigma = 3)
+    FssFMIParameters(const uint64_t database_bitsize, const uint64_t query_size, const uint64_t sigma = 3)
         : query_size_(query_size),
-          fsswm_params_(database_bitsize, type, sigma),
-          zt_params_(database_bitsize, type) {
+          fsswm_params_(database_bitsize, sigma),
+          zt_params_(database_bitsize) {
     }
 
     /**
      * @brief Reconfigure the parameters for the FssFMIParameters.
      * @param database_bitsize The database size for the FssFMIParameters.
      * @param query_size The query size for the FssFMIParameters.
-     * @param type The type of sharing for the FssFMIParameters.
      * @param sigma The alphabet size for the FssFMIParameters.
      */
 
-    void ReconfigureParameters(const uint32_t database_bitsize, const uint32_t query_size, const ShareType type, const uint32_t sigma = 3) {
+    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t query_size, const uint64_t sigma = 3) {
         query_size_ = query_size;
-        fsswm_params_.ReconfigureParameters(database_bitsize, type, sigma);
-        zt_params_.ReconfigureParameters(database_bitsize, type);
+        fsswm_params_.ReconfigureParameters(database_bitsize, sigma);
+        zt_params_.ReconfigureParameters(database_bitsize);
     }
 
     /**
      * @brief Get the database bit size for the FssFMIParameters.
-     * @return uint32_t The database size for the FssFMIParameters.
+     * @return uint64_t The database size for the FssFMIParameters.
      */
-    uint32_t GetDatabaseBitSize() const {
+    uint64_t GetDatabaseBitSize() const {
         return fsswm_params_.GetDatabaseBitSize();
     }
 
     /**
      * @brief Get the database size for the FssFMIParameters.
-     * @return uint32_t The database size for the FssFMIParameters.
+     * @return uint64_t The database size for the FssFMIParameters.
      */
-    uint32_t GetDatabaseSize() const {
+    uint64_t GetDatabaseSize() const {
         return fsswm_params_.GetDatabaseSize();
     }
 
     /**
      * @brief Get the query size for the FssFMIParameters.
-     * @return uint32_t The query size for the FssFMIParameters.
+     * @return uint64_t The query size for the FssFMIParameters.
      */
-    uint32_t GetQuerySize() const {
+    uint64_t GetQuerySize() const {
         return query_size_;
     }
 
     /**
      * @brief Get the alphabet size for the FssFMIParameters.
-     * @return uint32_t The alphabet size for the FssFMIParameters.
+     * @return uint64_t The alphabet size for the FssFMIParameters.
      */
-    uint32_t GetSigma() const {
+    uint64_t GetSigma() const {
         return fsswm_params_.GetSigma();
     }
 
@@ -108,7 +106,7 @@ public:
     void PrintParameters() const;
 
 private:
-    uint32_t            query_size_;   /**< The query size for the FssFMIParameters. */
+    uint64_t            query_size_;   /**< The query size for the FssFMIParameters. */
     wm::FssWMParameters fsswm_params_; /**< The FssWMParameters for the FssFMIParameters. */
     ZeroTestParameters  zt_params_;    /**< The ZeroTestParameters for the FssFMIParameters. */
 };
@@ -117,8 +115,8 @@ private:
  * @brief A struct to hold the keys for the FssFMI.
  */
 struct FssFMIKey {
-    uint32_t                  num_wm_keys;
-    uint32_t                  num_zt_keys;
+    uint64_t                  num_wm_keys;
+    uint64_t                  num_zt_keys;
     std::vector<wm::FssWMKey> wm_keys;
     std::vector<ZeroTestKey>  zt_keys;
 
@@ -132,7 +130,7 @@ struct FssFMIKey {
      * @param id The ID for the FssFMIKey.
      * @param params The FssFMIParameters for the FssFMIKey.
      */
-    FssFMIKey(const uint32_t id, const FssFMIParameters &params);
+    FssFMIKey(const uint64_t id, const FssFMIParameters &params);
 
     /**
      * @brief Default destructor for FssFMIKey.
@@ -198,13 +196,11 @@ public:
     /**
      * @brief Parameterized constructor for FssFMIKeyGenerator.
      * @param params FssWMParameters for the FssFMIKeyGenerator.
-     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
      * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
      * @param brss Binary replicated sharing for 3-party for the sharing.
      */
     FssFMIKeyGenerator(
         const FssFMIParameters             &params,
-        sharing::AdditiveSharing2P         &ass,
         sharing::BinarySharing2P           &bss,
         sharing::BinaryReplicatedSharing3P &brss);
 
@@ -213,7 +209,7 @@ public:
      * @param fm The FMIndex used to generate the shares.
      * @return std::array<std::vector<sharing::RepShareVec>, 3> The generated shares for the database.
      */
-    std::array<std::pair<sharing::RepShareMat, sharing::RepShareMat>, 3> GenerateDatabaseShare(const wm::FMIndex &fm);
+    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseShare(const wm::FMIndex &fm);
 
     /**
      * @brief Generate shares for the query.
@@ -221,7 +217,7 @@ public:
      * @param query The query to generate shares for.
      * @return std::array<sharing::RepShareVec, 3> The generated shares for the query.
      */
-    std::array<sharing::RepShareMat, 3> GenerateQueryShare(const wm::FMIndex &fm, std::string &query);
+    std::array<sharing::RepShareMat64, 3> GenerateQueryShare(const wm::FMIndex &fm, std::string &query);
 
     /**
      * @brief Generate keys for the FssFMI.
@@ -247,21 +243,18 @@ public:
     FssFMIEvaluator() = delete;
 
     FssFMIEvaluator(const FssFMIParameters             &params,
-                    sharing::ReplicatedSharing3P       &rss,
                     sharing::BinaryReplicatedSharing3P &brss);
 
-    void EvaluateLPM(sharing::Channels          &chls,
-                     const FssFMIKey            &key,
-                     const sharing::RepShareMat &wm_table0,
-                     const sharing::RepShareMat &wm_table1,
-                     const sharing::RepShareMat &query,
-                     sharing::RepShareVec       &result) const;
+    void EvaluateLPM(Channels                        &chls,
+                     const FssFMIKey                 &key,
+                     const sharing::RepShareMatBlock &wm_tables,
+                     const sharing::RepShareMat64    &query,
+                     sharing::RepShareVec64          &result) const;
 
 private:
     FssFMIParameters                    params_;  /**< FssFMIParameters for the FssFMIEvaluator. */
     wm::FssWMEvaluator                  wm_eval_; /**< FssWMEvaluator for the FssFMIEvaluator. */
     ZeroTestEvaluator                   zt_eval_; /**< ZeroTestEvaluator for the FssFMIEvaluator. */
-    sharing::ReplicatedSharing3P       &rss_;     /**< Replicated sharing for 3-party for the FssFMIEvaluator. */
     sharing::BinaryReplicatedSharing3P &brss_;    /**< Binary replicated sharing for 3-party for the FssFMIEvaluator. */
 };
 

@@ -1,9 +1,10 @@
 #include "timer_test.h"
 
-#include "cryptoTools/Common/TestCollection.h"
+#include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/timer.h"
+#include "FssWM/utils/utils.h"
 
 #include <thread>
 
@@ -11,6 +12,7 @@ namespace test_fsswm {
 
 using fsswm::Logger;
 using fsswm::TimerManager;
+using fsswm::ToString;
 
 void Timer_Test() {
     Logger::DebugLog(LOC, "Timer_Test ...");
@@ -28,9 +30,9 @@ void Timer_Test() {
         // =====================================
         // Process A
         std::this_thread::sleep_for(std::chrono::milliseconds(10 + i * 20));
-        Logger::TraceLog(LOC, "Process A - " + std::to_string(i));
+        Logger::TraceLog(LOC, "Process A - " + ToString(i));
         // =====================================
-        timer_mgr.Stop("i=" + std::to_string(i));
+        timer_mgr.Stop("i=" + ToString(i));
     }
     // Print the results for the selected timer
     timer_mgr.PrintCurrentResults();
