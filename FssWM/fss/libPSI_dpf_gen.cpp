@@ -206,7 +206,6 @@ void BgiPirClient::keyGenSingleGroup(uint128_t idx, block seed, span<block> k0, 
     static const block notOneBlock   = toBlock(~0, ~1);
     static const block notThreeBlock = toBlock(~0, ~3);
 
-    u64  groupSize = 1;
     auto kIdx      = idx / 128;
     u64  gIdx      = static_cast<u64>(idx % 128);
 

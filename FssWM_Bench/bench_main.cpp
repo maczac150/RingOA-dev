@@ -14,6 +14,7 @@ namespace bench_fsswm {
 osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
+    t.add("Dpf_Pir_Bench", Dpf_Pir_Bench);
     t.add("OblivSelect_Offline_Bench", OblivSelect_Offline_Bench);
     t.add("OblivSelect_Online_Bench", OblivSelect_Online_Bench);
     t.add("OblivSelect_DotProduct_Bench", OblivSelect_DotProduct_Bench);

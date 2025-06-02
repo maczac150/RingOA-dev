@@ -6,6 +6,7 @@
 #include "FssWM/sharing/share_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/network.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 
 namespace {
@@ -17,7 +18,7 @@ const std::string kTestAdditivePath = kCurrentPath + "/data/test/ss3/";
 
 namespace test_fsswm {
 
-using fsswm::FileIo, fsswm::Logger, fsswm::ToString, fsswm::ToStringFlatMat;
+using fsswm::FileIo, fsswm::Logger, fsswm::ToString, fsswm::ToStringMatrix;
 using fsswm::ThreePartyNetworkManager, fsswm::Channels;
 using fsswm::sharing::ReplicatedSharing3P;
 using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareMat64;
@@ -57,8 +58,8 @@ void Additive3P_Offline_Test() {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " y_sh: " + y_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_vec_sh: " + x_vec_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " y_vec_sh: " + y_vec_sh[p].ToString());
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " x_flat_sh: " + x_flat_sh[p].ToString());
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " y_flat_sh: " + y_flat_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " x_flat_sh: " + x_flat_sh[p].ToStringMatrix());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " y_flat_sh: " + y_flat_sh[p].ToStringMatrix());
         }
 
         const std::string x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
@@ -156,7 +157,7 @@ void Additive3P_Open_Online_Test() {
 
         Logger::DebugLog(LOC, "open_x: " + ToString(open_x));
         Logger::DebugLog(LOC, "open_x_vec: " + ToString(open_x_vec));
-        Logger::DebugLog(LOC, "open_x_flat: " + ToStringFlatMat(open_x_flat, 2, 3));
+        Logger::DebugLog(LOC, "open_x_flat: " + ToStringMatrix(open_x_flat, 2, 3));
 
         // Validate the opened value
         if (open_x != 5)

@@ -5,6 +5,8 @@
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/utils.h"
+#include "FssWM/utils/to_string.h"
 
 namespace fsswm {
 namespace fm_index {

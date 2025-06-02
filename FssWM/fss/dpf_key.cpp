@@ -2,8 +2,8 @@
 
 #include <cstring>
 
-#include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/to_string.h"
 
 namespace fsswm {
 namespace fss {
@@ -233,18 +233,18 @@ void DpfKey::PrintKey(const bool detailed) const {
         std::string et_status = params_.GetEnableEarlyTermination() ? "ON" : "OFF";
         Logger::DebugLog(LOC, "Party ID: " + ToString(this->party_id));
         Logger::DebugLog(LOC, "Early termination: " + et_status);
-        Logger::DebugLog(LOC, "Initial seed: " + ToString(init_seed));
+        Logger::DebugLog(LOC, "Initial seed: " + Format(init_seed));
         Logger::DebugLog(LOC, Logger::StrWithSep("Correction words"));
         for (uint64_t i = 0; i < this->cw_length; ++i) {
-            Logger::DebugLog(LOC, "Level(" + ToString(i) + ") Seed: " + ToString(this->cw_seed[i]));
+            Logger::DebugLog(LOC, "Level(" + ToString(i) + ") Seed: " + Format(this->cw_seed[i]));
             Logger::DebugLog(LOC, "Level(" + ToString(i) + ") Control bit (L, R): " + ToString(this->cw_control_left[i]) + ", " + ToString(this->cw_control_right[i]));
         }
-        Logger::DebugLog(LOC, "Output: " + ToString(output));
+        Logger::DebugLog(LOC, "Output: " + Format(output));
         Logger::DebugLog(LOC, kDash);
     } else {
         std::ostringstream oss;
         oss << "[DPF Key] P" << party_id << " (ET: " << (params_.GetEnableEarlyTermination() ? "ON" : "OFF") << ")";
-        oss << " (CW: " << cw_length << ") (Init: " << ToString(init_seed) << ")";
+        oss << " (CW: " << cw_length << ") (Init: " << Format(init_seed) << ")";
         Logger::DebugLog(LOC, oss.str());
     }
 #endif

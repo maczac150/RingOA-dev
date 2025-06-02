@@ -3,7 +3,7 @@
 
 #include <cryptoTools/Crypto/PRNG.h>
 
-#include "FssWM/utils/block.h"
+#include "block.h"
 
 namespace fsswm {
 

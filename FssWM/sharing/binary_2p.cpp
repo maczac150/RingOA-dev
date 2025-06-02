@@ -6,6 +6,7 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/utils.h"
+#include "FssWM/utils/to_string.h"
 
 namespace fsswm {
 namespace sharing {

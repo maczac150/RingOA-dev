@@ -4,14 +4,13 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/sharing/share_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 #include "FssWM/wm/fsswm.h"
 #include "FssWM/wm/key_io.h"
@@ -44,7 +43,7 @@ using fsswm::FileIo;
 using fsswm::Logger;
 ;
 using fsswm::ThreePartyNetworkManager;
-using fsswm::ToString, fsswm::ToStringFlatMat;
+using fsswm::ToString, fsswm::ToStringMatrix;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
 using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64;
@@ -89,7 +88,7 @@ void FssWM_Offline_Test() {
         key_io.SaveKey(key_path + "_2", keys[2]);
 
         // Generate the database and index
-        std::string           database = GenerateRandomString(ds);
+        std::string           database = GenerateRandomString(ds - 2);
         FMIndex               fm(database);
         std::vector<uint64_t> query    = {0, 1, 0};
         uint64_t              position = brss.GenerateRandomValue();
@@ -101,7 +100,7 @@ void FssWM_Offline_Test() {
         std::array<RepShareVec64, 3>    query_sh    = brss.ShareLocal({0, ds - 1, 0});
         std::array<RepShare64, 3>       position_sh = brss.ShareLocal(position);
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToStringMatrix());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " query share: " + query_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " position share: " + position_sh[p].ToString());
         }

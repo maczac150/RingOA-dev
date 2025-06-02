@@ -5,6 +5,7 @@
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
@@ -232,10 +233,10 @@ void BinaryReplicatedSharing3P::Open(Channels &chls, const RepShareMat64 &x_mat_
         open_x_flat[i] = Mod(x_mat_sh[0][i] ^ x_mat_sh[1][i] ^ x_mat_next[i], bitsize_);
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringFlatMat(x_mat_sh[0], rows, cols));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToStringFlatMat(x_mat_next, rows, cols));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + ToStringFlatMat(x_mat_sh[0], rows, cols) +
-                              ", x_1: " + ToStringFlatMat(x_mat_sh[1], rows, cols) + ", x_2: " + ToStringFlatMat(x_mat_next, rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringMatrix(x_mat_sh[0], rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToStringMatrix(x_mat_next, rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + ToStringMatrix(x_mat_sh[0], rows, cols) +
+                              ", x_1: " + ToStringMatrix(x_mat_sh[1], rows, cols) + ", x_2: " + ToStringMatrix(x_mat_next, rows, cols));
 #endif
 }
 
@@ -251,9 +252,9 @@ void BinaryReplicatedSharing3P::Open(Channels &chls, const RepShareBlock &x_sh, 
     open_x = x_sh[0] ^ x_sh[1] ^ x_next;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToString(x_sh[0]));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToString(x_next));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] (x_0, x_1, x_2): (" + ToString(x_sh[0]) + ", " + ToString(x_sh[1]) + ", " + ToString(x_next) + ")");
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + Format(x_sh[0]));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + Format(x_next));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] (x_0, x_1, x_2): (" + Format(x_sh[0]) + ", " + Format(x_sh[1]) + ", " + Format(x_next) + ")");
 #endif
 }
 
@@ -274,9 +275,9 @@ void BinaryReplicatedSharing3P::Open(Channels &chls, const RepShareVecBlock &x_v
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToString(x_vec_sh[0]));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToString(x_vec_next));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + ToString(x_vec_sh[0]) + ", x_1: " + ToString(x_vec_sh[1]) + ", x_2: " + ToString(x_vec_next));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + Format(x_vec_sh[0]));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + Format(x_vec_next));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + Format(x_vec_sh[0]) + ", x_1: " + Format(x_vec_sh[1]) + ", x_2: " + Format(x_vec_next));
 #endif
 }
 
@@ -299,29 +300,44 @@ void BinaryReplicatedSharing3P::Open(Channels &chls, const RepShareMatBlock &x_m
         open_x_flat[i] = x_mat_sh[0][i] ^ x_mat_sh[1][i] ^ x_mat_next[i];
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringFlatMat(x_mat_sh[0], rows, cols));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToStringFlatMat(x_mat_next, rows, cols));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + ToStringFlatMat(x_mat_sh[0], rows, cols) +
-                              ", x_1: " + ToStringFlatMat(x_mat_sh[1], rows, cols) + ", x_2: " + ToStringFlatMat(x_mat_next, rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + FormatMatrix(x_mat_sh[0], rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + FormatMatrix(x_mat_next, rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + FormatMatrix(x_mat_sh[0], rows, cols) +
+                              ", x_1: " + FormatMatrix(x_mat_sh[1], rows, cols) + ", x_2: " + FormatMatrix(x_mat_next, rows, cols));
 #endif
 }
 
 void BinaryReplicatedSharing3P::Rand(RepShare64 &x) {
-    if (prf_idx_ + sizeof(uint64_t) > prf_buff_[0].size() * sizeof(block)) {
+    constexpr size_t ELEM_SIZE = sizeof(uint64_t);
+    size_t max_elems = prf_buff_[0].size() * sizeof(block) / ELEM_SIZE;
+    size_t elem_idx = prf_idx_ / ELEM_SIZE;
+    if (elem_idx >= max_elems) {
         RefillBuffer();
+        elem_idx = 0;
+        prf_idx_ = 0;
     }
-    x.data[0] = Mod(*(uint64_t *)((uint8_t *)prf_buff_[0].data() + prf_idx_), bitsize_);
-    x.data[1] = Mod(*(uint64_t *)((uint8_t *)prf_buff_[1].data() + prf_idx_), bitsize_);
-    prf_idx_ += sizeof(uint64_t);
+
+    uint64_t tmp;
+    std::memcpy(&tmp, reinterpret_cast<const uint8_t *>(prf_buff_[0].data()) + prf_idx_, ELEM_SIZE);
+    x.data[0] = Mod(tmp, bitsize_);
+    std::memcpy(&tmp, reinterpret_cast<const uint8_t *>(prf_buff_[1].data()) + prf_idx_, ELEM_SIZE);
+    x.data[1] = Mod(tmp, bitsize_);
+    prf_idx_ += ELEM_SIZE;
 }
 
 void BinaryReplicatedSharing3P::Rand(RepShareBlock &x) {
-    if (prf_idx_ + sizeof(block) > prf_buff_[0].size() * sizeof(block)) {
+    constexpr size_t ELEM_SIZE = sizeof(block);
+    size_t max_elems = prf_buff_[0].size();
+    size_t elem_idx = prf_idx_ / ELEM_SIZE;
+    if (elem_idx >= max_elems) {
         RefillBuffer();
+        elem_idx = 0;
+        prf_idx_ = 0;
     }
-    x.data[0] = *(block *)((uint8_t *)prf_buff_[0].data() + prf_idx_);
-    x.data[1] = *(block *)((uint8_t *)prf_buff_[1].data() + prf_idx_);
-    prf_idx_ += sizeof(block);
+
+    std::memcpy(&x.data[0], reinterpret_cast<const uint8_t *>(prf_buff_[0].data()) + prf_idx_, ELEM_SIZE);
+    std::memcpy(&x.data[1], reinterpret_cast<const uint8_t *>(prf_buff_[1].data()) + prf_idx_, ELEM_SIZE);
+    prf_idx_ += ELEM_SIZE;
 }
 
 uint64_t BinaryReplicatedSharing3P::GenerateRandomValue() const {
@@ -402,7 +418,7 @@ void BinaryReplicatedSharing3P::RandOffline(const std::string &file_path) const 
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     for (uint64_t i = 0; i < kThreeParties; ++i) {
-        Logger::DebugLog(LOC, "[P" + ToString(i) + "] Prf keys (i): " + ToString(keys[i], FormatType::kHex) + ", (i-1): " + ToString(keys[(i + 2) % kThreeParties], FormatType::kHex));
+        Logger::DebugLog(LOC, "[P" + ToString(i) + "] Prf keys (i): " + Format(keys[i]) + ", (i-1): " + Format(keys[(i + 2) % kThreeParties]));
     }
 #endif
 

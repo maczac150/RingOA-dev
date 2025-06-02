@@ -1,7 +1,5 @@
 #include "timer.h"
 
-#include <chrono>
-
 #include "logger.h"
 
 namespace fsswm {

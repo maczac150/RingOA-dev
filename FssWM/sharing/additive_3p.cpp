@@ -5,6 +5,7 @@
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
@@ -160,10 +161,10 @@ void ReplicatedSharing3P::Open(Channels &chls, const RepShareMat64 &x_mat_sh, st
         open_x_flat[i] = Mod(x_mat_sh[0][i] + x_mat_sh[1][i] + x_mat_next[i], bitsize_);
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringFlatMat(x_mat_sh[0], rows, cols));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToStringFlatMat(x_mat_next, rows, cols));
-    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + ToStringFlatMat(x_mat_sh[0], rows, cols) +
-                              ", x_1: " + ToStringFlatMat(x_mat_sh[1], rows, cols) + ", x_2: " + ToStringFlatMat(x_mat_next, rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringMatrix(x_mat_sh[0], rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Received share from the next party: " + ToStringMatrix(x_mat_next, rows, cols));
+    Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] x_0: " + ToStringMatrix(x_mat_sh[0], rows, cols) +
+                              ", x_1: " + ToStringMatrix(x_mat_sh[1], rows, cols) + ", x_2: " + ToStringMatrix(x_mat_next, rows, cols));
 #endif
 }
 
@@ -287,7 +288,7 @@ void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     for (uint64_t i = 0; i < kThreeParties; ++i) {
-        Logger::DebugLog(LOC, "[P" + ToString(i) + "] Prf keys (i): " + ToString(keys[i], FormatType::kHex) + ", (i-1): " + ToString(keys[(i + 2) % kThreeParties], FormatType::kHex));
+        Logger::DebugLog(LOC, "[P" + ToString(i) + "] Prf keys (i): " + Format(keys[i]) + ", (i-1): " + Format(keys[(i + 2) % kThreeParties]));
     }
 #endif
 

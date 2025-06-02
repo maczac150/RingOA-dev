@@ -4,6 +4,7 @@
 
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 
 namespace {

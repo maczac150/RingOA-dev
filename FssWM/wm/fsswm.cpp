@@ -2,11 +2,10 @@
 
 #include <cstring>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 #include "plain_wm.h"
 
@@ -95,6 +94,9 @@ FssWMKeyGenerator::FssWMKeyGenerator(
 }
 
 std::array<sharing::RepShareMatBlock, 3> FssWMKeyGenerator::GenerateDatabaseShare(const FMIndex &fm) {
+    if (fm.GetWaveletMatrix().GetLength() + 1 != params_.GetDatabaseSize()) {
+        throw std::invalid_argument("FMIndex length does not match the database size in FssWMParameters");
+    }
     const std::vector<uint64_t> &rank0_tables = fm.GetRank0Tables();
     const std::vector<uint64_t> &rank1_tables = fm.GetRank1Tables();
     std::vector<block>           database(rank0_tables.size());
@@ -166,11 +168,15 @@ void FssWMEvaluator::EvaluateRankCF(Channels                        &chls,
     std::string party_str = "[P" + ToString(party_id) + "] ";
 #endif
 
+    sharing::RepShareBlock rank01_sh;
+    sharing::RepShare64    rank0_sh(0, 0), rank1_sh(0, 0);
     for (uint64_t i = 0; i < sigma; ++i) {
-        sharing::RepShareBlock rank01_sh;
         os_eval_.Evaluate(chls, key.os_keys[i], wm_tables.RowView(i), position_sh, rank01_sh);
-        sharing::RepShare64 rank0_sh, rank1_sh;
         // TODO: rank01_shをrank0_shとrank1_shに分離する
+        rank0_sh[0] = rank01_sh[0].get<uint64_t>()[0];
+        rank1_sh[0] = rank01_sh[0].get<uint64_t>()[1];
+        rank0_sh[1] = rank01_sh[1].get<uint64_t>()[0];
+        rank1_sh[1] = rank01_sh[1].get<uint64_t>()[1];
         brss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
     }
     result = position_sh;

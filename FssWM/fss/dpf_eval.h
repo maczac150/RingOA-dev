@@ -54,6 +54,8 @@ public:
     void EvaluateFullDomain(const DpfKey &key, std::vector<block> &outputs) const;
     void EvaluateFullDomain(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
+    block EvaluatePir(const DpfKey &key, std::vector<block> &database) const;
+
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */
     prg::PseudoRandomGenerator &G_;      /**< Pseudo-random generator for the DPF key. */

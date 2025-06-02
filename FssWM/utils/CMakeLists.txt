@@ -14,4 +14,4 @@ add_library(utils STATIC
 target_include_directories(utils PUBLIC ${CMAKE_SOURCE_DIR})
 
 # Link libraries
-target_link_libraries(utils PUBLIC -lcrypto oc::cryptoTools)
+target_link_libraries(utils PUBLIC oc::cryptoTools)

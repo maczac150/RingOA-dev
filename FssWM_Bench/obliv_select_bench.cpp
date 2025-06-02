@@ -2,8 +2,6 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/sharing/share_io.h"
@@ -19,10 +17,10 @@ namespace {
 const std::string kCurrentPath = fsswm::GetCurrentDirectory();
 const std::string kBenchOSPath = kCurrentPath + "/data/bench/os/";
 
-std::vector<uint64_t> db_bitsizes     = {12, 14, 16, 18, 20, 22, 24, 26};
-std::vector<uint64_t> db_bitsizes_all = fsswm::CreateSequence(10, 27);
+std::vector<uint64_t> db_bitsizes = {16, 20, 24, 26};
+// std::vector<uint64_t> db_bitsizes = fsswm::CreateSequence(10, 28);
 
-constexpr uint64_t repeat = 30;
+constexpr uint64_t repeat = 10;
 
 }    // namespace
 
@@ -129,8 +127,7 @@ void OblivSelect_Online_Bench(const osuCrypto::CLP &cmd) {
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters params(db_bitsize);
         params.PrintParameters();
-        uint64_t d  = params.GetParameters().GetInputBitsize();
-        uint64_t nu = params.GetParameters().GetTerminateBitsize();
+        uint64_t d = params.GetParameters().GetInputBitsize();
         FileIo   file_io;
         ShareIo  sh_io;
         KeyIo    key_io;
@@ -172,7 +169,6 @@ void OblivSelect_Online_Bench(const osuCrypto::CLP &cmd) {
                 timer_mgr.SelectTimer(timer_eval);
                 timer_mgr.Start();
                 // Evaluate
-                eval.Evaluate(chls, key, RepShareViewBlock(database_sh), index_sh, result_sh);
                 eval.Evaluate(chls, key, RepShareViewBlock(database_sh), index_sh, result_sh);
                 timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
                 Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
@@ -267,9 +263,7 @@ void OblivSelect_Online_Bench(const osuCrypto::CLP &cmd) {
 void OblivSelect_DotProduct_Bench() {
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters     params(db_bitsize);
-        uint64_t                  n  = params.GetParameters().GetInputBitsize();
-        uint64_t                  e  = params.GetParameters().GetOutputBitsize();
-        uint64_t                  nu = params.GetParameters().GetTerminateBitsize();
+        uint64_t                  n = params.GetParameters().GetInputBitsize();
         DpfKeyGenerator           gen(params.GetParameters());
         DpfEvaluator              eval(params.GetParameters());
         BinaryReplicatedSharing3P brss(n);
@@ -277,6 +271,10 @@ void OblivSelect_DotProduct_Bench() {
         uint64_t                  alpha = 10;
         uint64_t                  beta  = 1;
         RepShareVecBlock          database_sh(1U << n);
+        for (size_t i = 0; i < database_sh.Size(); ++i) {
+            database_sh[0][i] = fsswm::MakeBlock(0, i);
+            database_sh[1][i] = fsswm::MakeBlock(0, i);
+        }
 
         TimerManager timer_mgr;
         // Generate keys
@@ -290,8 +288,8 @@ void OblivSelect_DotProduct_Bench() {
 
         for (uint64_t i = 0; i < repeat; ++i) {
             timer_mgr.Start();
-            block dp_prev = eval_os.FullDomainDotProduct(keys_prev.first, database_sh[0], 1);
-            block dp_next = eval_os.FullDomainDotProduct(keys_next.second, database_sh[1], 1);
+            eval_os.FullDomainDotProduct(keys_prev.first, database_sh[0], 1);
+            eval_os.FullDomainDotProduct(keys_next.second, database_sh[1], 1);
             timer_mgr.Stop("n=" + ToString(db_bitsize) + " (" + ToString(i) + ")");
         }
         timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);

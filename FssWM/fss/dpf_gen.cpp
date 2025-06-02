@@ -2,7 +2,8 @@
 
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
-#include "fss.h"
+#include "FssWM/utils/to_string.h"
+#include "FssWM/utils/utils.h"
 #include "prg.h"
 
 namespace fsswm {
@@ -56,9 +57,9 @@ void DpfKeyGenerator::GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair
     key_pair.second.init_seed = seed_1;
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
-    Logger::TraceLog(LOC, "[P0] Initial seed: " + ToString(seed_0));
+    Logger::TraceLog(LOC, "[P0] Initial seed: " + Format(seed_0));
     Logger::TraceLog(LOC, "[P0] Control bit: " + ToString(control_bit_0));
-    Logger::TraceLog(LOC, "[P1] Initial seed: " + ToString(seed_1));
+    Logger::TraceLog(LOC, "[P1] Initial seed: " + Format(seed_1));
     Logger::TraceLog(LOC, "[P1] Control bit: " + ToString(control_bit_1));
 #endif
 
@@ -78,7 +79,7 @@ void DpfKeyGenerator::GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair
     key_pair.second.output = output;
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
-    Logger::DebugLog(LOC, "Output: " + ToString(output));
+    Logger::DebugLog(LOC, "Output: " + Format(output));
     key_pair.first.PrintKey();
     key_pair.second.PrintKey();
 #endif
@@ -97,9 +98,9 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::
     key_pair.second.init_seed = seed_1;
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
-    Logger::TraceLog(LOC, "[P0] Initial seed: " + ToString(seed_0));
+    Logger::TraceLog(LOC, "[P0] Initial seed: " + Format(seed_0));
     Logger::TraceLog(LOC, "[P0] Control bit: " + ToString(control_bit_0));
-    Logger::TraceLog(LOC, "[P1] Initial seed: " + ToString(seed_1));
+    Logger::TraceLog(LOC, "[P1] Initial seed: " + Format(seed_1));
     Logger::TraceLog(LOC, "[P1] Control bit: " + ToString(control_bit_1));
 #endif
 
@@ -152,11 +153,11 @@ void DpfKeyGenerator::GenerateNextSeed(const uint64_t current_level, const bool 
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
     std::string level_str = "|Level=" + ToString(current_level) + "| ";
-    Logger::TraceLog(LOC, level_str + "[P0] Expanded seed (L): " + ToString(expanded_seed_0[kLeft]));
-    Logger::TraceLog(LOC, level_str + "[P0] Expanded seed (R): " + ToString(expanded_seed_0[kRight]));
+    Logger::TraceLog(LOC, level_str + "[P0] Expanded seed (L): " + Format(expanded_seed_0[kLeft]));
+    Logger::TraceLog(LOC, level_str + "[P0] Expanded seed (R): " + Format(expanded_seed_0[kRight]));
     Logger::TraceLog(LOC, level_str + "[P0] Expanded control bit (L, R): " + ToString(expanded_control_bit_0[kLeft]) + ", " + ToString(expanded_control_bit_0[kRight]));
-    Logger::TraceLog(LOC, level_str + "[P1] Expanded seed (L): " + ToString(expanded_seed_1[kLeft]));
-    Logger::TraceLog(LOC, level_str + "[P1] Expanded seed (R): " + ToString(expanded_seed_1[kRight]));
+    Logger::TraceLog(LOC, level_str + "[P1] Expanded seed (L): " + Format(expanded_seed_1[kLeft]));
+    Logger::TraceLog(LOC, level_str + "[P1] Expanded seed (R): " + Format(expanded_seed_1[kRight]));
     Logger::TraceLog(LOC, level_str + "[P1] Expanded control bit (L, R): " + ToString(expanded_control_bit_1[kLeft]) + ", " + ToString(expanded_control_bit_1[kRight]));
 #endif
 
@@ -172,7 +173,7 @@ void DpfKeyGenerator::GenerateNextSeed(const uint64_t current_level, const bool 
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
     Logger::TraceLog(LOC, level_str + "Current bit: " + ToString(current_bit) + " (Keep: " + ToString(keep) + ", Lose: " + ToString(lose) + ")");
-    Logger::TraceLog(LOC, level_str + "Seed correction: " + ToString(seed_correction));
+    Logger::TraceLog(LOC, level_str + "Seed correction: " + Format(seed_correction));
     Logger::TraceLog(LOC, level_str + "Correction control bit (L, R): " + ToString(control_bit_correction[kLeft]) + ", " + ToString(control_bit_correction[kRight]));
 #endif
 
@@ -193,9 +194,9 @@ void DpfKeyGenerator::GenerateNextSeed(const uint64_t current_level, const bool 
     current_control_bit_1 = expanded_control_bit_1[keep] ^ (current_control_bit_1 & control_bit_correction[keep]);
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
-    Logger::TraceLog(LOC, level_str + "[P0] Next seed: " + ToString(current_seed_0));
+    Logger::TraceLog(LOC, level_str + "[P0] Next seed: " + Format(current_seed_0));
     Logger::TraceLog(LOC, level_str + "[P0] Next control bit: " + ToString(current_control_bit_0));
-    Logger::TraceLog(LOC, level_str + "[P1] Next seed: " + ToString(current_seed_1));
+    Logger::TraceLog(LOC, level_str + "[P1] Next seed: " + Format(current_seed_1));
     Logger::TraceLog(LOC, level_str + "[P1] Next control bit: " + ToString(current_control_bit_1));
 #endif
 }
@@ -220,7 +221,7 @@ void DpfKeyGenerator::SetOutput(uint64_t alpha, uint64_t beta,
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         Logger::DebugLog(LOC, "Remaining bits: " + ToString(remaining_bit));
         Logger::DebugLog(LOC, "Alpha_hat: " + ToString(alpha_hat));
-        Logger::DebugLog(LOC, "byte_idx" + ToString(byte_idx) + ", bit_idx: " + ToString(bit_idx));
+        Logger::DebugLog(LOC, "byte_idx: " + ToString(byte_idx) + ", bit_idx: " + ToString(bit_idx));
 #endif
 
         auto seed_bytes = reinterpret_cast<uint8_t *>(&final_seed_0);
@@ -244,7 +245,7 @@ void DpfKeyGenerator::SetOutput(uint64_t alpha, uint64_t beta,
         Logger::DebugLog(LOC, "Remaining bits: " + ToString(remaining_bit));
         Logger::DebugLog(LOC, "Alpha_hat: " + ToString(alpha_hat));
         Logger::DebugLog(LOC, "Shift amount: " + ToString(shift_amount));
-        Logger::DebugLog(LOC, "Beta block: " + ToString(beta_block));
+        Logger::DebugLog(LOC, "Beta block: " + Format(beta_block));
 #endif
 
         // Set the output block

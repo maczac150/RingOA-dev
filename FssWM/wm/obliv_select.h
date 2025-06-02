@@ -8,7 +8,6 @@
 #include "FssWM/fss/dpf_eval.h"
 #include "FssWM/fss/dpf_gen.h"
 #include "FssWM/fss/dpf_key.h"
-#include "FssWM/utils/block.h"
 #include "FssWM/sharing/share_types.h"
 
 namespace fsswm {
@@ -244,10 +243,6 @@ public:
                                const std::span<const block> &database,
                                const uint64_t                pr) const;
 
-    void EvaluateNextSeed(const uint64_t current_level, const block &current_seed, const bool &current_control_bit,
-                          std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
-                          const fss::dpf::DpfKey &key) const;
-
 private:
     OblivSelectParameters               params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */
     fss::dpf::DpfEvaluator              eval_;   /**< DPF evaluator for the OblivSelectEvaluator. */
@@ -258,6 +253,10 @@ private:
     std::pair<uint64_t, uint64_t> ReconstructPRBinary(Channels                  &chls,
                                                       const OblivSelectKey      &key,
                                                       const sharing::RepShare64 &index) const;
+
+    void EvaluateNextSeed(const uint64_t current_level, const block &current_seed, const bool &current_control_bit,
+                          std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
+                          const fss::dpf::DpfKey &key) const;
 };
 
 }    // namespace wm

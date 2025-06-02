@@ -10,16 +10,17 @@
 #include <vector>
 
 #include "FssWM/utils/block.h"
+#include "FssWM/utils/to_string.h"
 
 namespace fsswm {
 namespace sharing {
 
-// Generic share pair struct for uint32_t, uint64_t, or block types
+// Generic share pair struct for uint64_t or block types
 template <typename T>
 struct RepShare {
     static_assert(
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, block>,
-        "RepShare<T> supports only uint32_t, uint64_t, or block");
+        std::is_same_v<T, uint64_t> || std::is_same_v<T, block>,
+        "RepShare<T> supports only uint64_t or block");
 
     std::array<T, 2> data;
 
@@ -55,7 +56,11 @@ struct RepShare {
     // Convert to string for debugging
     std::string ToString() const {
         std::ostringstream oss;
-        oss << "[" << data[0] << ", " << data[1] << "]";
+        if constexpr (std::is_same_v<T, block>) {
+            oss << "(" << fsswm::Format(data[0]) << ", " << fsswm::Format(data[1]) << ")";
+        } else {
+            oss << "(" << data[0] << ", " << data[1] << ")";
+        }
         return oss.str();
     }
 
@@ -78,8 +83,8 @@ struct RepShare {
 template <typename T>
 struct RepShareVec {
     static_assert(
-        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, block>,
-        "RepShareVec can only be used with uint32_t, uint64_t, or block types");
+        std::is_same_v<T, uint64_t> || std::is_same_v<T, block>,
+        "RepShareVec can only be used with uint64_t or block types");
 
     size_t                        num_shares;
     std::array<std::vector<T>, 2> data;
@@ -131,29 +136,12 @@ struct RepShareVec {
         data[1][idx] = share[1];
     }
 
-    std::string ToString(size_t limit = 0) const {
-        if (limit == 0 || limit > num_shares) {
-            limit = num_shares;
-        }
-
+    std::string ToString(FormatType format = FormatType::kHex, std::string_view delim = " ", size_t max_size = kSizeMax) const {
         std::ostringstream oss;
-        oss << "([";
-        for (size_t i = 0; i < limit; ++i) {
-            oss << data[0][i];
-            if (i < limit - 1) {
-                oss << ", ";
-            }
-        }
-        oss << "], [";
-        for (size_t i = 0; i < limit; ++i) {
-            oss << data[1][i];
-            if (i < limit - 1) {
-                oss << ", ";
-            }
-        }
-        oss << "])";
-        if (limit < num_shares) {
-            oss << ", ...";
+        if constexpr (std::is_same_v<T, block>) {
+            oss << "(" << fsswm::Format(data[0], format, delim, max_size) << ", " << fsswm::Format(data[1], format, delim, max_size) << ")";
+        } else {
+            oss << "(" << fsswm::ToString(data[0], delim, max_size) << ", " << fsswm::ToString(data[1], delim, max_size) << ")";
         }
         return oss.str();
     }
@@ -222,29 +210,12 @@ struct RepShareView {
         return RepShare<T>(share0[idx], share1[idx]);
     }
 
-    std::string ToString(size_t limit = 0) const {
-        if (limit == 0 || limit > num_shares) {
-            limit = num_shares;
-        }
-
+    std::string ToString(FormatType format = FormatType::kHex, std::string_view delim = " ", size_t max_size = kSizeMax) const {
         std::ostringstream oss;
-        oss << "([";
-        for (size_t i = 0; i < limit; ++i) {
-            oss << share0[i];
-            if (i < limit - 1) {
-                oss << ", ";
-            }
-        }
-        oss << "], [";
-        for (size_t i = 0; i < limit; ++i) {
-            oss << share1[i];
-            if (i < limit - 1) {
-                oss << ", ";
-            }
-        }
-        oss << "])";
-        if (limit < num_shares) {
-            oss << ", ...";
+        if constexpr (std::is_same_v<T, block>) {
+            oss << "(" << fsswm::Format(share0, format, delim, max_size) << ", " << fsswm::Format(share1, format, delim, max_size) << ")";
+        } else {
+            oss << "(" << fsswm::ToString(share0, delim, max_size) << ", " << fsswm::ToString(share1, delim, max_size) << ")";
         }
         return oss.str();
     }
@@ -306,26 +277,20 @@ struct RepShareMat {
     }
 
     // String representation up to optional row/col limits
-    std::string ToString(size_t row_limit = 0, size_t col_limit = 0) const {
-        if (row_limit == 0 || row_limit > rows)
-            row_limit = rows;
-        if (col_limit == 0 || col_limit > cols)
-            col_limit = cols;
-
+    std::string ToStringMatrix(FormatType       format   = FormatType::kHex,
+                               std::string_view row_pref = "[",
+                               std::string_view row_suff = "]",
+                               std::string_view col_del  = " ",
+                               std::string_view row_del  = ",",
+                               size_t           max_size = kSizeMax) const {
         std::ostringstream oss;
-        for (size_t i = 0; i < row_limit; ++i) {
-            RepShareView<T> view = RowView(i);
-            oss << "Row " << i << ": ([";
-            for (size_t j = 0; j < col_limit; ++j) {
-                oss << view.share0[j] << (j + 1 < col_limit ? ", " : "");
-            }
-            oss << "], [";
-            for (size_t j = 0; j < col_limit; ++j) {
-                oss << view.share1[j] << (j + 1 < col_limit ? ", " : "");
-            }
-            oss << "])";
-            if (i + 1 < row_limit)
-                oss << "";
+        if constexpr (std::is_same_v<T, block>) {
+            oss << "(" << fsswm::FormatMatrix(shares.data[0], rows, cols, format, row_pref, row_suff, col_del, row_del, max_size) << ", "
+                << fsswm::FormatMatrix(shares.data[1], rows, cols, format, row_pref, row_suff, col_del, row_del, max_size) << ")";
+            return oss.str();
+        } else {
+            oss << "(" << fsswm::ToStringMatrix(shares.data[0], rows, cols, row_pref, row_suff, col_del, row_del, max_size) << ", "
+                << fsswm::ToStringMatrix(shares.data[1], rows, cols, row_pref, row_suff, col_del, row_del, max_size) << ")";
         }
         return oss.str();
     }

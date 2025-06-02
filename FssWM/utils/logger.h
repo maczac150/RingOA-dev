@@ -27,7 +27,7 @@
 #define LOG_LEVEL_TRACE 6
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_TRACE    // Default log level
+#define LOG_LEVEL LOG_LEVEL_INFO    // Default log level
 #endif
 
 namespace fsswm {

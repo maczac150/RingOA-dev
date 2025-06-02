@@ -35,14 +35,9 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_EvalAt_Test", Dpf_EvalAt_Test);
     t.add("Dpf_Fde_Test", Dpf_Fde_Test);
     t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
-    t.add("libPSI_DPF_KeyGen_128_Test", libPSI_DPF_KeyGen_128_Test);
-    t.add("libPSI_DPF_KeyGen_Test", libPSI_DPF_KeyGen_Test);
-    t.add("libPSI_DPF_PIR_Test", libPSI_DPF_PIR_Test);
-    t.add("libPSI_DPF_FullDomain_Test", libPSI_DPF_FullDomain_Test);
-    t.add("libPSI_DPF_FullDomain2_Test", libPSI_DPF_FullDomain2_Test);
-    t.add("libPSI_DPF_FullDomain_iterator_Test", libPSI_DPF_FullDomain_iterator_Test);
-    t.add("libPSI_DPF_FullDomain2_iterator_Test", libPSI_DPF_FullDomain2_iterator_Test);
-    t.add("libPSI_DPF_FullDomain_multikey_Test", libPSI_DPF_FullDomain_multikey_Test);
+    t.add("Dpf_Pir_Test", Dpf_Pir_Test);
+    // t.add("libPSI_DPF_FullDomain_Test", libPSI_DPF_FullDomain_Test);
+    // t.add("libPSI_DPF_FullDomain2_Test", libPSI_DPF_FullDomain2_Test);
     t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
     t.add("Additive2P_EvaluateAdd_Online_Test", Additive2P_EvaluateAdd_Online_Test);
     t.add("Additive2P_EvaluateMult_Offline_Test", Additive2P_EvaluateMult_Offline_Test);

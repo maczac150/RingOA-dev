@@ -8,6 +8,7 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
@@ -193,8 +194,10 @@ void OblivSelectEvaluator::Evaluate(Channels                         &chls,
 #endif
 
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
+    // TODO: FullDomainDotProductを実行しないときの処理時間の違いを調べる
     block dp_prev = FullDomainDotProduct(key.prev_key, database.share0, pr_prev);
     block dp_next = FullDomainDotProduct(key.next_key, database.share1, pr_next);
+    // block dp_prev, dp_next = zero_block;
 
     block                  selected_sh = dp_prev ^ dp_next;
     sharing::RepShareBlock r_sh;
@@ -290,8 +293,7 @@ std::pair<uint64_t, uint64_t> OblivSelectEvaluator::ReconstructPRBinary(Channels
 block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &key,
                                                  const std::span<const block> &database,
                                                  const uint64_t                pr) const {
-    uint64_t nu            = params_.GetParameters().GetTerminateBitsize();
-    uint64_t remaining_bit = params_.GetParameters().GetInputBitsize() - nu;
+    uint64_t nu = params_.GetParameters().GetTerminateBitsize();
 
     // Breadth-first traversal for 8 nodes
     std::vector<block> start_seeds{key.init_seed}, next_seeds;
@@ -318,10 +320,11 @@ block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &k
     uint64_t current_idx   = 0;
     uint64_t last_depth    = std::max(static_cast<int32_t>(nu) - 3, 0);
     uint64_t last_idx      = 1U << last_depth;
-    uint64_t dp            = 0;
 
     // Store the seeds and control bits
-    std::array<block, 8>              expanded_seeds, output_seeds, sums;
+    std::array<block, 8>              expanded_seeds, output_seeds;
+    std::array<block, 8>              sums = {zero_block, zero_block, zero_block, zero_block,
+                                              zero_block, zero_block, zero_block, zero_block};
     std::array<bool, 8>               expanded_control_bits;
     std::vector<std::array<block, 8>> prev_seeds(last_depth + 1);
     std::vector<std::array<bool, 8>>  prev_control_bits(last_depth + 1);
@@ -345,28 +348,17 @@ block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &k
                 SetLsbZero(expanded_seeds[i]);
             }
 
-#if LOG_LEVEL >= LOG_LEVEL_TRACE
-            std::string level_str = "|Level=" + ToString(current_level) + "| ";
-            for (uint64_t i = 0; i < 8; ++i) {
-                Logger::TraceLog(LOC, level_str + "Current bit: " + ToString(current_bit));
-                Logger::TraceLog(LOC, level_str + "Current seed (" + ToString(i) + "): " + ToString(prev_seeds[current_level][i]));
-                Logger::TraceLog(LOC, level_str + "Current control bit (" + ToString(i) + "): " + ToString(prev_control_bits[current_level][i]));
-                Logger::TraceLog(LOC, level_str + "Expanded seed (" + ToString(i) + "): " + ToString(expanded_seeds[i]));
-                Logger::TraceLog(LOC, level_str + "Expanded control bit (" + ToString(i) + "): " + ToString(expanded_control_bits[i]));
-            }
-#endif
-
             // Apply correction word if control bit is true
             bool  cw_control_bit = current_bit ? key.cw_control_right[current_level + 3] : key.cw_control_left[current_level + 3];
             block cw_seed        = key.cw_seed[current_level + 3];
-            expanded_seeds[0]    = _mm_xor_si128(expanded_seeds[0], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][0]]));
-            expanded_seeds[1]    = _mm_xor_si128(expanded_seeds[1], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][1]]));
-            expanded_seeds[2]    = _mm_xor_si128(expanded_seeds[2], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][2]]));
-            expanded_seeds[3]    = _mm_xor_si128(expanded_seeds[3], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][3]]));
-            expanded_seeds[4]    = _mm_xor_si128(expanded_seeds[4], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][4]]));
-            expanded_seeds[5]    = _mm_xor_si128(expanded_seeds[5], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][5]]));
-            expanded_seeds[6]    = _mm_xor_si128(expanded_seeds[6], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][6]]));
-            expanded_seeds[7]    = _mm_xor_si128(expanded_seeds[7], _mm_and_si128(cw_seed, zero_and_all_one[prev_control_bits[current_level][7]]));
+            expanded_seeds[0] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][0]]);
+            expanded_seeds[1] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][1]]);
+            expanded_seeds[2] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][2]]);
+            expanded_seeds[3] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][3]]);
+            expanded_seeds[4] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][4]]);
+            expanded_seeds[5] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][5]]);
+            expanded_seeds[6] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][6]]);
+            expanded_seeds[7] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][7]]);
 
             for (uint64_t i = 0; i < 8; ++i) {
                 // expanded_seeds[i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[prev_control_bits[current_level][i]]);
@@ -387,20 +379,20 @@ block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &k
         G_.Expand(prev_seeds[current_level], prev_seeds[current_level], true);
 
         for (uint64_t j = 0; j < 8; ++j) {
-            output_seeds[j] = _mm_xor_si128(prev_seeds[current_level][j], _mm_and_si128(zero_and_all_one[prev_control_bits[current_level][j]], key.output));
+            output_seeds[j] = prev_seeds[current_level][j] ^ (zero_and_all_one[prev_control_bits[current_level][j]] & key.output);
         }
 
         auto dest = byte_expanded_seeds.data();
 
         for (uint64_t i = 0; i < 8; ++i) {
-            dest[0] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 0));
-            dest[1] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 1));
-            dest[2] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 2));
-            dest[3] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 3));
-            dest[4] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 4));
-            dest[5] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 5));
-            dest[6] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 6));
-            dest[7] = _mm_and_si128(all_bytes_one_mask, _mm_srai_epi16(output_seeds[i], 7));
+            dest[0] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(0);
+            dest[1] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(1);
+            dest[2] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(2);
+            dest[3] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(3);
+            dest[4] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(4);
+            dest[5] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(5);
+            dest[6] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(6);
+            dest[7] = all_bytes_one_mask & output_seeds[i].mm_srai_epi16(7);
 
             dest += 8;
         }
@@ -416,36 +408,31 @@ block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &k
 
         // Calculate the dot product
         for (uint64_t j = 0; j < 128; ++j) {
-            size_t db_idx0 = ((0 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx1 = ((1 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx2 = ((2 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx3 = ((3 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx4 = ((4 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx5 = ((5 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx6 = ((6 * last_idx + current_idx) * 128 + j) ^ pr;
-            size_t db_idx7 = ((7 * last_idx + current_idx) * 128 + j) ^ pr;
-            // Logger::WarnLog(LOC, "DB indices: " + ToString(db_idx0) + ", " + ToString(db_idx1) + ", " +
-            //                          ToString(db_idx2) + ", " + ToString(db_idx3) + ", " +
-            //                          ToString(db_idx4) + ", " + ToString(db_idx5) + ", " +
-            //                          ToString(db_idx6) + ", " + ToString(db_idx7));
+            size_t db_idx0 = (((0 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx1 = (((1 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx2 = (((2 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx3 = (((3 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx4 = (((4 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx5 = (((5 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx6 = (((6 * last_idx + current_idx) * 128) + j) ^ pr;
+            size_t db_idx7 = (((7 * last_idx + current_idx) * 128) + j) ^ pr;
+            auto   input0  = database[db_idx0] & zero_and_all_one[seed_byte0[j]];
+            auto   input1  = database[db_idx1] & zero_and_all_one[seed_byte1[j]];
+            auto   input2  = database[db_idx2] & zero_and_all_one[seed_byte2[j]];
+            auto   input3  = database[db_idx3] & zero_and_all_one[seed_byte3[j]];
+            auto   input4  = database[db_idx4] & zero_and_all_one[seed_byte4[j]];
+            auto   input5  = database[db_idx5] & zero_and_all_one[seed_byte5[j]];
+            auto   input6  = database[db_idx6] & zero_and_all_one[seed_byte6[j]];
+            auto   input7  = database[db_idx7] & zero_and_all_one[seed_byte7[j]];
 
-            auto input0 = _mm_and_si128(database[db_idx0], zero_and_all_one[seed_byte0[j]]);
-            auto input1 = _mm_and_si128(database[db_idx1], zero_and_all_one[seed_byte1[j]]);
-            auto input2 = _mm_and_si128(database[db_idx2], zero_and_all_one[seed_byte2[j]]);
-            auto input3 = _mm_and_si128(database[db_idx3], zero_and_all_one[seed_byte3[j]]);
-            auto input4 = _mm_and_si128(database[db_idx4], zero_and_all_one[seed_byte4[j]]);
-            auto input5 = _mm_and_si128(database[db_idx5], zero_and_all_one[seed_byte5[j]]);
-            auto input6 = _mm_and_si128(database[db_idx6], zero_and_all_one[seed_byte6[j]]);
-            auto input7 = _mm_and_si128(database[db_idx7], zero_and_all_one[seed_byte7[j]]);
-
-            sums[0] = _mm_xor_si128(sums[0], input0);
-            sums[1] = _mm_xor_si128(sums[1], input1);
-            sums[2] = _mm_xor_si128(sums[2], input2);
-            sums[3] = _mm_xor_si128(sums[3], input3);
-            sums[4] = _mm_xor_si128(sums[4], input4);
-            sums[5] = _mm_xor_si128(sums[5], input5);
-            sums[6] = _mm_xor_si128(sums[6], input6);
-            sums[7] = _mm_xor_si128(sums[7], input7);
+            sums[0] = sums[0] ^ input0;
+            sums[1] = sums[1] ^ input1;
+            sums[2] = sums[2] ^ input2;
+            sums[3] = sums[3] ^ input3;
+            sums[4] = sums[4] ^ input4;
+            sums[5] = sums[5] ^ input5;
+            sums[6] = sums[6] ^ input6;
+            sums[7] = sums[7] ^ input7;
         }
 
         // Update the current index
@@ -456,10 +443,10 @@ block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &k
 
     block blk_sum = zero_block;
     for (uint64_t i = 0; i < 8; i++) {
-        blk_sum = _mm_xor_si128(blk_sum, sums[i]);
+        blk_sum = blk_sum ^ sums[i];
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Dot product result: " + ToString(blk_sum));
+    Logger::DebugLog(LOC, "Dot product result: " + Format(blk_sum));
 #endif
     return blk_sum;
 }
@@ -476,9 +463,9 @@ void OblivSelectEvaluator::EvaluateNextSeed(
     SetLsbZero(expanded_seeds[fss::kRight]);
 
     // Apply correction word if control bit is true
-    const block mask            = key.cw_seed[current_level] & zero_and_all_one[current_control_bit];
-    expanded_seeds[fss::kLeft]  = _mm_xor_si128(expanded_seeds[fss::kLeft], mask);
-    expanded_seeds[fss::kRight] = _mm_xor_si128(expanded_seeds[fss::kRight], mask);
+    const block mask = key.cw_seed[current_level] & zero_and_all_one[current_control_bit];
+    expanded_seeds[fss::kLeft] ^= mask;
+    expanded_seeds[fss::kRight] ^= mask;
 
     const bool control_mask_left  = key.cw_control_left[current_level] & current_control_bit;
     const bool control_mask_right = key.cw_control_right[current_level] & current_control_bit;

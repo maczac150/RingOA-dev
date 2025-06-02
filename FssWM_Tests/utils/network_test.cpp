@@ -6,6 +6,7 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
 #include "FssWM/utils/utils.h"
+#include "FssWM/utils/to_string.h"
 
 namespace test_fsswm {
 

@@ -2,9 +2,9 @@
 
 #include <algorithm>
 #include <sdsl/csa_wt.hpp>
-#include <span>
 
 #include "FssWM/utils/logger.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
@@ -114,25 +114,26 @@ std::string CharMapper::MapToString() const {
 }
 
 WaveletMatrix::WaveletMatrix(const std::string &data, const CharType type)
-    : mapper_(type) {
+    : length_(0), sigma_(0), mapper_(type) {
     data_  = mapper_.ToIds(data);
     sigma_ = mapper_.GetSigma();
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma_));
     Logger::DebugLog(LOC, "Mapping: " + mapper_.MapToString());
-    Logger::DebugLog(LOC, "Data: " + ToString(data));
+    Logger::DebugLog(LOC, "Data: " + ToString(data_));
     Logger::DebugLog(LOC, "Length: " + ToString(data.size()));
 #endif
     Build(data_);
 }
 
 WaveletMatrix::WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma)
-    : data_(data), sigma_(sigma) {
+    : length_(0), sigma_(sigma) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma_));
-    Logger::DebugLog(LOC, "Data: " + ToString(data));
+    Logger::DebugLog(LOC, "Data: " + ToString(data_));
     Logger::DebugLog(LOC, "Length: " + ToString(data.size()));
 #endif
+    data_ = data;
     Build(data_);
 }
 
@@ -169,7 +170,6 @@ void WaveletMatrix::PrintRank0Tables() const {
     const size_t stride = length_ + 1;
     for (size_t bit = 0; bit < sigma_; ++bit) {
         size_t off = bit * stride;
-        // flat vector から span でレベルビューを切り出し
         std::span<const uint64_t> tbl(&rank0_tables_[off], stride);
         Logger::DebugLog(
             LOC,
@@ -261,7 +261,7 @@ void WaveletMatrix::Build(const std::vector<uint64_t> &data) {
 
         // 2) build rank1 as (i – rank0) + totalZeros
         uint64_t total_zeros = rank0_tables_[off + length_];
-        for (size_t i = 0; i < length_; ++i) {
+        for (size_t i = 0; i < length_ + 1; ++i) {
             rank1_tables_[off + i] = (i - rank0_tables_[off + i]) + total_zeros;
         }
 
@@ -322,11 +322,12 @@ std::vector<uint64_t> FMIndex::ConvertToBitMatrix(const std::string &query) cons
 #endif
 
     // 2) Convert to bits
-    std::vector<uint64_t> bits(nums.size() * wm_.GetSigma());
+    uint64_t              sigma = wm_.GetSigma();
+    std::vector<uint64_t> bits(nums.size() * sigma);
     for (size_t i = 0; i < nums.size(); ++i) {
         uint64_t val = nums[i];
-        for (size_t b = 0; b < wm_.GetSigma(); ++b) {
-            bits[i * wm_.GetSigma() + b] = (val >> b) & 1U;
+        for (size_t b = 0; b < sigma; ++b) {
+            bits[i * sigma + b] = (val >> b) & 1U;
         }
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

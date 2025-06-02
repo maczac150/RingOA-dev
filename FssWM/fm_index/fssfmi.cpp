@@ -2,12 +2,11 @@
 
 #include <cstring>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/utils.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/wm/plain_wm.h"
 
 namespace {
@@ -126,7 +125,7 @@ std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateQueryShare(con
     std::vector<uint64_t> query_bv = fm.ConvertToBitMatrix(query);
     ReplaceOnes(query_bv, Pow(2, params_.GetDatabaseBitSize()) - 1);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Query bitvec: " + ToStringFlatMat(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma()));
+    Logger::DebugLog(LOC, "Query bitvec: " + ToStringMatrix(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma()));
 #endif
     return brss_.ShareLocal(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma());
 }
@@ -188,7 +187,6 @@ void FssFMIEvaluator::EvaluateLPM(Channels                        &chls,
                                   sharing::RepShareVec64          &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
-    uint64_t nu       = params_.GetFssWMParameters().GetOSParameters().GetParameters().GetTerminateBitsize();
     uint64_t ds       = params_.GetDatabaseSize();
     uint64_t qs       = params_.GetQuerySize();
     uint64_t sigma    = params_.GetSigma();

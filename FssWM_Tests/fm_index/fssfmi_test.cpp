@@ -5,14 +5,13 @@
 #include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/fm_index/fssfmi.h"
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/sharing/share_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
+#include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
 #include "FssWM/wm/key_io.h"
 #include "FssWM/wm/plain_wm.h"
@@ -49,10 +48,8 @@ using fsswm::fm_index::FssFMIEvaluator;
 using fsswm::fm_index::FssFMIKey;
 using fsswm::fm_index::FssFMIKeyGenerator;
 using fsswm::fm_index::FssFMIParameters;
-using fsswm::sharing::AdditiveSharing2P;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
-using fsswm::sharing::ReplicatedSharing3P;
 using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
 using fsswm::sharing::RepShareMat64, fsswm::sharing::RepShareMatBlock;
 using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
@@ -100,16 +97,16 @@ void FssFMI_Offline_Test() {
         std::array<RepShareMatBlock, 3> db_sh    = gen.GenerateDatabaseShare(fm);
         std::array<RepShareMat64, 3>    query_sh = gen.GenerateQueryShare(fm, query);
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToString());
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " query share: " + query_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToStringMatrix());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " query share: " + query_sh[p].ToStringMatrix());
         }
 
         // Save data
         std::string db_path    = kTestFssFMIPath + "db_d" + ToString(d);
         std::string query_path = kTestFssFMIPath + "query_d" + ToString(d);
 
-        // file_io.WriteToFile(db_path, database);
-        // file_io.WriteToFile(query_path, query);
+        file_io.WriteToFile(db_path, database);
+        file_io.WriteToFile(query_path, query);
 
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
@@ -145,15 +142,14 @@ void FssFMI_Online_Test(const osuCrypto::CLP &cmd) {
         std::string           query_path = kTestFssFMIPath + "query_d" + ToString(d);
         std::string           database;
         std::string           query;
-        // file_io.ReadFromFile(db_path, database);
-        // file_io.ReadFromFile(query_path, query);
+        file_io.ReadFromFile(db_path, database);
+        file_io.ReadFromFile(query_path, query);
 
         // Define the tasks for each party
         ThreePartyNetworkManager net_mgr;
 
         // Party 0 task
         auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P       rss(d);
             BinaryReplicatedSharing3P brss(d);
             FssFMIEvaluator           eval(params, brss);
             Channels                  chls(0, chl_prev, chl_next);
@@ -176,7 +172,6 @@ void FssFMI_Online_Test(const osuCrypto::CLP &cmd) {
 
         // Party 1 task
         auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P       rss(d);
             BinaryReplicatedSharing3P brss(d);
             FssFMIEvaluator           eval(params, brss);
             Channels                  chls(1, chl_prev, chl_next);
@@ -199,7 +194,6 @@ void FssFMI_Online_Test(const osuCrypto::CLP &cmd) {
 
         // Party 2 task
         auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P       rss(d);
             BinaryReplicatedSharing3P brss(d);
             FssFMIEvaluator           eval(params, brss);
             Channels                  chls(2, chl_prev, chl_next);

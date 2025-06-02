@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "FssWM/utils/block.h"
-#include "FssWM/utils/utils.h"
 
 namespace fsswm {
 namespace fss {

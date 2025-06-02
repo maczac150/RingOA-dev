@@ -9,7 +9,6 @@
 #include <type_traits>
 
 #include "logger.h"
-#include "utils.h"
 
 namespace fsswm {
 

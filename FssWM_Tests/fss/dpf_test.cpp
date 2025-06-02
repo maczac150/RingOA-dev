@@ -8,6 +8,8 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/timer.h"
+#include "FssWM/utils/to_string.h"
+#include "FssWM/utils/utils.h"
 
 namespace {
 
@@ -58,7 +60,7 @@ using fsswm::GlobalRng;
 using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::TimerManager;
-using fsswm::ToString;
+using fsswm::ToString, fsswm::Format;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
@@ -242,7 +244,7 @@ void Dpf_Fde_One_Test() {
             }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             for (uint64_t i = 0; i < outputs.size(); ++i) {
-                Logger::DebugLog(LOC, "Outputs[" + ToString(i) + "]=" + fsswm::ToString(outputs[i], FormatType::kBin));
+                Logger::DebugLog(LOC, "Outputs[" + ToString(i) + "]=" + Format(outputs[i], FormatType::kBin));
             }
 #endif
             // Check FDE
@@ -251,6 +253,55 @@ void Dpf_Fde_One_Test() {
         }
     }
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test - Passed");
+}
+
+void Dpf_Pir_Test() {
+    Logger::DebugLog(LOC, "Dpf_Pir_Test...");
+    const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
+        {10, 1, EvalType::kIterSingleBatch},
+    };
+    // Test all combinations of parameters
+    for (auto [n, e, eval_type] : fde_param) {
+        DpfParameters param(n, e, eval_type);
+        param.PrintParameters();
+        DpfKeyGenerator gen(param);
+        DpfEvaluator    eval(param);
+        uint64_t        alpha = 32;
+        uint64_t        beta  = 1;
+
+        // Generate keys
+        Logger::DebugLog(LOC, "alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
+        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
+        keys.first.PrintKey(true);
+        keys.second.PrintKey(true);
+
+        // Generate database
+        std::vector<block> database(1 << n);
+        for (uint64_t i = 0; i < database.size(); ++i) {
+            database[i] = fsswm::MakeBlock(0, i);
+        }
+        Logger::DebugLog(LOC, "Database :" + fsswm::Format(database, FormatType::kDec));
+
+        // Evaluate keys
+        block result_0 = eval.EvaluatePir(keys.first, database);
+        block result_1 = eval.EvaluatePir(keys.second, database);
+        block output   = result_0 ^ result_1;
+        Logger::DebugLog(LOC, "Output :" + fsswm::Format(output, FormatType::kDec));
+
+        // std::vector<block> outputs_0, outputs_1;
+        // eval.EvaluateFullDomain(keys.first, outputs_0);
+        // eval.EvaluateFullDomain(keys.second, outputs_1);
+        // std::vector<block> outputs(outputs_0.size());
+        // for (uint64_t i = 0; i < outputs_0.size(); ++i) {
+        //     outputs[i] = outputs_0[i] ^ outputs_1[i];
+        // }
+        // Logger::DebugLog(LOC, "Outputs :" + fsswm::Format(outputs, FormatType::kBin));
+
+        // Check FDE
+        if (output != database[alpha])
+            throw osuCrypto::UnitTestFail("FDE check failed");
+    }
+    Logger::DebugLog(LOC, "Dpf_Pir_Test - Passed");
 }
 
 }    // namespace test_fsswm

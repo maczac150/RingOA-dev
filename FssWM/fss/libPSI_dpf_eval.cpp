@@ -637,9 +637,6 @@ block BgiPirServer::fullDomainSingleGroup(span<block> data, span<block> k, span<
     std::cout << "### BgiPirServer::fullDomainSingleGroup ###" << std::endl;
     u64 kDepth = u64(k.size()) - 1;
 
-    if (data.size() != (i64(1) << (k.size() - 1)) * 128)
-        throw std::runtime_error(LOCATION);
-
     std::cout << "s0 " << k[0] << std::endl;
     std::vector<block> prev{k[0]}, next;
     for (u64 i = 0; i < std::min<u64>(3, kDepth); ++i) {

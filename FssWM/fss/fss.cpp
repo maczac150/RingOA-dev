@@ -1,7 +1,6 @@
 #include "fss.h"
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
+#include "FssWM/utils/to_string.h"
 
 namespace fsswm {
 namespace fss {
