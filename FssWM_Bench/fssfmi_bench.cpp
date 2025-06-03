@@ -127,9 +127,9 @@ void FssFMI_Offline_Bench() {
             std::array<RepShareMat64, 3>    query_sh = gen.GenerateQueryShare(fm, query);
             timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // file_io.WriteToFile(db0_path, database);
-            // file_io.WriteToFile(db1_path, database);
-            // file_io.WriteToFile(query_path, query);
+            // file_io.WriteBinary(db0_path, database);
+            // file_io.WriteBinary(db1_path, database);
+            // file_io.WriteBinary(query_path, query);
             for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
                 sh_io.SaveShare(db0_path + "_" + ToString(p), db_sh[p]);
                 sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
@@ -139,8 +139,7 @@ void FssFMI_Offline_Bench() {
         }
     }
     // Logger::InfoLog(LOC, "FssFMI_Offline_Bench - Finished");
-    // FileIo io(".log");
-    // io.WriteToFile("./data/log/fssfmi_offline", Logger::GetLogList());
+    // Logger::ExportLogList("./data/log/fssfmi_offline");
 }
 
 void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
@@ -164,9 +163,9 @@ void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
             // std::vector<uint64_t>     result;
             // std::string database;
             // std::string query;
-            // file_io.ReadFromFile(db0_path, database);
-            // file_io.ReadFromFile(db1_path, database);
-            // file_io.ReadFromFile(query_path, query);
+            // file_io.ReadBinary(db0_path, database);
+            // file_io.ReadBinary(db1_path, database);
+            // file_io.ReadBinary(query_path, query);
 
             // Define the tasks for each party
             ThreePartyNetworkManager net_mgr;
@@ -288,16 +287,7 @@ void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "FssFMI_Online_Bench - Finished");
-
-    // FileIo io(".log");
-
-    // if (party_id == 0) {
-    //     io.WriteToFile("./data/log/fssfmi_online_p0_" + network, Logger::GetLogList());
-    // } else if (party_id == 1) {
-    //     io.WriteToFile("./data/log/fssfmi_online_p1_" + network, Logger::GetLogList());
-    // } else if (party_id == 2) {
-    //     io.WriteToFile("./data/log/fssfmi_online_p2_" + network, Logger::GetLogList());
-    // }
+    Logger::ExportLogList("./data/log/fssfmi_online_" + ToString(party_id) + "_" + network);
 }
 
 }    // namespace bench_fsswm

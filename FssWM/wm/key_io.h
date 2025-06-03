@@ -24,11 +24,8 @@ class KeyIo {
 public:
     /**
      * @brief Default constructor for KeyIo.
-     * @param binary_mode A flag to indicate whether to use binary mode. Defaults to true.
      */
-    explicit KeyIo(bool binary_mode = true)
-        : binary_mode_(binary_mode) {
-    }
+    KeyIo() = default;
 
     /**
      * @brief Save the key to a file.
@@ -41,13 +38,8 @@ public:
         std::vector<uint8_t> buffer;
         key.Serialize(buffer);
         try {
-            if (binary_mode_) {
-                FileIo io(".key.bin");
-                io.WriteToFileBinary(file_path, buffer);
-            } else {
-                FileIo io(".key");
-                io.WriteToFile(file_path, buffer);
-            }
+            FileIo io(".key.bin");
+            io.WriteBinary(file_path, buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             Logger::DebugLog(LOC, "Key saved successfully to " + file_path);
 #endif
@@ -68,13 +60,8 @@ public:
     void LoadKey(const std::string &file_path, KeyType &key) {
         std::vector<uint8_t> buffer;
         try {
-            if (binary_mode_) {
-                FileIo io(".key.bin");
-                io.ReadFromFileBinary(file_path, buffer);
-            } else {
-                FileIo io(".key");
-                io.ReadFromFile(file_path, buffer);
-            }
+            FileIo io(".key.bin");
+            io.ReadBinary(file_path, buffer);
             if (buffer.empty()) {
                 throw std::runtime_error("Loaded buffer is empty.");
             }
@@ -88,17 +75,6 @@ public:
             std::exit(EXIT_FAILURE);
         }
     }
-
-    /**
-     * @brief Get the binary mode flag.
-     * @return The binary mode flag.
-     */
-    bool GetBinaryMode() const {
-        return binary_mode_;
-    }
-
-private:
-    bool binary_mode_; /**< Flag to indicate whether to use binary mode. */
 };
 
 }    // namespace wm

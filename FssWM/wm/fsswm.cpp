@@ -172,7 +172,6 @@ void FssWMEvaluator::EvaluateRankCF(Channels                        &chls,
     sharing::RepShare64    rank0_sh(0, 0), rank1_sh(0, 0);
     for (uint64_t i = 0; i < sigma; ++i) {
         os_eval_.Evaluate(chls, key.os_keys[i], wm_tables.RowView(i), position_sh, rank01_sh);
-        // TODO: rank01_shをrank0_shとrank1_shに分離する
         rank0_sh[0] = rank01_sh[0].get<uint64_t>()[0];
         rank1_sh[0] = rank01_sh[0].get<uint64_t>()[1];
         rank0_sh[1] = rank01_sh[1].get<uint64_t>()[0];

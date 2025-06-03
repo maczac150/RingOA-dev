@@ -280,11 +280,10 @@ void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const RepShareVec
 
 void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
     Logger::DebugLog(LOC, "Offline Rand for ReplicatedSharing3P.");
-    std::array<uint64_t, 2> key_0 = GlobalRng::Rand<std::array<uint64_t, 2>>();
-    std::array<uint64_t, 2> key_1 = GlobalRng::Rand<std::array<uint64_t, 2>>();
-    std::array<uint64_t, 2> key_2 = GlobalRng::Rand<std::array<uint64_t, 2>>();
-
-    std::array<std::array<uint64_t, 2>, kThreeParties> keys = {key_0, key_1, key_2};
+    block key_0 = GlobalRng::Rand<block>();
+    block key_1 = GlobalRng::Rand<block>();
+    block key_2 = GlobalRng::Rand<block>();
+    std::array<block, kThreeParties> keys = {key_0, key_1, key_2};
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     for (uint64_t i = 0; i < kThreeParties; ++i) {
@@ -292,25 +291,50 @@ void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
     }
 #endif
 
-    // Save the keys to the file
-    FileIo io(".key");
-    // next: i, prev: i-1
-    io.WriteToFileBinary(file_path + "_next_0", keys[0]);
-    io.WriteToFileBinary(file_path + "_prev_0", keys[2]);
-    io.WriteToFileBinary(file_path + "_next_1", keys[1]);
-    io.WriteToFileBinary(file_path + "_prev_1", keys[0]);
-    io.WriteToFileBinary(file_path + "_next_2", keys[2]);
-    io.WriteToFileBinary(file_path + "_prev_2", keys[1]);
+    try {
+        // Save the keys to the file
+        // next: i, prev: i-1
+        FileIo io(".key");
+        io.WriteBinary(file_path + "_next_0", keys[0]);
+        io.WriteBinary(file_path + "_prev_0", keys[2]);
+        io.WriteBinary(file_path + "_next_1", keys[1]);
+        io.WriteBinary(file_path + "_prev_1", keys[0]);
+        io.WriteBinary(file_path + "_next_2", keys[2]);
+        io.WriteBinary(file_path + "_prev_2", keys[1]);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "PRF keys written to file: " + file_path + "_next_0.key.bin");
+        Logger::DebugLog(LOC, "PRF keys written to file: " + file_path + "_prev_0.key.bin");
+        Logger::DebugLog(LOC, "PRF keys written to file: " + file_path + "_next_1.key.bin");
+        Logger::DebugLog(LOC, "PRF keys written to file: " + file_path + "_prev_1.key.bin");
+        Logger::DebugLog(LOC, "PRF keys written to file: " + file_path + "_next_2.key.bin");
+        Logger::DebugLog(LOC, "PRF keys written to file: " + file_path + "_prev_2.key.bin");
+#endif
+
+    } catch (const std::exception &e) {
+        Logger::FatalLog(LOC, "Failed to write PRF keys to file: " + std::string(e.what()));
+        exit(EXIT_FAILURE);
+    }
 }
 
 void ReplicatedSharing3P::RandOnline(const uint64_t party_id, const std::string &file_path, uint64_t buffer_size) {
     Logger::DebugLog(LOC, "Rand setup for ReplicatedSharing3P.");
 
-    // Load the keys from the file
-    FileIo                  io(".key");
-    std::array<uint64_t, 2> key_next, key_prev;
-    io.ReadFromFileBinary(file_path + "_next_" + ToString(party_id), key_next);
-    io.ReadFromFileBinary(file_path + "_prev_" + ToString(party_id), key_prev);
+    block key_next, key_prev;
+    try {
+        // Load the keys from the file
+        FileIo io(".key");
+        io.ReadBinary(file_path + "_next_" + ToString(party_id), key_next);
+        io.ReadBinary(file_path + "_prev_" + ToString(party_id), key_prev);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "PRF keys read from file: " + file_path + "_next_" + ToString(party_id) + ".key.bin");
+        Logger::DebugLog(LOC, "PRF keys read from file: " + file_path + "_prev_" + ToString(party_id) + ".key.bin");
+#endif
+    } catch (const std::exception &e) {
+        Logger::FatalLog(LOC, "Failed to read PRF keys from file: " + std::string(e.what()));
+        exit(EXIT_FAILURE);
+    }
 
     // Initialize PRF
     prf_buff_idx_ = 0;

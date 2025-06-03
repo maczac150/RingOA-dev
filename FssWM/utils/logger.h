@@ -137,10 +137,13 @@ public:
      * @param log_list A vector to store log entries as strings.
      */
     const static std::vector<std::string> &GetLogList();
+
     /**
      * @brief Clear log list.
      */
     static void ClearLogList();
+
+    static void ExportLogList(const std::string &file_path, const bool append = false);
 
 private:
     static LogFormat                log_format_; /**< A struct to store log information. */

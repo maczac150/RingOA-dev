@@ -67,35 +67,35 @@ void Additive2P_EvaluateAdd_Offline_Test() {
         // Save input
         std::string x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
         std::string y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
-        file_io.WriteToFile(x_path + "_0", x_sh.first);
-        file_io.WriteToFile(x_path + "_1", x_sh.second);
-        file_io.WriteToFile(y_path + "_0", y_sh.first);
-        file_io.WriteToFile(y_path + "_1", y_sh.second);
-        file_io.WriteToFile(x_path + "_arr_0", x_arr_sh.first);
-        file_io.WriteToFile(x_path + "_arr_1", x_arr_sh.second);
-        file_io.WriteToFile(y_path + "_arr_0", y_arr_sh.first);
-        file_io.WriteToFile(y_path + "_arr_1", y_arr_sh.second);
-        file_io.WriteToFile(x_path + "_vec_0", x_vec_sh.first);
-        file_io.WriteToFile(x_path + "_vec_1", x_vec_sh.second);
-        file_io.WriteToFile(y_path + "_vec_0", y_vec_sh.first);
-        file_io.WriteToFile(y_path + "_vec_1", y_vec_sh.second);
+        file_io.WriteBinary(x_path + "_0", x_sh.first);
+        file_io.WriteBinary(x_path + "_1", x_sh.second);
+        file_io.WriteBinary(y_path + "_0", y_sh.first);
+        file_io.WriteBinary(y_path + "_1", y_sh.second);
+        file_io.WriteBinary(x_path + "_arr_0", x_arr_sh.first);
+        file_io.WriteBinary(x_path + "_arr_1", x_arr_sh.second);
+        file_io.WriteBinary(y_path + "_arr_0", y_arr_sh.first);
+        file_io.WriteBinary(y_path + "_arr_1", y_arr_sh.second);
+        file_io.WriteBinary(x_path + "_vec_0", x_vec_sh.first);
+        file_io.WriteBinary(x_path + "_vec_1", x_vec_sh.second);
+        file_io.WriteBinary(y_path + "_vec_0", y_vec_sh.first);
+        file_io.WriteBinary(y_path + "_vec_1", y_vec_sh.second);
 
         // Load input
         uint64_t                x_0, x_1, y_0, y_1;
         std::array<uint64_t, 2> x_arr_0, x_arr_1, y_arr_0, y_arr_1;
         std::vector<uint64_t>   x_vec_0, x_vec_1, y_vec_0, y_vec_1;
-        file_io.ReadFromFile(x_path + "_0", x_0);
-        file_io.ReadFromFile(x_path + "_1", x_1);
-        file_io.ReadFromFile(y_path + "_0", y_0);
-        file_io.ReadFromFile(y_path + "_1", y_1);
-        file_io.ReadFromFile(x_path + "_arr_0", x_arr_0);
-        file_io.ReadFromFile(x_path + "_arr_1", x_arr_1);
-        file_io.ReadFromFile(y_path + "_arr_0", y_arr_0);
-        file_io.ReadFromFile(y_path + "_arr_1", y_arr_1);
-        file_io.ReadFromFile(x_path + "_vec_0", x_vec_0);
-        file_io.ReadFromFile(x_path + "_vec_1", x_vec_1);
-        file_io.ReadFromFile(y_path + "_vec_0", y_vec_0);
-        file_io.ReadFromFile(y_path + "_vec_1", y_vec_1);
+        file_io.ReadBinary(x_path + "_0", x_0);
+        file_io.ReadBinary(x_path + "_1", x_1);
+        file_io.ReadBinary(y_path + "_0", y_0);
+        file_io.ReadBinary(y_path + "_1", y_1);
+        file_io.ReadBinary(x_path + "_arr_0", x_arr_0);
+        file_io.ReadBinary(x_path + "_arr_1", x_arr_1);
+        file_io.ReadBinary(y_path + "_arr_0", y_arr_0);
+        file_io.ReadBinary(y_path + "_arr_1", y_arr_1);
+        file_io.ReadBinary(x_path + "_vec_0", x_vec_0);
+        file_io.ReadBinary(x_path + "_vec_1", x_vec_1);
+        file_io.ReadBinary(y_path + "_vec_0", y_vec_0);
+        file_io.ReadBinary(y_path + "_vec_1", y_vec_1);
 
         // Reconstruct
         uint64_t                x_rec, y_rec;
@@ -139,12 +139,12 @@ void Additive2P_EvaluateAdd_Online_Test() {
             std::vector<uint64_t>   x_vec_0, y_vec_0;
 
             // Load input
-            file_io.ReadFromFile(x_path + "_0", x_0);
-            file_io.ReadFromFile(y_path + "_0", y_0);
-            file_io.ReadFromFile(x_path + "_arr_0", x_arr_0);
-            file_io.ReadFromFile(y_path + "_arr_0", y_arr_0);
-            file_io.ReadFromFile(x_path + "_vec_0", x_vec_0);
-            file_io.ReadFromFile(y_path + "_vec_0", y_vec_0);
+            file_io.ReadBinary(x_path + "_0", x_0);
+            file_io.ReadBinary(y_path + "_0", y_0);
+            file_io.ReadBinary(x_path + "_arr_0", x_arr_0);
+            file_io.ReadBinary(y_path + "_arr_0", y_arr_0);
+            file_io.ReadBinary(x_path + "_vec_0", x_vec_0);
+            file_io.ReadBinary(y_path + "_vec_0", y_vec_0);
 
             // Evaluate Add
             ss.EvaluateAdd(x_0, y_0, z_0);
@@ -168,12 +168,12 @@ void Additive2P_EvaluateAdd_Online_Test() {
             std::vector<uint64_t>   x_vec_1, y_vec_1;
 
             // Load input
-            file_io.ReadFromFile(x_path + "_1", x_1);
-            file_io.ReadFromFile(y_path + "_1", y_1);
-            file_io.ReadFromFile(x_path + "_arr_1", x_arr_1);
-            file_io.ReadFromFile(y_path + "_arr_1", y_arr_1);
-            file_io.ReadFromFile(x_path + "_vec_1", x_vec_1);
-            file_io.ReadFromFile(y_path + "_vec_1", y_vec_1);
+            file_io.ReadBinary(x_path + "_1", x_1);
+            file_io.ReadBinary(y_path + "_1", y_1);
+            file_io.ReadBinary(x_path + "_arr_1", x_arr_1);
+            file_io.ReadBinary(y_path + "_arr_1", y_arr_1);
+            file_io.ReadBinary(x_path + "_vec_1", x_vec_1);
+            file_io.ReadBinary(y_path + "_vec_1", y_vec_1);
 
             // Evaluate Add
             ss.EvaluateAdd(x_1, y_1, z_1);
@@ -247,10 +247,10 @@ void Additive2P_EvaluateMult_Online_Test() {
             std::array<uint64_t, 2> x_arr_0, y_arr_0;
 
             // Load input
-            file_io.ReadFromFile(x_path + "_0", x_0);
-            file_io.ReadFromFile(y_path + "_0", y_0);
-            file_io.ReadFromFile(x_path + "_arr_0", x_arr_0);
-            file_io.ReadFromFile(y_path + "_arr_0", y_arr_0);
+            file_io.ReadBinary(x_path + "_0", x_0);
+            file_io.ReadBinary(y_path + "_0", y_0);
+            file_io.ReadBinary(x_path + "_arr_0", x_arr_0);
+            file_io.ReadBinary(y_path + "_arr_0", y_arr_0);
 
             // Setup additive sharing
             ss.OnlineSetUp(0, triple_path);
@@ -279,10 +279,10 @@ void Additive2P_EvaluateMult_Online_Test() {
             std::array<uint64_t, 2> x_arr_1, y_arr_1;
 
             // Load input
-            file_io.ReadFromFile(x_path + "_1", x_1);
-            file_io.ReadFromFile(y_path + "_1", y_1);
-            file_io.ReadFromFile(x_path + "_arr_1", x_arr_1);
-            file_io.ReadFromFile(y_path + "_arr_1", y_arr_1);
+            file_io.ReadBinary(x_path + "_1", x_1);
+            file_io.ReadBinary(y_path + "_1", y_1);
+            file_io.ReadBinary(x_path + "_arr_1", x_arr_1);
+            file_io.ReadBinary(y_path + "_arr_1", y_arr_1);
 
             // Setup additive sharing
             ss.OnlineSetUp(1, triple_path);
@@ -335,10 +335,10 @@ void Additive2P_EvaluateSelect_Offline_Test() {
 
         // Save conditional shares
         std::string c_path = kTestAdditivePath + "c_n" + ToString(bitsize);
-        file_io.WriteToFile(c_path + "_0", c_sh.first);
-        file_io.WriteToFile(c_path + "_1", c_sh.second);
-        file_io.WriteToFile(c_path + "_arr_0", c_arr_sh.first);
-        file_io.WriteToFile(c_path + "_arr_1", c_arr_sh.second);
+        file_io.WriteBinary(c_path + "_0", c_sh.first);
+        file_io.WriteBinary(c_path + "_1", c_sh.second);
+        file_io.WriteBinary(c_path + "_arr_0", c_arr_sh.first);
+        file_io.WriteBinary(c_path + "_arr_1", c_arr_sh.second);
     }
     Logger::DebugLog(LOC, "Additive2P_EvaluateSelect_Offline_Test - Passed");
 }
@@ -366,12 +366,12 @@ void Additive2P_EvaluateSelect_Online_Test() {
             std::array<uint64_t, 2> x_arr_0, y_arr_0, c_arr_0;
 
             // Load input
-            file_io.ReadFromFile(x_path + "_0", x_0);
-            file_io.ReadFromFile(y_path + "_0", y_0);
-            file_io.ReadFromFile(c_path + "_0", c_0);
-            file_io.ReadFromFile(x_path + "_arr_0", x_arr_0);
-            file_io.ReadFromFile(y_path + "_arr_0", y_arr_0);
-            file_io.ReadFromFile(c_path + "_arr_0", c_arr_0);
+            file_io.ReadBinary(x_path + "_0", x_0);
+            file_io.ReadBinary(y_path + "_0", y_0);
+            file_io.ReadBinary(c_path + "_0", c_0);
+            file_io.ReadBinary(x_path + "_arr_0", x_arr_0);
+            file_io.ReadBinary(y_path + "_arr_0", y_arr_0);
+            file_io.ReadBinary(c_path + "_arr_0", c_arr_0);
 
             // Setup additive sharing
             ss.OnlineSetUp(0, triple_path);
@@ -395,12 +395,12 @@ void Additive2P_EvaluateSelect_Online_Test() {
             std::array<uint64_t, 2> x_arr_1, y_arr_1, c_arr_1;
 
             // Load input
-            file_io.ReadFromFile(x_path + "_1", x_1);
-            file_io.ReadFromFile(y_path + "_1", y_1);
-            file_io.ReadFromFile(c_path + "_1", c_1);
-            file_io.ReadFromFile(x_path + "_arr_1", x_arr_1);
-            file_io.ReadFromFile(y_path + "_arr_1", y_arr_1);
-            file_io.ReadFromFile(c_path + "_arr_1", c_arr_1);
+            file_io.ReadBinary(x_path + "_1", x_1);
+            file_io.ReadBinary(y_path + "_1", y_1);
+            file_io.ReadBinary(c_path + "_1", c_1);
+            file_io.ReadBinary(x_path + "_arr_1", x_arr_1);
+            file_io.ReadBinary(y_path + "_arr_1", y_arr_1);
+            file_io.ReadBinary(c_path + "_arr_1", c_arr_1);
 
             // Setup additive sharing
             ss.OnlineSetUp(1, triple_path);

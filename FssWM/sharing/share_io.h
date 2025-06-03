@@ -11,11 +11,8 @@ class ShareIo {
 public:
     /**
      * @brief Constructs a ShareIo object with a specified binary mode.
-     * @param binary_mode If true, uses binary mode for serialization. Defaults to true.
      */
-    explicit ShareIo(const bool binary_mode = true)
-        : binary_mode_(binary_mode) {
-    }
+    explicit ShareIo() = default;
 
     /**
      * @brief Saves a share to a file.
@@ -28,15 +25,10 @@ public:
         std::vector<uint8_t> buffer;
         share.Serialize(buffer);
         try {
-            std::string ext = binary_mode_ ? ".sh.bin" : ".sh.dat";
-            FileIo      io(ext);
-            if (binary_mode_) {
-                io.WriteToFileBinary(file_path, buffer);
-            } else {
-                FileIo io(".sh.dat");
-            }
+            FileIo io(".sh.bin");
+            io.WriteBinary(file_path, buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Saved share to file: " + file_path + ext);
+            Logger::DebugLog(LOC, "Saved share to file: " + file_path + ".sh.bin");
 #endif
         } catch (const std::exception &e) {
             Logger::FatalLog(LOC, "Error saving share to file: " + std::string(e.what()));
@@ -54,25 +46,17 @@ public:
     void LoadShare(const std::string &file_path, ShareType &share) const {
         std::vector<uint8_t> buffer;
         try {
-            if (binary_mode_) {
-                FileIo io(".sh.bin");
-                io.ReadFromFileBinary(file_path, buffer);
-            } else {
-                FileIo io(".sh.dat");
-                io.ReadFromFile(file_path, buffer);
-            }
+            FileIo io(".sh.bin");
+            io.ReadBinary(file_path, buffer);
             share.Deserialize(buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Loaded share from file: " + file_path);
+            Logger::DebugLog(LOC, "Loaded share from file: " + file_path + ".sh.bin");
 #endif
         } catch (const std::exception &e) {
             Logger::FatalLog(LOC, "Error loading share from file: " + std::string(e.what()));
             exit(EXIT_FAILURE);
         }
     }
-
-private:
-    bool binary_mode_; /**< Whether to use binary mode for serialization */
 };
 
 }    // namespace sharing

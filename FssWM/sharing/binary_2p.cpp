@@ -5,8 +5,8 @@
 #include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
-#include "FssWM/utils/utils.h"
 #include "FssWM/utils/to_string.h"
+#include "FssWM/utils/utils.h"
 
 namespace fsswm {
 namespace sharing {
@@ -405,8 +405,8 @@ void BinarySharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, con
     triples_1.Serialize(buffer_1);
 
     FileIo io(".bt.bin");
-    io.WriteToFileBinary(file_path + "_0", buffer_0);
-    io.WriteToFileBinary(file_path + "_1", buffer_1);
+    io.WriteBinary(file_path + "_0", buffer_0);
+    io.WriteBinary(file_path + "_1", buffer_1);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Beaver triples saved successfully to " + file_path + io.GetExtension());
@@ -416,7 +416,7 @@ void BinarySharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, con
 void BinarySharing2P::LoadTriplesShareFromFile(const uint64_t party_id, const std::string &file_path) {
     std::vector<uint8_t> buffer;
     FileIo               io(".bt.bin");
-    io.ReadFromFileBinary(file_path + "_" + ToString(party_id), buffer);
+    io.ReadBinary(file_path + "_" + ToString(party_id), buffer);
 
     BeaverTriples triples;
     triples.Deserialize(buffer);

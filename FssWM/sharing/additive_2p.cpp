@@ -463,8 +463,8 @@ void AdditiveSharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, c
     triples_1.Serialize(buffer_1);
 
     FileIo io(".bt.bin");
-    io.WriteToFileBinary(file_path + "_0", buffer_0);
-    io.WriteToFileBinary(file_path + "_1", buffer_1);
+    io.WriteBinary(file_path + "_0", buffer_0);
+    io.WriteBinary(file_path + "_1", buffer_1);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Beaver triples saved successfully to " + file_path + io.GetExtension());
@@ -474,7 +474,7 @@ void AdditiveSharing2P::SaveTriplesShareToFile(const BeaverTriples &triples_0, c
 void AdditiveSharing2P::LoadTriplesShareFromFile(const uint64_t party_id, const std::string &file_path) {
     std::vector<uint8_t> buffer;
     FileIo               io(".bt.bin");
-    io.ReadFromFileBinary(file_path + "_" + ToString(party_id), buffer);
+    io.ReadBinary(file_path + "_" + ToString(party_id), buffer);
 
     BeaverTriples triples;
     triples.Deserialize(buffer);

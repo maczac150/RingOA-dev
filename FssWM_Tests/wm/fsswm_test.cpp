@@ -111,10 +111,10 @@ void FssWM_Offline_Test() {
         std::string query_path    = kTestFssWMPath + "query_d" + ToString(d);
         std::string position_path = kTestFssWMPath + "position_d" + ToString(d);
 
-        file_io.WriteToFile(db0_path, database);
-        file_io.WriteToFile(db1_path, database);
-        file_io.WriteToFile(query_path, query);
-        file_io.WriteToFile(position_path, position);
+        file_io.WriteBinary(db0_path, database);
+        file_io.WriteBinary(db1_path, database);
+        file_io.WriteBinary(query_path, query);
+        file_io.WriteBinary(position_path, position);
 
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db0_path + "_" + ToString(p), db_sh[p]);
@@ -153,10 +153,10 @@ void FssWM_Online_Test(const osuCrypto::CLP &cmd) {
         std::string           database;
         std::vector<uint64_t> query;
         uint64_t              position;
-        file_io.ReadFromFile(db0_path, database);
-        file_io.ReadFromFile(db1_path, database);
-        file_io.ReadFromFile(query_path, query);
-        file_io.ReadFromFile(position_path, position);
+        file_io.ReadBinary(db0_path, database);
+        file_io.ReadBinary(db1_path, database);
+        file_io.ReadBinary(query_path, query);
+        file_io.ReadBinary(position_path, position);
 
         // Define the tasks for each party
         ThreePartyNetworkManager net_mgr;

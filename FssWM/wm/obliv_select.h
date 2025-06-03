@@ -45,16 +45,16 @@ public:
      * @brief Parameterized constructor for OblivSelectParameters.
      * @param d The input bitsize.
      */
-    explicit OblivSelectParameters(const uint64_t d)
-        : params_(d, 1) {
+    explicit OblivSelectParameters(const uint64_t d, fss::OutputMode mode = fss::OutputMode::kBinaryPoint)
+        : params_(d, 1, fss::EvalType::kIterSingleBatch, mode) {
     }
 
     /**
      * @brief Reconfigure the parameters for the Zero Test technique.
      * @param d The input bitsize.
      */
-    void ReconfigureParameters(const uint64_t d) {
-        params_.ReconfigureParameters(d, 1);
+    void ReconfigureParameters(const uint64_t d, const fss::OutputMode mode = fss::OutputMode::kBinaryPoint) {
+        params_.ReconfigureParameters(d, 1, fss::EvalType::kIterSingleBatch, mode);
     }
 
     /**
@@ -78,7 +78,7 @@ public:
      * @return std::string The string representation of the DpfParameters.
      */
     std::string GetParametersInfo() const {
-        return params_.GetParametersInfo() + " | ShareType: Binary";
+        return params_.GetParametersInfo();
     }
 
     /**
@@ -242,6 +242,29 @@ public:
     block FullDomainDotProduct(const fss::dpf::DpfKey       &key,
                                const std::span<const block> &database,
                                const uint64_t                pr) const;
+
+    void Evaluate_FdeThenDP(Channels                      &chls,
+                            const OblivSelectKey          &key,
+                            std::vector<block>            &uv_prev,
+                            std::vector<block>            &uv_next,
+                            const sharing::RepShareView64 &database,
+                            const sharing::RepShare64     &index,
+                            sharing::RepShare64           &result) const;
+
+    void Evaluate_FdeThenDP(Channels                      &chls,
+                            const OblivSelectKey          &key,
+                            std::vector<block>            &uv_prev,
+                            std::vector<block>            &uv_next,
+                            const sharing::RepShareView64 &database1,
+                            const sharing::RepShareView64 &database2,
+                            const sharing::RepShare64     &index,
+                            sharing::RepShare64           &result1,
+                            sharing::RepShare64           &result2) const;
+
+    uint64_t FullDomainDotProduct_FdeThenDP(const fss::dpf::DpfKey      &key,
+                                            std::vector<block>          &outputs,
+                                            const std::vector<uint64_t> &database,
+                                            const uint64_t               pr) const;
 
 private:
     OblivSelectParameters               params_; /**< OblivSelectParameters for the OblivSelectEvaluator. */

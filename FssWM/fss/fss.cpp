@@ -5,54 +5,32 @@
 namespace fsswm {
 namespace fss {
 
-uint64_t Convert(const block &b, const uint64_t bitsize) {
-    return b.get<uint64_t>()[0] & ((1U << bitsize) - 1U);
+std::string GetEvalTypeString(const EvalType eval_type) {
+    switch (eval_type) {
+        case EvalType::kNaive:
+            return "Naive";
+        case EvalType::kRecursion:
+            return "Recursion";
+        case EvalType::kIterSingleBatch:
+            return "IterSingleBatch";
+        default:
+            return "Unknown";
+    }
 }
 
-void SplitBlockToFieldVector(
-    const block           &blk,
-    uint64_t               chunk_exp,
-    uint64_t               field_bits,
-    std::vector<uint64_t> &out) {
-
-    const size_t chunk_count = size_t{1} << chunk_exp;
-
-    if (chunk_exp != 2 && chunk_exp != 3 && chunk_exp != 7) {
-        throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
-    }
-
-    out.assign(chunk_count, 0);
-    const uint64_t mask = (1UL << field_bits) - 1;
-
-    alignas(16) uint8_t raw_bytes[16];
-    _mm_store_si128(reinterpret_cast<__m128i *>(raw_bytes), blk);
-
-    switch (chunk_exp) {
-        case 2: {
-            // 32bit element ×4
-            auto data32 = reinterpret_cast<const uint32_t *>(raw_bytes);
-            for (size_t i = 0; i < 4; ++i) {
-                out[i] = uint64_t(data32[i]) & mask;
-            }
-        } break;
-        case 3: {
-            // 16bit element ×8
-            auto data16 = reinterpret_cast<const uint16_t *>(raw_bytes);
-            for (size_t i = 0; i < 8; ++i) {
-                out[i] = uint64_t(data16[i]) & mask;
-            }
-        } break;
-        case 7: {
-            // 1bit element ×128
-            for (size_t bit = 0; bit < 128; ++bit) {
-                uint8_t  byte   = raw_bytes[bit / 8];
-                uint64_t bitval = uint64_t((byte >> (bit & 7)) & 1);
-                out[bit]        = bitval & mask;
-            }
-        } break;
+std::string GetOutputModeString(const OutputMode mode) {
+    switch (mode) {
+        case OutputMode::kAdditive:
+            return "Additive";
+        case OutputMode::kBinaryPoint:
+            return "BinaryPoint";
         default:
-            throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
+            return "Unknown";
     }
+}
+
+uint64_t Convert(const block &b, const uint64_t bitsize) {
+    return b.get<uint64_t>()[0] & ((1U << bitsize) - 1U);
 }
 
 void SplitBlockToFieldVector(
@@ -99,6 +77,19 @@ void SplitBlockToFieldVector(
             }
             break;
         }
+        case 7: {
+            // 1bit ×128
+            for (size_t i = 0; i < num_blocks; ++i) {
+                _mm_store_si128(reinterpret_cast<__m128i *>(raw_bytes), blks[i]);
+                size_t base = i * chunk_count;
+                for (size_t bit = 0; bit < 128; ++bit) {
+                    uint8_t  byte   = raw_bytes[bit / 8];
+                    uint64_t bitval = uint64_t((byte >> (bit & 7)) & 1);
+                    out[base + bit] = bitval & mask;
+                }
+            }
+            break;
+        }
         default:
             throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));
     }
@@ -107,7 +98,8 @@ void SplitBlockToFieldVector(
 uint64_t GetSplitBlockValue(
     const block &blk,
     uint64_t     chunk_exp,
-    uint64_t     element_idx) {
+    uint64_t     element_idx,
+    OutputMode   mode) {
 
     const size_t count = size_t{1} << chunk_exp;
     if (element_idx >= count)
@@ -126,10 +118,22 @@ uint64_t GetSplitBlockValue(
             return uint64_t(data16[element_idx]);
         }
         case 7: {    // 128 element × 1bit
-            uint64_t byte_idx   = element_idx % 16;
-            uint64_t bit_idx    = element_idx / 16;
-            auto     seed_bytes = reinterpret_cast<const uint8_t *>(&blk);
-            return (seed_bytes[byte_idx] >> bit_idx) & 0x01;
+            if (mode == OutputMode::kAdditive) {
+                uint64_t low  = blk.get<uint64_t>()[0];
+                uint64_t high = blk.get<uint64_t>()[1];
+                if (element_idx < 64) {
+                    return (low >> element_idx) & 0x01;
+                } else {
+                    return (high >> (element_idx - 64)) & 0x01;
+                }
+            } else if (mode == OutputMode::kBinaryPoint) {
+                uint64_t byte_idx   = element_idx % 16;
+                uint64_t bit_idx    = element_idx / 16;
+                auto     seed_bytes = reinterpret_cast<const uint8_t *>(&blk);
+                return (seed_bytes[byte_idx] >> bit_idx) & 0x01;
+            } else {
+                throw std::invalid_argument("Unsupported OutputMode for chunk_exp 7: " + GetOutputModeString(mode));
+            }
         }
         default:
             throw std::invalid_argument("Unsupported chunk_exp: " + ToString(chunk_exp));

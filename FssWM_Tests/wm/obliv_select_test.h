@@ -7,6 +7,8 @@ namespace test_fsswm {
 
 void OblivSelect_Binary_Offline_Test();
 void OblivSelect_Binary_Online_Test(const osuCrypto::CLP &cmd);
+void OblivSelect_Binary_Offline2_Test();
+void OblivSelect_Binary_Online2_Test(const osuCrypto::CLP &cmd);
 
 }    // namespace test_fsswm
 

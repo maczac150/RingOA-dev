@@ -10,26 +10,6 @@ namespace fss {
 namespace dpf {
 
 /**
- * @brief Enumeration for the evaluation types for DPF.
- */
-enum class EvalType
-{
-    // Evaluation types for DPF
-    kNaive,
-    kRecursion,
-    kIterSingleBatch,
-};
-
-const EvalType kOptimizedEvalType = EvalType::kIterSingleBatch;
-
-/**
- * @brief Get the string representation of the evaluation type.
- * @param eval_type The evaluation type for the DPF key.
- * @return std::string The string representation of the evaluation type.
- */
-std::string GetEvalTypeString(const EvalType eval_type);
-
-/**
  * @brief A class to hold params for the Distributed Point Function (DPF).
  */
 class DpfParameters {
@@ -45,7 +25,10 @@ public:
      * @param e The element bitsize.
      * @param eval_type The evaluation type for the DPF.
      */
-    explicit DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_type = kOptimizedEvalType);
+    explicit DpfParameters(
+        const uint64_t n, const uint64_t e,
+        EvalType   eval_type   = kOptimizedEvalType,
+        OutputMode output_mode = OutputMode::kBinaryPoint);
 
     /**
      * @brief Get the Input Bitsize object
@@ -88,6 +71,14 @@ public:
     }
 
     /**
+     * @brief Get the Output Mode for the DPF.
+     * @return OutputMode The output mode for the DPF.
+     */
+    OutputMode GetOutputMode() const {
+        return output_mode_;
+    }
+
+    /**
      * @brief Validate the parameters for the DPF.
      * @return True if the parameters are valid, false otherwise.
      */
@@ -100,7 +91,10 @@ public:
      * @param enable_et Toggle this flag to enable/disable early termination.
      * @param eval_type The evaluation type for the DPF.
      */
-    void ReconfigureParameters(const uint64_t n, const uint64_t e, const bool enable_et = true, EvalType eval_type = kOptimizedEvalType);
+    void ReconfigureParameters(
+        const uint64_t n, const uint64_t e,
+        EvalType   eval_type   = kOptimizedEvalType,
+        OutputMode output_mode = OutputMode::kBinaryPoint);
 
     /**
      * @brief Get the string representation of the DpfParameters.
@@ -114,11 +108,12 @@ public:
     void PrintParameters() const;
 
 private:
-    uint64_t input_bitsize_;     /**< The size of input in bits. */
-    uint64_t element_bitsize_;   /**< The size of each element in bits. */
-    bool     enable_et_;         /**< Toggle this flag to enable/disable early termination. */
-    uint64_t terminate_bitsize_; /**< The size of the termination bits. */
-    EvalType fde_type_;          /**< The evaluation type for full domain evaluation. */
+    uint64_t   input_bitsize_;     /**< The size of input in bits. */
+    uint64_t   element_bitsize_;   /**< The size of each element in bits. */
+    bool       enable_et_;         /**< Toggle this flag to enable/disable early termination. */
+    uint64_t   terminate_bitsize_; /**< The size of the termination bits. */
+    EvalType   fde_type_;          /**< The evaluation type for full domain evaluation. */
+    OutputMode output_mode_;       /**< The output mode for the DPF. */
 };
 
 /**

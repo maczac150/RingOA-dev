@@ -61,11 +61,11 @@ using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::TimerManager;
 using fsswm::ToString, fsswm::Format;
+using fsswm::fss::EvalType;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
 using fsswm::fss::dpf::DpfParameters;
-using fsswm::fss::dpf::EvalType;
 
 void Dpf_Params_Test() {
     Logger::DebugLog(LOC, "Dpf_Params_Test...");
@@ -175,7 +175,7 @@ void Dpf_Fde_Test() {
         std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
         // Evaluate keys
-        std::vector<uint64_t> outputs_0, outputs_1;
+        std::vector<uint64_t> outputs_0(1 << n), outputs_1(1 << n);
         eval.EvaluateFullDomain(keys.first, outputs_0);
         eval.EvaluateFullDomain(keys.second, outputs_1);
 
@@ -219,7 +219,7 @@ void Dpf_Fde_One_Test() {
 
         // Evaluate keys
         if (param.GetFdeEvalType() == EvalType::kNaive) {
-            std::vector<uint64_t> outputs_0, outputs_1;
+            std::vector<uint64_t> outputs_0(1 << n), outputs_1(1 << n);
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);
             std::vector<uint64_t> outputs(outputs_0.size());
@@ -235,7 +235,7 @@ void Dpf_Fde_One_Test() {
                 throw osuCrypto::UnitTestFail("FDE check failed");
 
         } else {
-            std::vector<block> outputs_0, outputs_1;
+            std::vector<block> outputs_0(1 << param.GetTerminateBitsize()), outputs_1(1 << param.GetTerminateBitsize());
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);
             std::vector<block> outputs(outputs_0.size());
@@ -288,20 +288,46 @@ void Dpf_Pir_Test() {
         block output   = result_0 ^ result_1;
         Logger::DebugLog(LOC, "Output :" + fsswm::Format(output, FormatType::kDec));
 
-        // std::vector<block> outputs_0, outputs_1;
-        // eval.EvaluateFullDomain(keys.first, outputs_0);
-        // eval.EvaluateFullDomain(keys.second, outputs_1);
-        // std::vector<block> outputs(outputs_0.size());
-        // for (uint64_t i = 0; i < outputs_0.size(); ++i) {
-        //     outputs[i] = outputs_0[i] ^ outputs_1[i];
-        // }
-        // Logger::DebugLog(LOC, "Outputs :" + fsswm::Format(outputs, FormatType::kBin));
-
         // Check FDE
         if (output != database[alpha])
             throw osuCrypto::UnitTestFail("FDE check failed");
+
+        DpfParameters   param2(n, e, eval_type, fsswm::fss::OutputMode::kAdditive);
+        DpfKeyGenerator gen2(param2);
+        DpfEvaluator    eval2(param2);
+
+        // Generate keys with additive output mode
+        Logger::DebugLog(LOC, "Generating keys with additive output mode...");
+        std::pair<DpfKey, DpfKey> keys2 = gen2.GenerateKeys(alpha, beta);
+        keys2.first.PrintKey(true);
+        keys2.second.PrintKey(true);
+
+        // Generate database
+        std::vector<uint64_t> data64(1 << n);
+        for (uint64_t i = 0; i < data64.size(); ++i) {
+            data64[i] = i;
+        }
+        Logger::DebugLog(LOC, "Data64 :" + fsswm::ToString(data64));
+
+        // Evaluate keys
+        uint64_t output64_0 = eval2.EvaluatePir_128bitshift(keys2.first, data64);
+        uint64_t output64_1 = eval2.EvaluatePir_128bitshift(keys2.second, data64);
+        uint64_t output64   = output64_0 ^ output64_1;
+        Logger::DebugLog(LOC, "Output64 :" + fsswm::ToString(output64));
+
+        // Check FDE
+        if (output64 != data64[alpha])
+            throw osuCrypto::UnitTestFail("FDE check failed for 64-bit output");
+
+        // Generate output vector
+        std::vector<block> outputs_0(1 << param.GetTerminateBitsize()), outputs_1(1 << param.GetTerminateBitsize());
+        output64_0 = eval2.EvaluatePir_FdeThenDP(keys2.first, outputs_0, data64);
+        output64_1 = eval2.EvaluatePir_FdeThenDP(keys2.second, outputs_1, data64);
+        output64   = output64_0 ^ output64_1;
+        Logger::DebugLog(LOC, "Output64 (FDE then DP) :" + fsswm::ToString(output64));
+
+        Logger::DebugLog(LOC, "Dpf_Pir_Test - Passed");
     }
-    Logger::DebugLog(LOC, "Dpf_Pir_Test - Passed");
 }
 
 }    // namespace test_fsswm

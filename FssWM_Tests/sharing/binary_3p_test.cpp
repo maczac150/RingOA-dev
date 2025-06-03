@@ -18,10 +18,14 @@ const std::string kTestBinaryPath = kCurrentPath + "/data/test/ss3/";
 
 namespace test_fsswm {
 
-using fsswm::FileIo, fsswm::Logger, fsswm::ToString, fsswm::ToStringMatrix;
+using fsswm::block;
+using fsswm::FileIo, fsswm::Logger;
+using fsswm::ToString, fsswm::ToStringMatrix;
+using fsswm::Format, fsswm::FormatMatrix;
 using fsswm::ThreePartyNetworkManager, fsswm::Channels;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareMat64;
+using fsswm::sharing::RepShareBlock, fsswm::sharing::RepShareVecBlock, fsswm::sharing::RepShareMatBlock;
 using fsswm::sharing::ShareIo;
 
 const std::vector<uint64_t> kBitsizes = {
@@ -44,16 +48,30 @@ void Binary3P_Offline_Test() {
         std::vector<uint64_t> x_vec = {1, 2, 3, 4, 5};
         std::vector<uint64_t> y_vec = {5, 4, 3, 2, 1};
         uint64_t              rows = 2, cols = 3;
-        std::vector<uint64_t> x_flat = {1, 2, 3, 4, 5, 6};    // 2 rows, 3 columns
-        std::vector<uint64_t> y_flat = {3, 4, 5, 6, 7, 8};    // 2 rows, 3 columns
+        std::vector<uint64_t> x_flat     = {1, 2, 3, 4, 5, 6};    // 2 rows, 3 columns
+        std::vector<uint64_t> y_flat     = {3, 4, 5, 6, 7, 8};    // 2 rows, 3 columns
+        block                 x_blk      = fsswm::MakeBlock(0, 0b1010);
+        block                 y_blk      = fsswm::MakeBlock(0, 0b0101);
+        std::vector<block>    x_vec_blk  = {fsswm::MakeBlock(0, 0b0001), fsswm::MakeBlock(0, 0b0010), fsswm::MakeBlock(0, 0b0011)};
+        std::vector<block>    y_vec_blk  = {fsswm::MakeBlock(0, 0b0100), fsswm::MakeBlock(0, 0b0101), fsswm::MakeBlock(0, 0b0110)};
+        std::vector<block>    x_flat_blk = {fsswm::MakeBlock(0, 0b0001), fsswm::MakeBlock(0, 0b0010), fsswm::MakeBlock(0, 0b0011),
+                                            fsswm::MakeBlock(0, 0b0100), fsswm::MakeBlock(0, 0b0101), fsswm::MakeBlock(0, 0b0110)};
+        std::vector<block>    y_flat_blk = {fsswm::MakeBlock(0, 0b0111), fsswm::MakeBlock(0, 0b1000), fsswm::MakeBlock(0, 0b1001),
+                                            fsswm::MakeBlock(0, 0b1010), fsswm::MakeBlock(0, 0b1011), fsswm::MakeBlock(0, 0b1100)};
 
-        std::array<RepShare64, 3>    x_sh      = rss.ShareLocal(x);
-        std::array<RepShare64, 3>    y_sh      = rss.ShareLocal(y);
-        std::array<RepShareVec64, 3> c_sh      = rss.ShareLocal(c);
-        std::array<RepShareVec64, 3> x_vec_sh  = rss.ShareLocal(x_vec);
-        std::array<RepShareVec64, 3> y_vec_sh  = rss.ShareLocal(y_vec);
-        std::array<RepShareMat64, 3> x_flat_sh = rss.ShareLocal(x_flat, rows, cols);
-        std::array<RepShareMat64, 3> y_flat_sh = rss.ShareLocal(y_flat, rows, cols);
+        std::array<RepShare64, 3>       x_sh          = rss.ShareLocal(x);
+        std::array<RepShare64, 3>       y_sh          = rss.ShareLocal(y);
+        std::array<RepShareVec64, 3>    c_sh          = rss.ShareLocal(c);
+        std::array<RepShareVec64, 3>    x_vec_sh      = rss.ShareLocal(x_vec);
+        std::array<RepShareVec64, 3>    y_vec_sh      = rss.ShareLocal(y_vec);
+        std::array<RepShareMat64, 3>    x_flat_sh     = rss.ShareLocal(x_flat, rows, cols);
+        std::array<RepShareMat64, 3>    y_flat_sh     = rss.ShareLocal(y_flat, rows, cols);
+        std::array<RepShareBlock, 3>    x_blk_sh      = rss.ShareLocal(x_blk);
+        std::array<RepShareBlock, 3>    y_blk_sh      = rss.ShareLocal(y_blk);
+        std::array<RepShareVecBlock, 3> x_vec_blk_sh  = rss.ShareLocal(x_vec_blk);
+        std::array<RepShareVecBlock, 3> y_vec_blk_sh  = rss.ShareLocal(y_vec_blk);
+        std::array<RepShareMatBlock, 3> x_flat_blk_sh = rss.ShareLocal(x_flat_blk, rows, cols);
+        std::array<RepShareMatBlock, 3> y_flat_blk_sh = rss.ShareLocal(y_flat_blk, rows, cols);
 
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_sh: " + x_sh[p].ToString());
@@ -62,6 +80,12 @@ void Binary3P_Offline_Test() {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " y_vec_sh: " + y_vec_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_flat_sh: " + x_flat_sh[p].ToStringMatrix());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " y_flat_sh: " + y_flat_sh[p].ToStringMatrix());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " x_blk_sh: " + x_blk_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " y_blk_sh: " + y_blk_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " x_vec_blk_sh: " + x_vec_blk_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " y_vec_blk_sh: " + y_vec_blk_sh[p].ToString());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " x_flat_blk_sh: " + x_flat_blk_sh[p].ToStringMatrix());
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " y_flat_blk_sh: " + y_flat_blk_sh[p].ToStringMatrix());
         }
 
         const std::string x_path = kTestBinaryPath + "x_n" + ToString(bitsize);
@@ -75,6 +99,12 @@ void Binary3P_Offline_Test() {
             sh_io.SaveShare(y_path + "_vec_" + ToString(p), y_vec_sh[p]);
             sh_io.SaveShare(x_path + "_flat_" + ToString(p), x_flat_sh[p]);
             sh_io.SaveShare(y_path + "_flat_" + ToString(p), y_flat_sh[p]);
+            sh_io.SaveShare(x_path + "_blk_" + ToString(p), x_blk_sh[p]);
+            sh_io.SaveShare(y_path + "_blk_" + ToString(p), y_blk_sh[p]);
+            sh_io.SaveShare(x_path + "_vec_blk_" + ToString(p), x_vec_blk_sh[p]);
+            sh_io.SaveShare(y_path + "_vec_blk_" + ToString(p), y_vec_blk_sh[p]);
+            sh_io.SaveShare(x_path + "_flat_blk_" + ToString(p), x_flat_blk_sh[p]);
+            sh_io.SaveShare(y_path + "_flat_blk_" + ToString(p), y_flat_blk_sh[p]);
         }
 
         // Offline setup
@@ -96,6 +126,9 @@ void Binary3P_Open_Online_Test() {
         uint64_t              open_x;
         std::vector<uint64_t> open_x_vec;
         std::vector<uint64_t> open_x_flat;
+        block                 open_x_blk;
+        std::vector<block>    open_x_vec_blk;
+        std::vector<block>    open_x_flat_blk;
         const std::string     x_path = kTestBinaryPath + "x_n" + ToString(bitsize);
 
         // Party 0 task
@@ -104,17 +137,26 @@ void Binary3P_Open_Online_Test() {
             RepShare64                x_0;
             RepShareVec64             x_vec_0;
             RepShareMat64             x_flat_0;
+            RepShareBlock             x_blk_0;
+            RepShareVecBlock          x_vec_blk_0;
+            RepShareMatBlock          x_flat_blk_0;
             Channels                  chls(0, chl_prev, chl_next);
 
             // Load shares
             sh_io.LoadShare(x_path + "_0", x_0);
             sh_io.LoadShare(x_path + "_vec_0", x_vec_0);
             sh_io.LoadShare(x_path + "_flat_0", x_flat_0);
+            sh_io.LoadShare(x_path + "_blk_0", x_blk_0);
+            sh_io.LoadShare(x_path + "_vec_blk_0", x_vec_blk_0);
+            sh_io.LoadShare(x_path + "_flat_blk_0", x_flat_blk_0);
 
             // Open shares
             rss.Open(chls, x_0, open_x);
             rss.Open(chls, x_vec_0, open_x_vec);
             rss.Open(chls, x_flat_0, open_x_flat);
+            rss.Open(chls, x_blk_0, open_x_blk);
+            rss.Open(chls, x_vec_blk_0, open_x_vec_blk);
+            rss.Open(chls, x_flat_blk_0, open_x_flat_blk);
         };
 
         // Party 1 task
@@ -123,17 +165,26 @@ void Binary3P_Open_Online_Test() {
             RepShare64                x_1;
             RepShareVec64             x_vec_1;
             RepShareMat64             x_flat_1;
+            RepShareBlock             x_blk_1;
+            RepShareVecBlock          x_vec_blk_1;
+            RepShareMatBlock          x_flat_blk_1;
             Channels                  chls(1, chl_prev, chl_next);
 
             // Load shares
             sh_io.LoadShare(x_path + "_1", x_1);
             sh_io.LoadShare(x_path + "_vec_1", x_vec_1);
             sh_io.LoadShare(x_path + "_flat_1", x_flat_1);
+            sh_io.LoadShare(x_path + "_blk_1", x_blk_1);
+            sh_io.LoadShare(x_path + "_vec_blk_1", x_vec_blk_1);
+            sh_io.LoadShare(x_path + "_flat_blk_1", x_flat_blk_1);
 
             // Open shares
             rss.Open(chls, x_1, open_x);
             rss.Open(chls, x_vec_1, open_x_vec);
             rss.Open(chls, x_flat_1, open_x_flat);
+            rss.Open(chls, x_blk_1, open_x_blk);
+            rss.Open(chls, x_vec_blk_1, open_x_vec_blk);
+            rss.Open(chls, x_flat_blk_1, open_x_flat_blk);
         };
 
         // Party 2 task
@@ -142,17 +193,26 @@ void Binary3P_Open_Online_Test() {
             RepShare64                x_2;
             RepShareVec64             x_vec_2;
             RepShareMat64             x_flat_2;
+            RepShareBlock             x_blk_2;
+            RepShareVecBlock          x_vec_blk_2;
+            RepShareMatBlock          x_flat_blk_2;
             Channels                  chls(2, chl_prev, chl_next);
 
             // Load shares
             sh_io.LoadShare(x_path + "_2", x_2);
             sh_io.LoadShare(x_path + "_vec_2", x_vec_2);
             sh_io.LoadShare(x_path + "_flat_2", x_flat_2);
+            sh_io.LoadShare(x_path + "_blk_2", x_blk_2);
+            sh_io.LoadShare(x_path + "_vec_blk_2", x_vec_blk_2);
+            sh_io.LoadShare(x_path + "_flat_blk_2", x_flat_blk_2);
 
             // Open shares
             rss.Open(chls, x_2, open_x);
             rss.Open(chls, x_vec_2, open_x_vec);
             rss.Open(chls, x_flat_2, open_x_flat);
+            rss.Open(chls, x_blk_2, open_x_blk);
+            rss.Open(chls, x_vec_blk_2, open_x_vec_blk);
+            rss.Open(chls, x_flat_blk_2, open_x_flat_blk);
         };
 
         // Configure network based on party ID and wait for completion
@@ -162,6 +222,9 @@ void Binary3P_Open_Online_Test() {
         Logger::DebugLog(LOC, "open_x: " + ToString(open_x));
         Logger::DebugLog(LOC, "open_x_vec: " + ToString(open_x_vec));
         Logger::DebugLog(LOC, "open_x_flat: " + ToStringMatrix(open_x_flat, 2, 3));
+        Logger::DebugLog(LOC, "open_x_blk: " + Format(open_x_blk));
+        Logger::DebugLog(LOC, "open_x_vec_blk: " + Format(open_x_vec_blk));
+        Logger::DebugLog(LOC, "open_x_flat_blk: " + FormatMatrix(open_x_flat_blk, 2, 3));
 
         // Validate the opened value
         if (open_x != 5)
@@ -169,6 +232,13 @@ void Binary3P_Open_Online_Test() {
         if (open_x_vec != std::vector<uint64_t>({1, 2, 3, 4, 5}))
             throw osuCrypto::UnitTestFail("Open protocol failed.");
         if (open_x_flat != std::vector<uint64_t>({1, 2, 3, 4, 5, 6}))
+            throw osuCrypto::UnitTestFail("Open protocol failed.");
+        if (open_x_blk != fsswm::MakeBlock(0, 0b1010))
+            throw osuCrypto::UnitTestFail("Open protocol failed.");
+        if (open_x_vec_blk != std::vector<block>({fsswm::MakeBlock(0, 0b0001), fsswm::MakeBlock(0, 0b0010), fsswm::MakeBlock(0, 0b0011)}))
+            throw osuCrypto::UnitTestFail("Open protocol failed.");
+        if (open_x_flat_blk != std::vector<block>({fsswm::MakeBlock(0, 0b0001), fsswm::MakeBlock(0, 0b0010), fsswm::MakeBlock(0, 0b0011),
+                                                   fsswm::MakeBlock(0, 0b0100), fsswm::MakeBlock(0, 0b0101), fsswm::MakeBlock(0, 0b0110)}))
             throw osuCrypto::UnitTestFail("Open protocol failed.");
     }
 

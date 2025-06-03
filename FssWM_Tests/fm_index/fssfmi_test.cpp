@@ -105,8 +105,8 @@ void FssFMI_Offline_Test() {
         std::string db_path    = kTestFssFMIPath + "db_d" + ToString(d);
         std::string query_path = kTestFssFMIPath + "query_d" + ToString(d);
 
-        file_io.WriteToFile(db_path, database);
-        file_io.WriteToFile(query_path, query);
+        file_io.WriteBinary(db_path, database);
+        file_io.WriteBinary(query_path, query);
 
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
@@ -142,8 +142,8 @@ void FssFMI_Online_Test(const osuCrypto::CLP &cmd) {
         std::string           query_path = kTestFssFMIPath + "query_d" + ToString(d);
         std::string           database;
         std::string           query;
-        file_io.ReadFromFile(db_path, database);
-        file_io.ReadFromFile(query_path, query);
+        file_io.ReadBinary(db_path, database);
+        file_io.ReadBinary(query_path, query);
 
         // Define the tasks for each party
         ThreePartyNetworkManager net_mgr;

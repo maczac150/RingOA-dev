@@ -6,7 +6,6 @@
 add_library(utils STATIC
     logger.cpp
     timer.cpp
-    file_io.cpp
     network.cpp
 )
 

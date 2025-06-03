@@ -60,6 +60,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Binary3P_EvaluateSelect_Online_Test", Binary3P_EvaluateSelect_Online_Test);
     t.add("OblivSelect_Binary_Offline_Test", OblivSelect_Binary_Offline_Test);
     t.add("OblivSelect_Binary_Online_Test", OblivSelect_Binary_Online_Test);
+    t.add("OblivSelect_Binary_Offline2_Test", OblivSelect_Binary_Offline2_Test);
+    t.add("OblivSelect_Binary_Online2_Test", OblivSelect_Binary_Online2_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
     t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);

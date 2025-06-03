@@ -82,8 +82,8 @@ void ZeroTest_Binary_Offline_Test() {
         std::string x_path     = kTestZeroTestPath + "x_n" + ToString(n);
         std::string x_vec_path = kTestZeroTestPath + "x_vec_n" + ToString(n);
 
-        file_io.WriteToFile(x_path, x);
-        file_io.WriteToFile(x_vec_path, x_vec);
+        file_io.WriteBinary(x_path, x);
+        file_io.WriteBinary(x_vec_path, x_vec);
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(x_path + "_" + ToString(p), x_sh[p]);
             sh_io.SaveShare(x_vec_path + "_" + ToString(p), x_vec_sh[p]);
@@ -118,8 +118,8 @@ void ZeroTest_Binary_Online_Test(const osuCrypto::CLP &cmd) {
         std::string           x_vec_path = kTestZeroTestPath + "x_vec_n" + ToString(n);
         uint64_t              x;
         std::vector<uint64_t> x_vec;
-        file_io.ReadFromFile(x_path, x);
-        file_io.ReadFromFile(x_vec_path, x_vec);
+        file_io.ReadBinary(x_path, x);
+        file_io.ReadBinary(x_vec_path, x_vec);
 
         // Define the task for each party
         ThreePartyNetworkManager net_mgr;

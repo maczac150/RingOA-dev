@@ -5,6 +5,8 @@
 #include <iostream>
 #include <map>
 
+#include "file_io.h"
+
 namespace {
 
 /**
@@ -160,6 +162,16 @@ const std::vector<std::string> &Logger::GetLogList() {
 void Logger::ClearLogList() {
     std::lock_guard<std::mutex> lock(log_mutex_);
     log_list_.clear();
+}
+
+void Logger::ExportLogList(const std::string &file_path, const bool append) {
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    if (log_list_.empty()) {
+        return;    // No logs to export
+    }
+
+    FileIo io(".log");
+    io.WriteTextToFile(file_path, log_list_, append);
 }
 
 void Logger::SetLogFormat(const std::string &log_level, const std::string &func_name, const std::string &message) {

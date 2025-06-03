@@ -82,9 +82,10 @@ uint64_t DpfEvaluator::EvaluateAtNaive(const DpfKey &key, uint64_t x) const {
 }
 
 uint64_t DpfEvaluator::EvaluateAtOptimized(const DpfKey &key, uint64_t x) const {
-    uint64_t n  = params_.GetInputBitsize();
-    uint64_t e  = params_.GetOutputBitsize();
-    uint64_t nu = params_.GetTerminateBitsize();
+    uint64_t   n    = params_.GetInputBitsize();
+    uint64_t   e    = params_.GetOutputBitsize();
+    uint64_t   nu   = params_.GetTerminateBitsize();
+    OutputMode mode = params_.GetOutputMode();
 
     // Get the seed and control bit from the given DPF key
     block seed        = key.init_seed;
@@ -113,7 +114,7 @@ uint64_t DpfEvaluator::EvaluateAtOptimized(const DpfKey &key, uint64_t x) const 
     // Compute the final output
     block    output_block = ComputeOutputBlock(seed, control_bit, key);
     uint64_t x_hat        = GetLowerNBits(x, n - nu);
-    uint64_t output       = GetSplitBlockValue(output_block, n - nu, x_hat);
+    uint64_t output       = GetSplitBlockValue(output_block, n - nu, x_hat, mode);
     return Mod(output, e);
 }
 
@@ -132,7 +133,8 @@ void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<block> &out
 
     // Check output vector size
     if (outputs.size() != num_nodes) {
-        outputs.resize(num_nodes);
+        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " + ToString(num_nodes));
+        std::exit(EXIT_FAILURE);
     }
 
     // Evaluate the DPF key for all possible x values
@@ -164,7 +166,8 @@ void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<uint64_t> &
 
     // Check output vector size
     if (outputs.size() != 1U << params_.GetInputBitsize()) {
-        outputs.resize(1U << params_.GetInputBitsize());
+        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " + ToString(num_nodes));
+        std::exit(EXIT_FAILURE);
     }
     std::vector<block> outputs_block(num_nodes);
 
@@ -351,23 +354,7 @@ block DpfEvaluator::EvaluatePir(const DpfKey &key, std::vector<block> &database)
         auto input_iter7 = database.data() + ((7UL << current_level) + current_idx) * 128;
 
         // Calculate the dot product
-        // size_t db_idx0 = ((0 * last_idx + current_idx) * 128);
-        // size_t db_idx1 = ((1 * last_idx + current_idx) * 128);
-        // size_t db_idx2 = ((2 * last_idx + current_idx) * 128);
-        // size_t db_idx3 = ((3 * last_idx + current_idx) * 128);
-        // size_t db_idx4 = ((4 * last_idx + current_idx) * 128);
-        // size_t db_idx5 = ((5 * last_idx + current_idx) * 128);
-        // size_t db_idx6 = ((6 * last_idx + current_idx) * 128);
-        // size_t db_idx7 = ((7 * last_idx + current_idx) * 128);
         for (uint64_t j = 0; j < 128; ++j) {
-            // auto input0 = database[db_idx0++] & zero_and_all_one[seed_byte0[j]];
-            // auto input1 = database[db_idx1++] & zero_and_all_one[seed_byte1[j]];
-            // auto input2 = database[db_idx2++] & zero_and_all_one[seed_byte2[j]];
-            // auto input3 = database[db_idx3++] & zero_and_all_one[seed_byte3[j]];
-            // auto input4 = database[db_idx4++] & zero_and_all_one[seed_byte4[j]];
-            // auto input5 = database[db_idx5++] & zero_and_all_one[seed_byte5[j]];
-            // auto input6 = database[db_idx6++] & zero_and_all_one[seed_byte6[j]];
-            // auto input7 = database[db_idx7++] & zero_and_all_one[seed_byte7[j]];
             auto input0 = input_iter0[j] & zero_and_all_one[seed_byte0[j]];
             auto input1 = input_iter1[j] & zero_and_all_one[seed_byte1[j]];
             auto input2 = input_iter2[j] & zero_and_all_one[seed_byte2[j]];
@@ -401,6 +388,195 @@ block DpfEvaluator::EvaluatePir(const DpfKey &key, std::vector<block> &database)
     Logger::DebugLog(LOC, "Dot product result: " + Format(blk_sum));
 #endif
     return blk_sum;
+}
+
+uint64_t DpfEvaluator::EvaluatePir_128bitshift(const DpfKey &key, std::vector<uint64_t> &database) const {
+    uint64_t nu     = params_.GetTerminateBitsize();
+    uint64_t db_sum = 0;
+
+    // Breadth-first traversal for 8 nodes
+    std::vector<block> start_seeds{key.init_seed}, next_seeds;
+    std::vector<bool>  start_control_bits{key.party_id != 0}, next_control_bits;
+
+    for (uint64_t i = 0; i < 3; ++i) {
+        std::array<block, 2> expanded_seeds;
+        std::array<bool, 2>  expanded_control_bits;
+        next_seeds.resize(1U << (i + 1));
+        next_control_bits.resize(1U << (i + 1));
+        for (size_t j = 0; j < start_seeds.size(); j++) {
+            EvaluateNextSeed(i, start_seeds[j], start_control_bits[j], expanded_seeds, expanded_control_bits, key);
+            next_seeds[j * 2]            = expanded_seeds[fss::kLeft];
+            next_seeds[j * 2 + 1]        = expanded_seeds[fss::kRight];
+            next_control_bits[j * 2]     = expanded_control_bits[fss::kLeft];
+            next_control_bits[j * 2 + 1] = expanded_control_bits[fss::kRight];
+        }
+        start_seeds        = std::move(next_seeds);
+        start_control_bits = std::move(next_control_bits);
+    }
+
+    // Initialize the variables
+    uint64_t current_level = 0;
+    uint64_t current_idx   = 0;
+    uint64_t last_depth    = std::max(static_cast<int32_t>(nu) - 3, 0);
+    uint64_t last_idx      = 1U << last_depth;
+
+    // Store the seeds and control bits
+    std::array<block, 8>              expanded_seeds = {zero_block, zero_block, zero_block, zero_block,
+                                                        zero_block, zero_block, zero_block, zero_block};
+    std::array<bool, 8>               expanded_control_bits;
+    std::vector<std::array<block, 8>> prev_seeds(last_depth + 1);
+    std::vector<std::array<bool, 8>>  prev_control_bits(last_depth + 1);
+
+    // Evaluate the DPF key
+    for (uint64_t i = 0; i < 8; ++i) {
+        prev_seeds[0][i]        = start_seeds[i];
+        prev_control_bits[0][i] = start_control_bits[i];
+    }
+
+    while (current_idx < last_idx) {
+        while (current_level < last_depth) {
+            // Expand the seed and control bits
+            uint64_t mask        = (current_idx >> (last_depth - 1U - current_level));
+            bool     current_bit = mask & 1U;
+
+            G_.Expand(prev_seeds[current_level], expanded_seeds, current_bit);
+            for (uint64_t i = 0; i < 8; ++i) {
+                expanded_control_bits[i] = GetLsb(expanded_seeds[i]);
+                SetLsbZero(expanded_seeds[i]);
+            }
+
+            // Apply correction word if control bit is true
+            bool  cw_control_bit = current_bit ? key.cw_control_right[current_level + 3] : key.cw_control_left[current_level + 3];
+            block cw_seed        = key.cw_seed[current_level + 3];
+            expanded_seeds[0] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][0]]);
+            expanded_seeds[1] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][1]]);
+            expanded_seeds[2] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][2]]);
+            expanded_seeds[3] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][3]]);
+            expanded_seeds[4] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][4]]);
+            expanded_seeds[5] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][5]]);
+            expanded_seeds[6] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][6]]);
+            expanded_seeds[7] ^= (cw_seed & zero_and_all_one[prev_control_bits[current_level][7]]);
+
+            for (uint64_t i = 0; i < 8; ++i) {
+                // expanded_seeds[i] ^= (key.cw_seed[current_level + 3] & zero_and_all_one[prev_control_bits[current_level][i]]);
+                expanded_control_bits[i] ^= (cw_control_bit & prev_control_bits[current_level][i]);
+            }
+
+            // Update the current level
+            current_level++;
+
+            // Update the previous seeds and control bits
+            for (uint64_t i = 0; i < 8; ++i) {
+                prev_seeds[current_level][i]        = expanded_seeds[i];
+                prev_control_bits[current_level][i] = expanded_control_bits[i];
+            }
+        }
+
+        // Seed expansion for the final output
+        G_.Expand(prev_seeds[current_level], prev_seeds[current_level], true);
+
+        for (uint64_t j = 0; j < 8; ++j) {
+            block    output_seed = prev_seeds[current_level][j] ^ (zero_and_all_one[prev_control_bits[current_level][j]] & key.output);
+            uint64_t low         = output_seed.get<uint64_t>()[0];
+            uint64_t high        = output_seed.get<uint64_t>()[1];
+            uint64_t base_idx    = (j * last_idx + current_idx) * 128;
+
+            for (int b = 0; b < 64; ++b) {
+                uint64_t bit  = (low >> b) & 1ULL;
+                uint64_t mask = 0ULL - bit;
+                db_sum ^= (database[base_idx + b] & mask);
+            }
+            for (int b = 0; b < 64; ++b) {
+                uint64_t bit  = (high >> b) & 1ULL;
+                uint64_t mask = 0ULL - bit;
+                db_sum ^= (database[base_idx + 64 + b] & mask);
+            }
+        }
+
+        // Update the current index
+        int shift = (current_idx + 1U) ^ current_idx;
+        current_level -= log2floor(shift) + 1;
+        current_idx++;
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Dot product result: " + ToString(db_sum));
+#endif
+    return db_sum;
+}
+
+uint64_t DpfEvaluator::EvaluatePir_FdeThenDP(const DpfKey &key, std::vector<block> &outputs, std::vector<uint64_t> &database) const {
+    if (outputs.size() != 1 << params_.GetTerminateBitsize()) {
+        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " + ToString(1U << params_.GetTerminateBitsize()));
+        std::exit(EXIT_FAILURE);
+    }
+    if (database.size() != 1 << params_.GetInputBitsize()) {
+        Logger::FatalLog(LOC, "Database size does not match the number of nodes: " + ToString(1U << params_.GetInputBitsize()));
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Evaluate the FDE
+    EvaluateFullDomain(key, outputs);
+    uint64_t db_sum = 0;
+
+    // -------
+    // Pattern 1       TODO: 無駄にやってるから内側に8個のループを作る
+    // -------
+    // auto *outputs_bytes = reinterpret_cast<const uint8_t *>(outputs.data());
+    // for (size_t i = 0; i < database.size(); ++i) {
+    //     size_t block_index = i / 128;
+    //     size_t bit_index   = Mod(i, 7);
+    //     size_t byte_index  = bit_index / 8;
+    //     size_t bit_in_byte = Mod(bit_index, 3);
+
+    //     size_t  offset      = block_index * 16 + byte_index;
+    //     uint8_t output_byte = outputs_bytes[offset];
+
+    //     const uint64_t bit = (output_byte >> bit_in_byte) & 1U;
+    //     db_sum ^= database[i] * bit;
+    // }
+
+    // -------
+    // Pattern 2
+    // -------
+    // for (size_t i = 0; i < database.size(); ++i) {
+    //     size_t block_index = i / 128;
+    //     size_t bit_index   = Mod(i, 7);
+    //     size_t byte_index  = bit_index / 8;
+    //     size_t bit_in_byte = Mod(bit_index, 3);
+
+    //     alignas(16) uint8_t buffer[16];
+    //     _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer), outputs[block_index]);
+
+    //     const uint64_t bit = (buffer[byte_index] >> bit_in_byte) & 1U;
+    //     db_sum ^= database[i] * bit;
+    // }
+
+    // -------
+    // Pattern 3: This is the best performance
+    // -------
+    // Optimized bit extraction + mask-based accumulation
+    size_t num_blocks = outputs.size();    // = num_shares / 128
+    for (size_t i = 0; i < num_blocks; ++i) {
+        // Load one 128-bit block into registers
+        uint64_t low  = outputs[i].get<uint64_t>()[0];
+        uint64_t high = outputs[i].get<uint64_t>()[1];
+
+        // Process all 128 bits in this block
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((low >> j) & 1ULL);
+            db_sum ^= (database[i * 128 + j] & mask);
+        }
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((high >> j) & 1ULL);
+            db_sum ^= (database[i * 128 + 64 + j] & mask);
+        }
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Dot product result: " + ToString(db_sum));
+#endif
+    return db_sum;
 }
 
 void DpfEvaluator::FullDomainRecursion(const DpfKey &key, std::vector<block> &outputs) const {

@@ -194,10 +194,8 @@ void OblivSelectEvaluator::Evaluate(Channels                         &chls,
 #endif
 
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
-    // TODO: FullDomainDotProductを実行しないときの処理時間の違いを調べる
     block dp_prev = FullDomainDotProduct(key.prev_key, database.share0, pr_prev);
     block dp_next = FullDomainDotProduct(key.next_key, database.share1, pr_next);
-    // block dp_prev, dp_next = zero_block;
 
     block                  selected_sh = dp_prev ^ dp_next;
     sharing::RepShareBlock r_sh;
@@ -205,6 +203,168 @@ void OblivSelectEvaluator::Evaluate(Channels                         &chls,
     result[0] = selected_sh ^ r_sh[0] ^ r_sh[1];
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
+}
+
+void OblivSelectEvaluator::Evaluate_FdeThenDP(Channels                      &chls,
+                                              const OblivSelectKey          &key,
+                                              std::vector<block>            &uv_prev,
+                                              std::vector<block>            &uv_next,
+                                              const sharing::RepShareView64 &database,
+                                              const sharing::RepShare64     &index,
+                                              sharing::RepShare64           &result) const {
+
+    uint64_t party_id = chls.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
+
+    if (uv_prev.size() != (1UL << nu) || uv_next.size() != (1UL << nu)) {
+        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv_prev.size()) + " != " + ToString(1UL << nu) +
+                                  " or " + ToString(uv_next.size()) + " != " + ToString(1UL << nu));
+    }
+    if (database.Size() != (1UL << d)) {
+        Logger::FatalLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database.Size()) + " != " + ToString(1UL << d));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+    Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
+    Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
+#endif
+
+    // Reconstruct p ^ r_i
+    auto [pr_prev, pr_next] = ReconstructPRBinary(chls, key, index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " pr_prev: " + ToString(pr_prev) + ", pr_next: " + ToString(pr_next));
+#endif
+
+    // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
+    eval_.EvaluateFullDomain(key.prev_key, uv_prev);
+    eval_.EvaluateFullDomain(key.next_key, uv_next);
+    uint64_t dp_prev = 0, dp_next = 0;
+
+    Logger::WarnLog(LOC, "Skip this process");
+    // for (size_t i = 0; i < uv_prev.size(); ++i) {
+    //     const uint64_t low_prev  = uv_prev[i].get<uint64_t>()[0];
+    //     const uint64_t high_prev = uv_prev[i].get<uint64_t>()[1];
+    //     const uint64_t low_next  = uv_next[i].get<uint64_t>()[0];
+    //     const uint64_t high_next = uv_next[i].get<uint64_t>()[1];
+
+    //     for (int j = 0; j < 64; ++j) {
+    //         const uint64_t mask_prev = 0ULL - ((low_prev >> j) & 1ULL);
+    //         const uint64_t mask_next = 0ULL - ((low_next >> j) & 1ULL);
+    //         dp_prev ^= (database.share0[(i * 128 + j) ^ pr_prev] & mask_prev);
+    //         dp_next ^= (database.share1[(i * 128 + j) ^ pr_next] & mask_next);
+    //     }
+    //     for (int j = 0; j < 64; ++j) {
+    //         const uint64_t mask_prev = 0ULL - ((high_prev >> j) & 1ULL);
+    //         const uint64_t mask_next = 0ULL - ((high_next >> j) & 1ULL);
+    //         dp_prev ^= (database.share0[(i * 128 + 64 + j) ^ pr_prev] & mask_prev);
+    //         dp_next ^= (database.share1[(i * 128 + 64 + j) ^ pr_next] & mask_next);
+    //     }
+    // }
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + "dp_prev: " + ToString(dp_prev) + ", dp_next: " + ToString(dp_next));
+#endif
+
+    uint64_t            selected_sh = dp_prev ^ dp_next;
+    sharing::RepShare64 r_sh;
+    brss_.Rand(r_sh);
+    result[0] = selected_sh ^ r_sh[0] ^ r_sh[1];
+    chls.next.send(result[0]);
+    chls.prev.recv(result[1]);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " result: " + ToString(result[0]) + ", " + ToString(result[1]));
+#endif
+}
+
+void OblivSelectEvaluator::Evaluate_FdeThenDP(Channels                      &chls,
+                                              const OblivSelectKey          &key,
+                                              std::vector<block>            &uv_prev,
+                                              std::vector<block>            &uv_next,
+                                              const sharing::RepShareView64 &database1,
+                                              const sharing::RepShareView64 &database2,
+                                              const sharing::RepShare64     &index,
+                                              sharing::RepShare64           &result1,
+                                              sharing::RepShare64           &result2) const {
+
+    uint64_t party_id = chls.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
+
+    if (uv_prev.size() != (1UL << nu) || uv_next.size() != (1UL << nu)) {
+        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv_prev.size()) + " != " + ToString(1UL << nu) +
+                                  " or " + ToString(uv_next.size()) + " != " + ToString(1UL << nu));
+    }
+    if (database1.Size() != (1UL << d) || database2.Size() != (1UL << d)) {
+        Logger::FatalLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database1.Size()) + " != " + ToString(1UL << d) +
+                                  " or " + ToString(database2.Size()) + " != " + ToString(1UL << d));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+    Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
+    Logger::DebugLog(LOC, party_str + " db: " + database1.ToString());
+    Logger::DebugLog(LOC, party_str + " db: " + database2.ToString());
+#endif
+
+    // Reconstruct p ^ r_i
+    auto [pr_prev, pr_next] = ReconstructPRBinary(chls, key, index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " pr_prev: " + ToString(pr_prev) + ", pr_next: " + ToString(pr_next));
+#endif
+
+    // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
+    eval_.EvaluateFullDomain(key.prev_key, uv_prev);
+    eval_.EvaluateFullDomain(key.next_key, uv_next);
+    uint64_t dp_prev_1 = 0, dp_next_1 = 0, dp_prev_2 = 0, dp_next_2 = 0;
+
+    for (size_t i = 0; i < uv_prev.size(); ++i) {
+        uint64_t low_prev  = uv_prev[i].get<uint64_t>()[0];
+        uint64_t low_next  = uv_next[i].get<uint64_t>()[0];
+        uint64_t high_prev = uv_prev[i].get<uint64_t>()[1];
+        uint64_t high_next = uv_next[i].get<uint64_t>()[1];
+
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask_prev = 0ULL - ((low_prev >> j) & 1ULL);
+            const uint64_t mask_next = 0ULL - ((low_next >> j) & 1ULL);
+            dp_prev_1 ^= (database1.share0[(i * 128 + j) ^ pr_prev] & mask_prev);
+            dp_next_1 ^= (database1.share1[(i * 128 + j) ^ pr_next] & mask_next);
+            dp_prev_2 ^= (database2.share0[(i * 128 + j) ^ pr_prev] & mask_prev);
+            dp_next_2 ^= (database2.share1[(i * 128 + j) ^ pr_next] & mask_next);
+        }
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask_prev = 0ULL - ((high_prev >> j) & 1ULL);
+            const uint64_t mask_next = 0ULL - ((high_next >> j) & 1ULL);
+            dp_prev_1 ^= (database1.share0[(i * 128 + 64 + j) ^ pr_prev] & mask_prev);
+            dp_next_1 ^= (database1.share1[(i * 128 + 64 + j) ^ pr_next] & mask_next);
+            dp_prev_2 ^= (database2.share0[(i * 128 + 64 + j) ^ pr_prev] & mask_prev);
+            dp_next_2 ^= (database2.share1[(i * 128 + 64 + j) ^ pr_next] & mask_next);
+        }
+    }
+
+    uint64_t            selected_sh_1 = dp_prev_1 ^ dp_next_1;
+    uint64_t            selected_sh_2 = dp_prev_2 ^ dp_next_2;
+    sharing::RepShare64 r_sh;
+    brss_.Rand(r_sh);
+    result1[0] = selected_sh_1 ^ r_sh[0] ^ r_sh[1];
+    chls.next.send(result1[0]);
+    chls.prev.recv(result1[1]);
+    brss_.Rand(r_sh);
+    result2[0] = selected_sh_2 ^ r_sh[0] ^ r_sh[1];
+    chls.next.send(result2[0]);
+    chls.prev.recv(result2[1]);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " result1: " + ToString(result1[0]) + ", " + ToString(result1[1]));
+    Logger::DebugLog(LOC, party_str + " result2: " + ToString(result2[0]) + ", " + ToString(result2[1]));
+#endif
 }
 
 std::pair<uint64_t, uint64_t> OblivSelectEvaluator::ReconstructPRBinary(Channels                  &chls,
@@ -449,6 +609,45 @@ block OblivSelectEvaluator::FullDomainDotProduct(const fss::dpf::DpfKey       &k
     Logger::DebugLog(LOC, "Dot product result: " + Format(blk_sum));
 #endif
     return blk_sum;
+}
+
+uint64_t OblivSelectEvaluator::FullDomainDotProduct_FdeThenDP(const fss::dpf::DpfKey      &key,
+                                                              std::vector<block>          &outputs,
+                                                              const std::vector<uint64_t> &database,
+                                                              const uint64_t               pr) const {
+
+    uint64_t d  = params_.GetDatabaseSize();
+    uint64_t nu = params_.GetParameters().GetTerminateBitsize();
+    if (database.size() != (1UL << d)) {
+        Logger::FatalLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database.size()) + " != " + ToString(1UL << d));
+    }
+    if (outputs.size() != (1UL << nu)) {
+        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(outputs.size()) + " != " + ToString(1UL << nu));
+    }
+
+    eval_.EvaluateFullDomain(key, outputs);
+    uint64_t db_sum = 0;
+
+    size_t num_blocks = outputs.size();    // = num_shares / 128
+    for (size_t i = 0; i < num_blocks; ++i) {
+        // Load one 128-bit block into registers
+        uint64_t low  = outputs[i].get<uint64_t>()[0];
+        uint64_t high = outputs[i].get<uint64_t>()[1];
+
+        // Process all 128 bits in this block
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((low >> j) & 1ULL);
+            db_sum ^= (database[i * 128 + j] & mask);
+        }
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((high >> j) & 1ULL);
+            db_sum ^= (database[i * 128 + 64 + j] & mask);
+        }
+    }
+
+    return db_sum;
 }
 
 void OblivSelectEvaluator::EvaluateNextSeed(

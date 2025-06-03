@@ -14,7 +14,7 @@ enum class FormatType
 };
 
 // Default max size for string conversions
-constexpr std::size_t kSizeMax = 100;
+constexpr std::size_t kSizeMax = 30;
 
 }    // namespace fsswm
 

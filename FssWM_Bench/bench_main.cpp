@@ -13,11 +13,16 @@ namespace bench_fsswm {
 
 osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
+    t.add("Dpf_Fde_Convert_Bench", Dpf_Fde_Convert_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
     t.add("Dpf_Pir_Bench", Dpf_Pir_Bench);
+    t.add("Dpf_Pir_Shift_Bench", Dpf_Pir_Shift_Bench);
+    t.add("Dpf_Pir_Then_Bench", Dpf_Pir_Then_Bench);
     t.add("OblivSelect_Offline_Bench", OblivSelect_Offline_Bench);
     t.add("OblivSelect_Online_Bench", OblivSelect_Online_Bench);
     t.add("OblivSelect_DotProduct_Bench", OblivSelect_DotProduct_Bench);
+    t.add("OblivSelect_Offline2_Bench", OblivSelect_Offline_Bench);
+    t.add("OblivSelect_Online2_Bench", OblivSelect_Online_Bench);
     t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
     t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
 });
