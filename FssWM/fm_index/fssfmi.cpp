@@ -5,8 +5,8 @@
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/utils/logger.h"
-#include "FssWM/utils/utils.h"
 #include "FssWM/utils/to_string.h"
+#include "FssWM/utils/utils.h"
 #include "FssWM/wm/plain_wm.h"
 
 namespace {
@@ -117,11 +117,15 @@ FssFMIKeyGenerator::FssFMIKeyGenerator(
       brss_(brss) {
 }
 
-std::array<sharing::RepShareMatBlock, 3> FssFMIKeyGenerator::GenerateDatabaseShare(const wm::FMIndex &fm) {
-    return wm_gen_.GenerateDatabaseShare(fm);
+std::array<sharing::RepShareMatBlock, 3> FssFMIKeyGenerator::GenerateDatabaseBlockShare(const wm::FMIndex &fm) const {
+    return wm_gen_.GenerateDatabaseBlockShare(fm);
 }
 
-std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateQueryShare(const wm::FMIndex &fm, std::string &query) {
+std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateDatabaseU64Share(const wm::FMIndex &fm) const {
+    return wm_gen_.GenerateDatabaseU64Share(fm);
+}
+
+std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateQueryShare(const wm::FMIndex &fm, std::string &query) const {
     std::vector<uint64_t> query_bv = fm.ConvertToBitMatrix(query);
     ReplaceOnes(query_bv, Pow(2, params_.GetDatabaseBitSize()) - 1);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -180,11 +184,11 @@ FssFMIEvaluator::FssFMIEvaluator(const FssFMIParameters             &params,
       brss_(brss) {
 }
 
-void FssFMIEvaluator::EvaluateLPM(Channels                        &chls,
-                                  const FssFMIKey                 &key,
-                                  const sharing::RepShareMatBlock &wm_tables,
-                                  const sharing::RepShareMat64    &query,
-                                  sharing::RepShareVec64          &result) const {
+void FssFMIEvaluator::EvaluateLPM_SingleBitMask(Channels                        &chls,
+                                                const FssFMIKey                 &key,
+                                                const sharing::RepShareMatBlock &wm_tables,
+                                                const sharing::RepShareMat64    &query,
+                                                sharing::RepShareVec64          &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
@@ -213,8 +217,67 @@ void FssFMIEvaluator::EvaluateLPM(Channels                        &chls,
     }
 
     for (uint64_t i = 0; i < qs; ++i) {
-        wm_eval_.EvaluateRankCF(chls, key.wm_keys[i], wm_tables, query.RowView(i), f_sh, f_next_sh);
-        wm_eval_.EvaluateRankCF(chls, key.wm_keys[i], wm_tables, query.RowView(i), g_sh, g_next_sh);
+        wm_eval_.EvaluateRankCF_SingleBitMask(chls, key.wm_keys[i], wm_tables, query.RowView(i), f_sh, f_next_sh);
+        wm_eval_.EvaluateRankCF_SingleBitMask(chls, key.wm_keys[i], wm_tables, query.RowView(i), g_sh, g_next_sh);
+        f_sh = f_next_sh;
+        g_sh = g_next_sh;
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        uint64_t f, g;
+        brss_.Open(chls, f_sh, f);
+        brss_.Open(chls, g_sh, g);
+        Logger::InfoLog(LOC, party_str + "f(" + ToString(i) + "): " + ToString(f));
+        Logger::InfoLog(LOC, party_str + "g(" + ToString(i) + "): " + ToString(g));
+#endif
+        sharing::RepShare64 fg_xor_sh;
+        brss_.EvaluateXor(f_sh, g_sh, fg_xor_sh);
+        interval_sh.Set(i, fg_xor_sh);
+    }
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    std::vector<uint64_t> interval;
+    brss_.Open(chls, interval_sh, interval);
+    Logger::DebugLog(LOC, party_str + "Interval: " + ToString(interval));
+#endif
+
+    zt_eval_.Evaluate(chls, key.zt_keys, interval_sh, result);
+}
+
+void FssFMIEvaluator::EvaluateLPM_ShiftedAdditive(Channels                     &chls,
+                                                  const FssFMIKey              &key,
+                                                  std::vector<block>           &uv_prev,
+                                                  std::vector<block>           &uv_next,
+                                                  const sharing::RepShareMat64 &wm_tables,
+                                                  const sharing::RepShareMat64 &query,
+                                                  sharing::RepShareVec64       &result) const {
+
+    uint64_t d        = params_.GetDatabaseBitSize();
+    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t qs       = params_.GetQuerySize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssFMI key"));
+    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
+    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Query size: " + ToString(qs));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+#endif
+
+    sharing::RepShare64    f_sh(0, 0), g_sh(0, 0);
+    sharing::RepShare64    f_next_sh(0, 0), g_next_sh(0, 0);
+    sharing::RepShareVec64 interval_sh(qs);
+
+    if (party_id == 0) {
+        g_sh.data[0] = wm_tables.RowView(0).Size() - 1;
+    } else if (party_id == 1) {
+        g_sh.data[1] = wm_tables.RowView(1).Size() - 1;
+    }
+
+    for (uint64_t i = 0; i < qs; ++i) {
+        wm_eval_.EvaluateRankCF_ShiftedAdditive(chls, key.wm_keys[i], uv_prev, uv_next, wm_tables, query.RowView(i), f_sh, f_next_sh);
+        wm_eval_.EvaluateRankCF_ShiftedAdditive(chls, key.wm_keys[i], uv_prev, uv_next, wm_tables, query.RowView(i), g_sh, g_next_sh);
         f_sh = f_next_sh;
         g_sh = g_next_sh;
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

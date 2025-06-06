@@ -9,6 +9,18 @@
 #include "FssWM/utils/utils.h"
 #include "plain_wm.h"
 
+namespace {
+
+uint64_t GetU32High(uint64_t value) {
+    return (value >> 32) & 0xFFFFFFFFULL;
+}
+
+uint64_t GetU32Low(uint64_t value) {
+    return value & 0xFFFFFFFFULL;
+}
+
+}    // namespace
+
 namespace fsswm {
 namespace wm {
 
@@ -93,7 +105,7 @@ FssWMKeyGenerator::FssWMKeyGenerator(
       brss_(brss) {
 }
 
-std::array<sharing::RepShareMatBlock, 3> FssWMKeyGenerator::GenerateDatabaseShare(const FMIndex &fm) {
+std::array<sharing::RepShareMatBlock, 3> FssWMKeyGenerator::GenerateDatabaseBlockShare(const FMIndex &fm) const {
     if (fm.GetWaveletMatrix().GetLength() + 1 != params_.GetDatabaseSize()) {
         throw std::invalid_argument("FMIndex length does not match the database size in FssWMParameters");
     }
@@ -103,7 +115,20 @@ std::array<sharing::RepShareMatBlock, 3> FssWMKeyGenerator::GenerateDatabaseShar
     for (size_t i = 0; i < rank0_tables.size(); ++i) {
         database[i] = osuCrypto::toBlock(rank1_tables[i], rank0_tables[i]);
     }
-    return brss_.ShareLocal(database, rank0_tables.size(), fm.GetWaveletMatrix().GetSigma());
+    return brss_.ShareLocal(database, fm.GetWaveletMatrix().GetSigma(), fm.GetWaveletMatrix().GetLength() + 1);
+}
+
+std::array<sharing::RepShareMat64, 3> FssWMKeyGenerator::GenerateDatabaseU64Share(const FMIndex &fm) const {
+    if (fm.GetWaveletMatrix().GetLength() + 1 != params_.GetDatabaseSize()) {
+        throw std::invalid_argument("FMIndex length does not match the database size in FssWMParameters");
+    }
+    const std::vector<uint64_t> &rank0_tables = fm.GetRank0Tables();
+    const std::vector<uint64_t> &rank1_tables = fm.GetRank1Tables();
+    std::vector<uint64_t>        database(rank0_tables.size());
+    for (size_t i = 0; i < rank0_tables.size(); ++i) {
+        database[i] = (rank1_tables[i] << 32) | rank0_tables[i];
+    }
+    return brss_.ShareLocal(database, fm.GetWaveletMatrix().GetSigma(), fm.GetWaveletMatrix().GetLength() + 1);
 }
 
 std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
@@ -147,12 +172,12 @@ FssWMEvaluator::FssWMEvaluator(
       brss_(brss) {
 }
 
-void FssWMEvaluator::EvaluateRankCF(Channels                        &chls,
-                                    const FssWMKey                  &key,
-                                    const sharing::RepShareMatBlock &wm_tables,
-                                    const sharing::RepShareView64   &char_sh,
-                                    sharing::RepShare64             &position_sh,
-                                    sharing::RepShare64             &result) const {
+void FssWMEvaluator::EvaluateRankCF_SingleBitMask(Channels                        &chls,
+                                                  const FssWMKey                  &key,
+                                                  const sharing::RepShareMatBlock &wm_tables,
+                                                  const sharing::RepShareView64   &char_sh,
+                                                  sharing::RepShare64             &position_sh,
+                                                  sharing::RepShare64             &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
@@ -165,6 +190,7 @@ void FssWMEvaluator::EvaluateRankCF(Channels                        &chls,
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
     std::string party_str = "[P" + ToString(party_id) + "] ";
 #endif
 
@@ -173,10 +199,63 @@ void FssWMEvaluator::EvaluateRankCF(Channels                        &chls,
     for (uint64_t i = 0; i < sigma; ++i) {
         os_eval_.Evaluate(chls, key.os_keys[i], wm_tables.RowView(i), position_sh, rank01_sh);
         rank0_sh[0] = rank01_sh[0].get<uint64_t>()[0];
-        rank1_sh[0] = rank01_sh[0].get<uint64_t>()[1];
         rank0_sh[1] = rank01_sh[1].get<uint64_t>()[0];
+        rank1_sh[0] = rank01_sh[0].get<uint64_t>()[1];
         rank1_sh[1] = rank01_sh[1].get<uint64_t>()[1];
         brss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        uint64_t open_position = 0;
+        brss_.Open(chls, position_sh, open_position);
+        Logger::DebugLog(LOC, party_str + "Rank CF for character " + ToString(i) + ": " + ToString(open_position));
+#endif
+    }
+    result = position_sh;
+}
+
+void FssWMEvaluator::EvaluateRankCF_ShiftedAdditive(Channels                      &chls,
+                                                    const FssWMKey                &key,
+                                                    std::vector<block>            &uv_prev,
+                                                    std::vector<block>            &uv_next,
+                                                    const sharing::RepShareMat64  &wm_tables,
+                                                    const sharing::RepShareView64 &char_sh,
+                                                    sharing::RepShare64           &position_sh,
+                                                    sharing::RepShare64           &result) const {
+
+    uint64_t d        = params_.GetDatabaseBitSize();
+    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssWM key"));
+    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
+    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+#endif
+
+    sharing::RepShare64 rank01_sh;
+    sharing::RepShare64 rank0_sh(0, 0), rank1_sh(0, 0);
+    for (uint64_t i = 0; i < sigma; ++i) {
+        os_eval_.Evaluate(chls, key.os_keys[i], uv_prev, uv_next, wm_tables.RowView(i), position_sh, rank01_sh);
+        rank0_sh[0] = GetU32Low(rank01_sh[0]);
+        rank0_sh[1] = GetU32Low(rank01_sh[1]);
+        rank1_sh[0] = GetU32High(rank01_sh[0]);
+        rank1_sh[1] = GetU32High(rank01_sh[1]);
+        brss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, party_str + "Rank01 share for character " + ToString(i) + ": " +
+                                 ToString(rank01_sh[0]) + ", " + ToString(rank01_sh[1]));
+        Logger::DebugLog(LOC, party_str + "Rank0 share: " + ToString(rank0_sh[0]) + ", " + ToString(rank0_sh[1]));
+        Logger::DebugLog(LOC, party_str + "Rank1 share: " + ToString(rank1_sh[0]) + ", " + ToString(rank1_sh[1]));
+        uint64_t open_position = 0;
+        brss_.Open(chls, position_sh, open_position);
+        Logger::DebugLog(LOC, party_str + "Rank CF for character " + ToString(i) + ": " + ToString(open_position));
+#endif
     }
     result = position_sh;
 }

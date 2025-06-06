@@ -28,7 +28,7 @@ inline uint64_t Pow(const uint64_t base, const uint64_t exponent) noexcept {
  * @return The result of 'value' modulo (2^bitsize).
  */
 inline uint64_t Mod(const uint64_t value, const uint64_t bitsize) noexcept {
-    return value & ((1U << bitsize) - 1U);
+    return value & ((1UL << bitsize) - 1UL);
 }
 
 /**

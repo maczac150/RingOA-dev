@@ -13,7 +13,6 @@ set(TEST_SOURCES
     utils/file_io_test.cpp
     fss/prg_test.cpp
     fss/dpf_test.cpp
-    fss/libPSI_dpf_test.cpp
     sharing/additive_2p_test.cpp
     sharing/binary_2p_test.cpp
     sharing/additive_3p_test.cpp

@@ -54,9 +54,9 @@ public:
     void EvaluateFullDomain(const DpfKey &key, std::vector<block> &outputs) const;
     void EvaluateFullDomain(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
-    block    EvaluatePir(const DpfKey &key, std::vector<block> &database) const;
-    uint64_t EvaluatePir_128bitshift(const DpfKey &key, std::vector<uint64_t> &database) const;
-    uint64_t EvaluatePir_FdeThenDP(const DpfKey &key, std::vector<block> &outputs, std::vector<uint64_t> &database) const;
+    block    ComputeDotProductBlockSIMD(const DpfKey &key, std::vector<block> &database) const;
+    uint64_t ComputeDotProductUint64Bitwise(const DpfKey &key, std::vector<uint64_t> &database) const;
+    uint64_t EvaluateFullDomainThenDotProduct(const DpfKey &key, std::vector<block> &outputs, std::vector<uint64_t> &database) const;
 
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */

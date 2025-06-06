@@ -24,11 +24,12 @@ public:
      * @param n The input bitsize.
      * @param e The element bitsize.
      * @param eval_type The evaluation type for the DPF.
+     * @param output_mode The output mode for the DPF.
      */
     explicit DpfParameters(
         const uint64_t n, const uint64_t e,
         EvalType   eval_type   = kOptimizedEvalType,
-        OutputMode output_mode = OutputMode::kBinaryPoint);
+        OutputType output_mode = OutputType::kShiftedAdditive);
 
     /**
      * @brief Get the Input Bitsize object
@@ -72,9 +73,9 @@ public:
 
     /**
      * @brief Get the Output Mode for the DPF.
-     * @return OutputMode The output mode for the DPF.
+     * @return OutputType The output mode for the DPF.
      */
-    OutputMode GetOutputMode() const {
+    OutputType GetOutputType() const {
         return output_mode_;
     }
 
@@ -90,11 +91,12 @@ public:
      * @param e The element bitsize.
      * @param enable_et Toggle this flag to enable/disable early termination.
      * @param eval_type The evaluation type for the DPF.
+     * @param output_mode The output mode for the DPF.
      */
     void ReconfigureParameters(
         const uint64_t n, const uint64_t e,
         EvalType   eval_type   = kOptimizedEvalType,
-        OutputMode output_mode = OutputMode::kBinaryPoint);
+        OutputType output_mode = OutputType::kShiftedAdditive);
 
     /**
      * @brief Get the string representation of the DpfParameters.
@@ -113,7 +115,7 @@ private:
     bool       enable_et_;         /**< Toggle this flag to enable/disable early termination. */
     uint64_t   terminate_bitsize_; /**< The size of the termination bits. */
     EvalType   fde_type_;          /**< The evaluation type for full domain evaluation. */
-    OutputMode output_mode_;       /**< The output mode for the DPF. */
+    OutputType output_mode_;       /**< The output mode for the DPF. */
 };
 
 /**

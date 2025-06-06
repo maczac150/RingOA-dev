@@ -1,6 +1,6 @@
 # Build files
+data
 out/
-data/
 .vscode/
 
 # Third party libraries

@@ -85,7 +85,7 @@ uint64_t DpfEvaluator::EvaluateAtOptimized(const DpfKey &key, uint64_t x) const 
     uint64_t   n    = params_.GetInputBitsize();
     uint64_t   e    = params_.GetOutputBitsize();
     uint64_t   nu   = params_.GetTerminateBitsize();
-    OutputMode mode = params_.GetOutputMode();
+    OutputType mode = params_.GetOutputType();
 
     // Get the seed and control bit from the given DPF key
     block seed        = key.init_seed;
@@ -226,7 +226,7 @@ void DpfEvaluator::EvaluateNextSeed(
     expanded_control_bits[kRight] ^= control_mask_right;
 }
 
-block DpfEvaluator::EvaluatePir(const DpfKey &key, std::vector<block> &database) const {
+block DpfEvaluator::ComputeDotProductBlockSIMD(const DpfKey &key, std::vector<block> &database) const {
     uint64_t nu = params_.GetTerminateBitsize();
 
     // Breadth-first traversal for 8 nodes
@@ -390,7 +390,7 @@ block DpfEvaluator::EvaluatePir(const DpfKey &key, std::vector<block> &database)
     return blk_sum;
 }
 
-uint64_t DpfEvaluator::EvaluatePir_128bitshift(const DpfKey &key, std::vector<uint64_t> &database) const {
+uint64_t DpfEvaluator::ComputeDotProductUint64Bitwise(const DpfKey &key, std::vector<uint64_t> &database) const {
     uint64_t nu     = params_.GetTerminateBitsize();
     uint64_t db_sum = 0;
 
@@ -505,51 +505,73 @@ uint64_t DpfEvaluator::EvaluatePir_128bitshift(const DpfKey &key, std::vector<ui
     return db_sum;
 }
 
-uint64_t DpfEvaluator::EvaluatePir_FdeThenDP(const DpfKey &key, std::vector<block> &outputs, std::vector<uint64_t> &database) const {
-    if (outputs.size() != 1 << params_.GetTerminateBitsize()) {
-        Logger::FatalLog(LOC, "Output vector size does not match the number of nodes: " + ToString(1U << params_.GetTerminateBitsize()));
-        std::exit(EXIT_FAILURE);
-    }
-    if (database.size() != 1 << params_.GetInputBitsize()) {
-        Logger::FatalLog(LOC, "Database size does not match the number of nodes: " + ToString(1U << params_.GetInputBitsize()));
-        std::exit(EXIT_FAILURE);
-    }
-
+uint64_t DpfEvaluator::EvaluateFullDomainThenDotProduct(const DpfKey &key, std::vector<block> &outputs, std::vector<uint64_t> &database) const {
     // Evaluate the FDE
     EvaluateFullDomain(key, outputs);
     uint64_t db_sum = 0;
 
     // -------
-    // Pattern 1       TODO: 無駄にやってるから内側に8個のループを作る
+    // Pattern 1
     // -------
-    // auto *outputs_bytes = reinterpret_cast<const uint8_t *>(outputs.data());
-    // for (size_t i = 0; i < database.size(); ++i) {
-    //     size_t block_index = i / 128;
-    //     size_t bit_index   = Mod(i, 7);
-    //     size_t byte_index  = bit_index / 8;
-    //     size_t bit_in_byte = Mod(bit_index, 3);
+    // // reinterpret_cast to raw bytes of 'outputs' buffer:
+    // // each 'block' is assumed to be 16 bytes (128 bits).
+    // const uint8_t *outputs_bytes = reinterpret_cast<const uint8_t *>(outputs.data());
 
-    //     size_t  offset      = block_index * 16 + byte_index;
-    //     uint8_t output_byte = outputs_bytes[offset];
+    // // Let B = outputs.size(), so database.size() == B * 128.
+    // const size_t B = outputs.size();
+    // for (size_t block_index = 0; block_index < B; ++block_index) {
+    //     // Pointer to the 16 bytes corresponding to this block:
+    //     //   outputs_bytes + block_index * 16
+    //     const uint8_t *block_ptr = outputs_bytes + (block_index * 16);
 
-    //     const uint64_t bit = (output_byte >> bit_in_byte) & 1U;
-    //     db_sum ^= database[i] * bit;
+    //     // Now loop over the 128 bits within this block:
+    //     for (size_t bit_index = 0; bit_index < 128; ++bit_index) {
+    //         // Compute byte index and bit-in-byte from bit_index:
+    //         size_t byte_index  = bit_index >> 3;     // bit_index / 8
+    //         size_t bit_in_byte = bit_index & 0x7;    // bit_index % 8
+
+    //         uint8_t  output_byte = block_ptr[byte_index];
+    //         uint64_t bit         = (output_byte >> bit_in_byte) & 1U;
+
+    //         // Corresponding index in 'database':
+    //         size_t db_idx = block_index * 128 + bit_index;
+
+    //         // If the bit is 1, XOR database[db_idx] into db_sum:
+    //         // (database[db_idx] * bit) is faster than branchy "if (bit)".
+    //         db_sum ^= (database[db_idx] * bit);
+    //     }
     // }
 
     // -------
     // Pattern 2
     // -------
-    // for (size_t i = 0; i < database.size(); ++i) {
-    //     size_t block_index = i / 128;
-    //     size_t bit_index   = Mod(i, 7);
-    //     size_t byte_index  = bit_index / 8;
-    //     size_t bit_in_byte = Mod(bit_index, 3);
-
+    // const size_t B = outputs.size();    // ブロック数
+    // for (size_t block_index = 0; block_index < B; ++block_index) {
+    //     // 1ブロック（16バイト=128ビット）分のデータをバッファにコピー
     //     alignas(16) uint8_t buffer[16];
-    //     _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer), outputs[block_index]);
+    //     _mm_storeu_si128(reinterpret_cast<__m128i *>(buffer),
+    //                      outputs[block_index]);
 
-    //     const uint64_t bit = (buffer[byte_index] >> bit_in_byte) & 1U;
-    //     db_sum ^= database[i] * bit;
+    //     // 各ビットをチェックして database と内積（XOR）を取る
+    //     // database 中の対応位置は (block_index * 128 + bit_index)
+    //     for (size_t bit_index = 0; bit_index < 128; ++bit_index) {
+    //         // ビット位置からバイトインデックス／バイト内ビット位置を求める
+    //         //   byte_index   = bit_index / 8  <=> bit_index >> 3
+    //         //   bit_in_byte  = bit_index % 8  <=> bit_index & 0x7
+    //         const size_t byte_index  = bit_index >> 3;     // 8 ビット＝1 バイト
+    //         const size_t bit_in_byte = bit_index & 0x7;    // 0～7 の範囲
+
+    //         // バッファから該当バイトを読み出し、ビットを取り出す
+    //         const uint8_t  output_byte = buffer[byte_index];
+    //         const uint64_t bit         = (output_byte >> bit_in_byte) & 1U;
+
+    //         // database上の対応インデックス
+    //         const size_t db_idx = block_index * 128 + bit_index;
+
+    //         // ビットが 1 のときだけ database の値を XOR に寄与させる
+    //         //   (database[db_idx] * bit) を使うことで条件分岐なしに済む
+    //         db_sum ^= (database[db_idx] * bit);
+    //     }
     // }
 
     // -------

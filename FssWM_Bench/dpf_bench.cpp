@@ -22,7 +22,7 @@ using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::TimerManager;
 using fsswm::ToString;
-using fsswm::fss::EvalType, fsswm::fss::OutputMode;
+using fsswm::fss::EvalType, fsswm::fss::OutputType;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
@@ -147,7 +147,7 @@ void Dpf_Fde_One_Bench() {
     Logger::InfoLog(LOC, "FDE Benchmark completed");
 }
 
-void Dpf_Pir_Bench() {
+void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
     // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
@@ -162,7 +162,7 @@ void Dpf_Pir_Bench() {
         uint64_t        beta  = 1;
 
         TimerManager timer_mgr;
-        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir Benchmark:" + GetEvalTypeString(params.GetFdeEvalType()));
+        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir:ComputeDotProductBlockSIMD");
         timer_mgr.SelectTimer(timer_id);
 
         // Generate keys
@@ -175,13 +175,13 @@ void Dpf_Pir_Bench() {
         // Evaluate keys
         for (uint64_t i = 0; i < repeat; ++i) {
             timer_mgr.Start();
-            block result_0 = eval.EvaluatePir(keys.first, database);
+            block result_0 = eval.ComputeDotProductBlockSIMD(keys.first, database);
             timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
             // Use result_0 in the check below to prevent the compiler from
             // optimizing away the PIR evaluation call. If result_0 were never used,
             // the compiler might inline or remove the call entirely, invalidating
             // the timing measurement.
-            block result_1 = eval.EvaluatePir(keys.second, database);
+            block result_1 = eval.ComputeDotProductBlockSIMD(keys.second, database);
             if ((result_0 ^ result_1) != database[alpha]) {
                 Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + fsswm::Format(result_0) + ", result_1=" + fsswm::Format(result_1) + ", expected=" + fsswm::Format(database[alpha]));
                 std::exit(EXIT_FAILURE);
@@ -192,14 +192,14 @@ void Dpf_Pir_Bench() {
     Logger::InfoLog(LOC, "Pir Benchmark completed");
 }
 
-void Dpf_Pir_Shift_Bench() {
+void Dpf_Pir_ComputeDotProductUint64Bitwise_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
     // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
 
     Logger::InfoLog(LOC, "Pir Shift Benchmark started");
     for (auto size : sizes) {
-        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputMode::kAdditive);
+        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputType::kShiftedAdditive);
         uint64_t        n = params.GetInputBitsize();
         DpfKeyGenerator gen(params);
         DpfEvaluator    eval(params);
@@ -207,7 +207,7 @@ void Dpf_Pir_Shift_Bench() {
         uint64_t        beta  = 1;
 
         TimerManager timer_mgr;
-        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir Benchmark:" + GetEvalTypeString(params.GetFdeEvalType()));
+        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir:ComputeDotProductUint64Bitwise");
         timer_mgr.SelectTimer(timer_id);
 
         // Generate keys
@@ -220,13 +220,13 @@ void Dpf_Pir_Shift_Bench() {
         // Evaluate keys
         for (uint64_t i = 0; i < repeat; ++i) {
             timer_mgr.Start();
-            uint64_t result_0 = eval.EvaluatePir_128bitshift(keys.first, database);
+            uint64_t result_0 = eval.ComputeDotProductUint64Bitwise(keys.first, database);
             timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
             // Use result_0 in the check below to prevent the compiler from
             // optimizing away the PIR evaluation call. If result_0 were never used,
             // the compiler might inline or remove the call entirely, invalidating
             // the timing measurement.
-            uint64_t result_1 = eval.EvaluatePir_128bitshift(keys.second, database);
+            uint64_t result_1 = eval.ComputeDotProductUint64Bitwise(keys.second, database);
             if ((result_0 ^ result_1) != database[alpha]) {
                 Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + fsswm::ToString(result_0) + ", result_1=" + fsswm::ToString(result_1) + ", expected=" + fsswm::ToString(database[alpha]));
                 std::exit(EXIT_FAILURE);
@@ -237,14 +237,14 @@ void Dpf_Pir_Shift_Bench() {
     Logger::InfoLog(LOC, "Pir Benchmark completed");
 }
 
-void Dpf_Pir_Then_Bench() {
+void Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
     // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
 
     Logger::InfoLog(LOC, "Pir Shift Benchmark started");
     for (auto size : sizes) {
-        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputMode::kAdditive);
+        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputType::kShiftedAdditive);
         uint64_t        n = params.GetInputBitsize();
         DpfKeyGenerator gen(params);
         DpfEvaluator    eval(params);
@@ -252,7 +252,7 @@ void Dpf_Pir_Then_Bench() {
         uint64_t        beta  = 1;
 
         TimerManager timer_mgr;
-        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir Benchmark:" + GetEvalTypeString(params.GetFdeEvalType()));
+        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir:EvaluateFullDomainThenDotProduct");
         timer_mgr.SelectTimer(timer_id);
 
         // Generate keys
@@ -266,13 +266,13 @@ void Dpf_Pir_Then_Bench() {
         std::vector<block> outputs_0(1U << params.GetTerminateBitsize()), outputs_1(1U << params.GetTerminateBitsize());
         for (uint64_t i = 0; i < repeat; ++i) {
             timer_mgr.Start();
-            uint64_t result_0 = eval.EvaluatePir_FdeThenDP(keys.first, outputs_0, database);
+            uint64_t result_0 = eval.EvaluateFullDomainThenDotProduct(keys.first, outputs_0, database);
             timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
             // Use result_0 in the check below to prevent the compiler from
             // optimizing away the PIR evaluation call. If result_0 were never used,
             // the compiler might inline or remove the call entirely, invalidating
             // the timing measurement.
-            uint64_t result_1 = eval.EvaluatePir_FdeThenDP(keys.second, outputs_1, database);
+            uint64_t result_1 = eval.EvaluateFullDomainThenDotProduct(keys.second, outputs_1, database);
             if ((result_0 ^ result_1) != database[alpha]) {
                 Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + fsswm::ToString(result_0) + ", result_1=" + fsswm::ToString(result_1) + ", expected=" + fsswm::ToString(database[alpha]));
                 std::exit(EXIT_FAILURE);

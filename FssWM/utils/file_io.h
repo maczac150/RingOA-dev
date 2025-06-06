@@ -96,37 +96,37 @@ public:
         // If T is a single arithmetic value
         if constexpr (std::is_arithmetic_v<T>) {
             // We store '1' as the number of elements
-            uint32_t count = 1;
-            file.write(reinterpret_cast<const char *>(&count), sizeof(uint32_t));
+            size_t count = 1;
+            file.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
             file.write(reinterpret_cast<const char *>(&data), sizeof(T));
         }
         // If T is a single block
         else if constexpr (std::is_same_v<T, block>) {
-            uint32_t count = 1;
-            file.write(reinterpret_cast<const char *>(&count), sizeof(uint32_t));
+            size_t count = 1;
+            file.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
             file.write(reinterpret_cast<const char *>(&data), sizeof(block));
         }
         // If T is a std::string
         else if constexpr (std::is_same_v<T, std::string>) {
-            uint32_t length = static_cast<uint32_t>(data.size());
-            file.write(reinterpret_cast<const char *>(&length), sizeof(uint32_t));
+            size_t length = data.size();
+            file.write(reinterpret_cast<const char *>(&length), sizeof(size_t));
             if (length > 0) {
                 file.write(data.data(), length);
             }
         }
         // If T is a std::vector<arithmetic>
         else if constexpr (is_vector_arith<T>::value) {
-            using ElemT    = typename T::value_type;
-            uint32_t count = static_cast<uint32_t>(data.size());
-            file.write(reinterpret_cast<const char *>(&count), sizeof(uint32_t));
+            using ElemT  = typename T::value_type;
+            size_t count = data.size();
+            file.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
             if (count > 0) {
                 file.write(reinterpret_cast<const char *>(data.data()), count * sizeof(ElemT));
             }
         }
         // If T is an std::vector<block>
         else if constexpr (is_vector_block<T>::value) {
-            uint32_t count = static_cast<uint32_t>(data.size());
-            file.write(reinterpret_cast<const char *>(&count), sizeof(uint32_t));
+            size_t count = data.size();
+            file.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
             if (count > 0) {
                 file.write(reinterpret_cast<const char *>(data.data()), count * sizeof(block));
             }
@@ -135,15 +135,15 @@ public:
         else if constexpr (is_array_arith<T>::value) {
             constexpr size_t N = std::tuple_size<T>::value;
             using ElemT        = typename T::value_type;
-            uint32_t count     = static_cast<uint32_t>(N);
-            file.write(reinterpret_cast<const char *>(&count), sizeof(uint32_t));
+            size_t count       = static_cast<size_t>(N);
+            file.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
             file.write(reinterpret_cast<const char *>(data.data()), N * sizeof(ElemT));
         }
         // If T is an std::array<block, N>
         else if constexpr (is_array_block<T>::value) {
             constexpr size_t N     = std::tuple_size<T>::value;
-            uint32_t         count = static_cast<uint32_t>(N);
-            file.write(reinterpret_cast<const char *>(&count), sizeof(uint32_t));
+            size_t           count = static_cast<size_t>(N);
+            file.write(reinterpret_cast<const char *>(&count), sizeof(size_t));
             file.write(reinterpret_cast<const char *>(data.data()),
                        N * sizeof(block));
         } else {
@@ -173,9 +173,9 @@ public:
         // Enable exceptions on read failures
         file.exceptions(std::ios::badbit | std::ios::failbit);
 
-        // Read the number of elements (as uint32_t for portability)
-        uint32_t count = 0;
-        file.read(reinterpret_cast<char *>(&count), sizeof(uint32_t));
+        // Read the number of elements (as size_t for portability)
+        size_t count = 0;
+        file.read(reinterpret_cast<char *>(&count), sizeof(size_t));
 
         // If T is a single arithmetic value
         if constexpr (std::is_arithmetic_v<T>) {

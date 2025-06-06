@@ -22,10 +22,14 @@ public:
      * @param database_bitsize The database size for the FssFMIParameters.
      * @param query_size The query size for the FssFMIParameters.
      * @param sigma The alphabet size for the FssFMIParameters.
+     * @param mode The output type for the FssFMIParameters.
      */
-    FssFMIParameters(const uint64_t database_bitsize, const uint64_t query_size, const uint64_t sigma = 3)
+    FssFMIParameters(const uint64_t        database_bitsize,
+                     const uint64_t        query_size,
+                     const uint64_t        sigma = 3,
+                     const fss::OutputType mode  = fss::OutputType::kShiftedAdditive)
         : query_size_(query_size),
-          fsswm_params_(database_bitsize, sigma),
+          fsswm_params_(database_bitsize, sigma, mode),
           zt_params_(database_bitsize) {
     }
 
@@ -34,11 +38,15 @@ public:
      * @param database_bitsize The database size for the FssFMIParameters.
      * @param query_size The query size for the FssFMIParameters.
      * @param sigma The alphabet size for the FssFMIParameters.
+     * @param mode The output type for the FssFMIParameters.
      */
 
-    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t query_size, const uint64_t sigma = 3) {
+    void ReconfigureParameters(const uint64_t        database_bitsize,
+                               const uint64_t        query_size,
+                               const uint64_t        sigma = 3,
+                               const fss::OutputType mode  = fss::OutputType::kShiftedAdditive) {
         query_size_ = query_size;
-        fsswm_params_.ReconfigureParameters(database_bitsize, sigma);
+        fsswm_params_.ReconfigureParameters(database_bitsize, sigma, mode);
         zt_params_.ReconfigureParameters(database_bitsize);
     }
 
@@ -163,7 +171,7 @@ struct FssFMIKey {
 
     /**
      * @brief Calculate the size of the serialized FssFMIKey.
-     * @return size_t The size of the serialized FssFMIKey.
+     * @param buffer The buffer to store the serialized FssFMIKey.
      */
     void Serialize(std::vector<uint8_t> &buffer) const;
 
@@ -209,7 +217,8 @@ public:
      * @param fm The FMIndex used to generate the shares.
      * @return std::array<std::vector<sharing::RepShareVec>, 3> The generated shares for the database.
      */
-    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseShare(const wm::FMIndex &fm);
+    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseBlockShare(const wm::FMIndex &fm) const;
+    std::array<sharing::RepShareMat64, 3>    GenerateDatabaseU64Share(const wm::FMIndex &fm) const;
 
     /**
      * @brief Generate shares for the query.
@@ -217,7 +226,7 @@ public:
      * @param query The query to generate shares for.
      * @return std::array<sharing::RepShareVec, 3> The generated shares for the query.
      */
-    std::array<sharing::RepShareMat64, 3> GenerateQueryShare(const wm::FMIndex &fm, std::string &query);
+    std::array<sharing::RepShareMat64, 3> GenerateQueryShare(const wm::FMIndex &fm, std::string &query) const;
 
     /**
      * @brief Generate keys for the FssFMI.
@@ -245,11 +254,19 @@ public:
     FssFMIEvaluator(const FssFMIParameters             &params,
                     sharing::BinaryReplicatedSharing3P &brss);
 
-    void EvaluateLPM(Channels                        &chls,
-                     const FssFMIKey                 &key,
-                     const sharing::RepShareMatBlock &wm_tables,
-                     const sharing::RepShareMat64    &query,
-                     sharing::RepShareVec64          &result) const;
+    void EvaluateLPM_SingleBitMask(Channels                        &chls,
+                                   const FssFMIKey                 &key,
+                                   const sharing::RepShareMatBlock &wm_tables,
+                                   const sharing::RepShareMat64    &query,
+                                   sharing::RepShareVec64          &result) const;
+
+    void EvaluateLPM_ShiftedAdditive(Channels                     &chls,
+                                     const FssFMIKey              &key,
+                                     std::vector<block>           &uv_prev,
+                                     std::vector<block>           &uv_next,
+                                     const sharing::RepShareMat64 &wm_tables,
+                                     const sharing::RepShareMat64 &query,
+                                     sharing::RepShareVec64       &result) const;
 
 private:
     FssFMIParameters                    params_;  /**< FssFMIParameters for the FssFMIEvaluator. */

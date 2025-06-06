@@ -61,7 +61,7 @@ using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::TimerManager;
 using fsswm::ToString, fsswm::Format;
-using fsswm::fss::EvalType;
+using fsswm::fss::EvalType, fsswm::fss::OutputType;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
@@ -206,7 +206,7 @@ void Dpf_Fde_One_Test() {
     };
     // Test all combinations of parameters
     for (auto [n, e, eval_type] : fde_param) {
-        DpfParameters param(n, e, eval_type);
+        DpfParameters param(n, e, eval_type, OutputType::kSingleBitMask);
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
@@ -262,7 +262,7 @@ void Dpf_Pir_Test() {
     };
     // Test all combinations of parameters
     for (auto [n, e, eval_type] : fde_param) {
-        DpfParameters param(n, e, eval_type);
+        DpfParameters param(n, e, eval_type, OutputType::kSingleBitMask);
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
@@ -283,8 +283,8 @@ void Dpf_Pir_Test() {
         Logger::DebugLog(LOC, "Database :" + fsswm::Format(database, FormatType::kDec));
 
         // Evaluate keys
-        block result_0 = eval.EvaluatePir(keys.first, database);
-        block result_1 = eval.EvaluatePir(keys.second, database);
+        block result_0 = eval.ComputeDotProductBlockSIMD(keys.first, database);
+        block result_1 = eval.ComputeDotProductBlockSIMD(keys.second, database);
         block output   = result_0 ^ result_1;
         Logger::DebugLog(LOC, "Output :" + fsswm::Format(output, FormatType::kDec));
 
@@ -292,7 +292,7 @@ void Dpf_Pir_Test() {
         if (output != database[alpha])
             throw osuCrypto::UnitTestFail("FDE check failed");
 
-        DpfParameters   param2(n, e, eval_type, fsswm::fss::OutputMode::kAdditive);
+        DpfParameters   param2(n, e, eval_type);
         DpfKeyGenerator gen2(param2);
         DpfEvaluator    eval2(param2);
 
@@ -310,8 +310,8 @@ void Dpf_Pir_Test() {
         Logger::DebugLog(LOC, "Data64 :" + fsswm::ToString(data64));
 
         // Evaluate keys
-        uint64_t output64_0 = eval2.EvaluatePir_128bitshift(keys2.first, data64);
-        uint64_t output64_1 = eval2.EvaluatePir_128bitshift(keys2.second, data64);
+        uint64_t output64_0 = eval2.ComputeDotProductUint64Bitwise(keys2.first, data64);
+        uint64_t output64_1 = eval2.ComputeDotProductUint64Bitwise(keys2.second, data64);
         uint64_t output64   = output64_0 ^ output64_1;
         Logger::DebugLog(LOC, "Output64 :" + fsswm::ToString(output64));
 
@@ -321,10 +321,14 @@ void Dpf_Pir_Test() {
 
         // Generate output vector
         std::vector<block> outputs_0(1 << param.GetTerminateBitsize()), outputs_1(1 << param.GetTerminateBitsize());
-        output64_0 = eval2.EvaluatePir_FdeThenDP(keys2.first, outputs_0, data64);
-        output64_1 = eval2.EvaluatePir_FdeThenDP(keys2.second, outputs_1, data64);
+        output64_0 = eval2.EvaluateFullDomainThenDotProduct(keys2.first, outputs_0, data64);
+        output64_1 = eval2.EvaluateFullDomainThenDotProduct(keys2.second, outputs_1, data64);
         output64   = output64_0 ^ output64_1;
         Logger::DebugLog(LOC, "Output64 (FDE then DP) :" + fsswm::ToString(output64));
+
+        // Check FDE
+        if (output64 != data64[alpha])
+            throw osuCrypto::UnitTestFail("FDE check failed for 64-bit output");
 
         Logger::DebugLog(LOC, "Dpf_Pir_Test - Passed");
     }

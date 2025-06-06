@@ -1,7 +1,6 @@
 #ifndef SHARING_SHARE_IO_H_
 #define SHARING_SHARE_IO_H_
 
-#include "FssWM/utils/file_io.h"
 #include "FssWM/utils/logger.h"
 
 namespace fsswm {
@@ -22,13 +21,17 @@ public:
      */
     template <typename ShareType>
     void SaveShare(const std::string &file_path, const ShareType &share) const {
-        std::vector<uint8_t> buffer;
-        share.Serialize(buffer);
+        std::string full_path = file_path + ".sh.bin";
+
+        std::ofstream ofs(full_path, std::ios::binary | std::ios::out);
+        if (!ofs.is_open()) {
+            Logger::FatalLog(LOC, "Failed to open file for saving share: " + full_path);
+            exit(EXIT_FAILURE);
+        }
         try {
-            FileIo io(".sh.bin");
-            io.WriteBinary(file_path, buffer);
+            share.SerializeToStream(ofs);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Saved share to file: " + file_path + ".sh.bin");
+            Logger::DebugLog(LOC, "Saved share to file: " + full_path);
 #endif
         } catch (const std::exception &e) {
             Logger::FatalLog(LOC, "Error saving share to file: " + std::string(e.what()));
@@ -44,13 +47,17 @@ public:
      */
     template <typename ShareType>
     void LoadShare(const std::string &file_path, ShareType &share) const {
-        std::vector<uint8_t> buffer;
+        std::string full_path = file_path + ".sh.bin";
+
+        std::ifstream ifs(full_path, std::ios::binary | std::ios::in);
+        if (!ifs.is_open()) {
+            Logger::FatalLog(LOC, "Failed to open file for loading share: " + full_path);
+            exit(EXIT_FAILURE);
+        }
         try {
-            FileIo io(".sh.bin");
-            io.ReadBinary(file_path, buffer);
-            share.Deserialize(buffer);
+            share.DeserializeFromStream(ifs);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Loaded share from file: " + file_path + ".sh.bin");
+            Logger::DebugLog(LOC, "Loaded share from file: " + full_path);
 #endif
         } catch (const std::exception &e) {
             Logger::FatalLog(LOC, "Error loading share from file: " + std::string(e.what()));

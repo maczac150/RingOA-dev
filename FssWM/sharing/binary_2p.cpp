@@ -47,15 +47,15 @@ void BinarySharing2P::OnlineSetUp(const uint64_t party_id, const std::string &fi
 }
 
 std::pair<uint64_t, uint64_t> BinarySharing2P::Share(const uint64_t &x) const {
-    uint64_t x_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    uint64_t x_0 = GlobalRng::Rand<uint64_t>();
     uint64_t x_1 = x ^ x_0;
     return std::make_pair(x_0, x_1);
 }
 
 std::pair<std::array<uint64_t, 2>, std::array<uint64_t, 2>> BinarySharing2P::Share(const std::array<uint64_t, 2> &x) const {
     std::array<uint64_t, 2> x_0, x_1;
-    x_0[0] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    x_0[1] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    x_0[0] = GlobalRng::Rand<uint64_t>();
+    x_0[1] = GlobalRng::Rand<uint64_t>();
     x_1[0] = x[0] ^ x_0[0];
     x_1[1] = x[1] ^ x_0[1];
     return {std::move(x_0), std::move(x_1)};
@@ -64,7 +64,7 @@ std::pair<std::array<uint64_t, 2>, std::array<uint64_t, 2>> BinarySharing2P::Sha
 std::pair<std::vector<uint64_t>, std::vector<uint64_t>> BinarySharing2P::Share(const std::vector<uint64_t> &x) const {
     std::vector<uint64_t> x_0(x.size()), x_1(x.size());
     for (size_t i = 0; i < x.size(); ++i) {
-        x_0[i] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+        x_0[i] = GlobalRng::Rand<uint64_t>();
         x_1[i] = x[i] ^ x_0[i];
     }
     return {std::move(x_0), std::move(x_1)};
@@ -75,9 +75,9 @@ std::pair<BeaverTriples, BeaverTriples> BinarySharing2P::Share(const BeaverTripl
     BeaverTriples triples_0(num_triples), triples_1(num_triples);
 
     for (uint64_t i = 0; i < num_triples; ++i) {
-        uint64_t a_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t b_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t c_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t a_0 = GlobalRng::Rand<uint64_t>();
+        uint64_t b_0 = GlobalRng::Rand<uint64_t>();
+        uint64_t c_0 = GlobalRng::Rand<uint64_t>();
 
         uint64_t a_1 = triples.triples[i].a ^ a_0;
         uint64_t b_1 = triples.triples[i].b ^ b_0;
@@ -392,9 +392,9 @@ void BinarySharing2P::GenerateBeaverTriples(const uint64_t num_triples, const ui
         triples.triples.resize(num_triples);
     }
     for (uint64_t i = 0; i < num_triples; ++i) {
-        uint64_t a         = Mod(GlobalRng::Rand<uint64_t>(), bitsize);
-        uint64_t b         = Mod(GlobalRng::Rand<uint64_t>(), bitsize);
-        uint64_t c         = Mod(a & b, bitsize);
+        uint64_t a         = GlobalRng::Rand<uint64_t>();
+        uint64_t b         = GlobalRng::Rand<uint64_t>() % bitsize;
+        uint64_t c         = (a & b) % bitsize;
         triples.triples[i] = {a, b, c};
     }
 }

@@ -6,9 +6,9 @@ namespace bench_fsswm {
 void Dpf_Fde_Bench();
 void Dpf_Fde_Convert_Bench();
 void Dpf_Fde_One_Bench();
-void Dpf_Pir_Bench();
-void Dpf_Pir_Shift_Bench();
-void Dpf_Pir_Then_Bench();
+void Dpf_Pir_ComputeDotProductBlockSIMD_Bench();
+void Dpf_Pir_ComputeDotProductUint64Bitwise_Bench();
+void Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench();
 
 }    // namespace bench_fsswm
 

@@ -88,7 +88,7 @@ void DpfKeyGenerator::GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair
 void DpfKeyGenerator::GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
     uint64_t   n    = params_.GetInputBitsize();
     uint64_t   nu   = this->params_.GetTerminateBitsize();
-    OutputMode mode = this->params_.GetOutputMode();
+    OutputType mode = this->params_.GetOutputType();
 
     // Set the initial seed and control bits
     block seed_0              = GlobalRng::Rand<block>();
@@ -112,12 +112,12 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::
     }
 
     // Set the output
-    if (mode == OutputMode::kAdditive) {
-        SetAdditiveOutput(alpha, beta, seed_0, seed_1, control_bit_1, key_pair);
-    } else if (mode == OutputMode::kBinaryPoint) {
-        SetBinaryPointOutput(alpha, seed_0, seed_1, key_pair);
+    if (mode == OutputType::kShiftedAdditive) {
+        ComputeAdditiveShiftedOutput(alpha, beta, seed_0, seed_1, control_bit_1, key_pair);
+    } else if (mode == OutputType::kSingleBitMask) {
+        ComputeSingleBitMaskOutput(alpha, seed_0, seed_1, key_pair);
     } else {
-        Logger::FatalLog(LOC, "Invalid output mode: " + GetOutputModeString(mode));
+        Logger::FatalLog(LOC, "Invalid output mode: " + GetOutputTypeString(mode));
         std::exit(EXIT_FAILURE);
     }
 
@@ -209,9 +209,9 @@ void DpfKeyGenerator::GenerateNextSeed(const uint64_t current_level, const bool 
 #endif
 }
 
-void DpfKeyGenerator::SetAdditiveOutput(uint64_t alpha, uint64_t beta,
-                                        block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
-                                        std::pair<DpfKey, DpfKey> &key_pair) const {
+void DpfKeyGenerator::ComputeAdditiveShiftedOutput(uint64_t alpha, uint64_t beta,
+                                                   block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
+                                                   std::pair<DpfKey, DpfKey> &key_pair) const {
     // Compute the remaining bits and alpha_hat
     uint64_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
     uint64_t alpha_hat     = GetLowerNBits(alpha, remaining_bit);
@@ -266,8 +266,8 @@ void DpfKeyGenerator::SetAdditiveOutput(uint64_t alpha, uint64_t beta,
     key_pair.second.output = output;
 }
 
-void DpfKeyGenerator::SetBinaryPointOutput(uint64_t alpha, block &final_seed_0, block &final_seed_1,
-                                           std::pair<DpfKey, DpfKey> &key_pair) const {
+void DpfKeyGenerator::ComputeSingleBitMaskOutput(uint64_t alpha, block &final_seed_0, block &final_seed_1,
+                                                 std::pair<DpfKey, DpfKey> &key_pair) const {
     // Compute the remaining bits and alpha_hat
     uint64_t remaining_bit = params_.GetInputBitsize() - params_.GetTerminateBitsize();
     uint64_t alpha_hat     = GetLowerNBits(alpha, remaining_bit);

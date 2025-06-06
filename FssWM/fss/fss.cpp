@@ -18,11 +18,11 @@ std::string GetEvalTypeString(const EvalType eval_type) {
     }
 }
 
-std::string GetOutputModeString(const OutputMode mode) {
+std::string GetOutputTypeString(const OutputType mode) {
     switch (mode) {
-        case OutputMode::kAdditive:
+        case OutputType::kShiftedAdditive:
             return "Additive";
-        case OutputMode::kBinaryPoint:
+        case OutputType::kSingleBitMask:
             return "BinaryPoint";
         default:
             return "Unknown";
@@ -99,7 +99,7 @@ uint64_t GetSplitBlockValue(
     const block &blk,
     uint64_t     chunk_exp,
     uint64_t     element_idx,
-    OutputMode   mode) {
+    OutputType   mode) {
 
     const size_t count = size_t{1} << chunk_exp;
     if (element_idx >= count)
@@ -118,7 +118,7 @@ uint64_t GetSplitBlockValue(
             return uint64_t(data16[element_idx]);
         }
         case 7: {    // 128 element × 1bit
-            if (mode == OutputMode::kAdditive) {
+            if (mode == OutputType::kShiftedAdditive) {
                 uint64_t low  = blk.get<uint64_t>()[0];
                 uint64_t high = blk.get<uint64_t>()[1];
                 if (element_idx < 64) {
@@ -126,13 +126,13 @@ uint64_t GetSplitBlockValue(
                 } else {
                     return (high >> (element_idx - 64)) & 0x01;
                 }
-            } else if (mode == OutputMode::kBinaryPoint) {
+            } else if (mode == OutputType::kSingleBitMask) {
                 uint64_t byte_idx   = element_idx % 16;
                 uint64_t bit_idx    = element_idx / 16;
                 auto     seed_bytes = reinterpret_cast<const uint8_t *>(&blk);
                 return (seed_bytes[byte_idx] >> bit_idx) & 0x01;
             } else {
-                throw std::invalid_argument("Unsupported OutputMode for chunk_exp 7: " + GetOutputModeString(mode));
+                throw std::invalid_argument("Unsupported OutputType for chunk_exp 7: " + GetOutputTypeString(mode));
             }
         }
         default:

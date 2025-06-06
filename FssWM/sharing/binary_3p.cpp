@@ -30,8 +30,8 @@ void BinaryReplicatedSharing3P::OnlineSetUp(const uint64_t party_id, const std::
 }
 
 std::array<RepShare64, kThreeParties> BinaryReplicatedSharing3P::ShareLocal(const uint64_t &x) const {
-    uint64_t x0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    uint64_t x1 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    uint64_t x0 = GlobalRng::Rand<uint64_t>();
+    uint64_t x1 = GlobalRng::Rand<uint64_t>();
     uint64_t x2 = x ^ x0 ^ x1;
 
     std::array<RepShare64, kThreeParties> all_shares;
@@ -51,9 +51,9 @@ std::array<RepShareVec64, kThreeParties> BinaryReplicatedSharing3P::ShareLocal(c
 
     for (size_t i = 0; i < n; ++i) {
         uint64_t x  = x_vec[i];
-        uint64_t r0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r1 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r2 = Mod(x ^ r0 ^ r1, bitsize_);
+        uint64_t r0 = GlobalRng::Rand<uint64_t>();
+        uint64_t r1 = GlobalRng::Rand<uint64_t>();
+        uint64_t r2 = x ^ r0 ^ r1;
 
         // P0: (r0, r2)
         p0_0[i] = r0;
@@ -80,9 +80,9 @@ std::array<RepShareMat64, kThreeParties> BinaryReplicatedSharing3P::ShareLocal(c
 
     for (size_t i = 0; i < n; ++i) {
         uint64_t x  = x_flat[i];
-        uint64_t r0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r1 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r2 = Mod(x ^ r0 ^ r1, bitsize_);
+        uint64_t r0 = GlobalRng::Rand<uint64_t>();
+        uint64_t r1 = GlobalRng::Rand<uint64_t>();
+        uint64_t r2 = x ^ r0 ^ r1;
 
         // P0: (r0, r2)
         p0_0[i] = r0;
@@ -230,7 +230,7 @@ void BinaryReplicatedSharing3P::Open(Channels &chls, const RepShareMat64 &x_mat_
         open_x_flat.resize(n);
     }
     for (size_t i = 0; i < n; ++i) {
-        open_x_flat[i] = Mod(x_mat_sh[0][i] ^ x_mat_sh[1][i] ^ x_mat_next[i], bitsize_);
+        open_x_flat[i] = x_mat_sh[0][i] ^ x_mat_sh[1][i] ^ x_mat_next[i];
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringMatrix(x_mat_sh[0], rows, cols));
@@ -319,9 +319,9 @@ void BinaryReplicatedSharing3P::Rand(RepShare64 &x) {
 
     uint64_t tmp;
     std::memcpy(&tmp, reinterpret_cast<const uint8_t *>(prf_buff_[0].data()) + prf_idx_, ELEM_SIZE);
-    x.data[0] = Mod(tmp, bitsize_);
+    x.data[0] = tmp;
     std::memcpy(&tmp, reinterpret_cast<const uint8_t *>(prf_buff_[1].data()) + prf_idx_, ELEM_SIZE);
-    x.data[1] = Mod(tmp, bitsize_);
+    x.data[1] = tmp;
     prf_idx_ += ELEM_SIZE;
 }
 
@@ -411,10 +411,10 @@ void BinaryReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShare64 
 
 void BinaryReplicatedSharing3P::RandOffline(const std::string &file_path) const {
     Logger::DebugLog(LOC, "Offline Rand for BinaryReplicatedSharing3P.");
-    block key_0 = GlobalRng::Rand<block>();
-    block key_1 = GlobalRng::Rand<block>();
-    block key_2 = GlobalRng::Rand<block>();
-    std::array<block, kThreeParties> keys = {key_0, key_1, key_2};
+    block                            key_0 = GlobalRng::Rand<block>();
+    block                            key_1 = GlobalRng::Rand<block>();
+    block                            key_2 = GlobalRng::Rand<block>();
+    std::array<block, kThreeParties> keys  = {key_0, key_1, key_2};
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     for (uint64_t i = 0; i < kThreeParties; ++i) {

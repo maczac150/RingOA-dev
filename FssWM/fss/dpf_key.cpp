@@ -9,7 +9,7 @@ namespace fsswm {
 namespace fss {
 namespace dpf {
 
-DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_type, OutputMode output_mode)
+DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_type, OutputType output_mode)
     : input_bitsize_(n), element_bitsize_(e), enable_et_(true), fde_type_(eval_type), output_mode_(output_mode) {
 
     if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
@@ -22,7 +22,7 @@ DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_t
 
     if (fde_type_ == EvalType::kNaive) {
         enable_et_   = false;
-        output_mode_ = OutputMode::kAdditive;
+        output_mode_ = OutputType::kShiftedAdditive;
         if (enable_et_) {
             Logger::WarnLog(LOC, "Disabling early termination for naive evaluation: ET OFF");
         }
@@ -34,15 +34,15 @@ DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_t
             nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7 = 128
         } else if (input_bitsize_ < 17) {
             nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
-            if (output_mode_ == OutputMode::kBinaryPoint) {
-                output_mode_ = OutputMode::kAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputMode -> Additive");
+            if (output_mode_ == OutputType::kSingleBitMask) {
+                output_mode_ = OutputType::kShiftedAdditive;
+                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
             }
         } else if (input_bitsize_ < 33) {
             nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
-            if (output_mode_ == OutputMode::kBinaryPoint) {
-                output_mode_ = OutputMode::kAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputMode -> Additive");
+            if (output_mode_ == OutputType::kSingleBitMask) {
+                output_mode_ = OutputType::kShiftedAdditive;
+                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
             }
         }
         terminate_bitsize_ = std::max(nu, 0);
@@ -90,10 +90,12 @@ bool DpfParameters::ValidateParameters() const {
     return valid;
 }
 
-void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, EvalType eval_type, OutputMode output_mode) {
+void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, EvalType eval_type, OutputType output_mode) {
     input_bitsize_   = n;
     element_bitsize_ = e;
     enable_et_       = true;
+    fde_type_        = eval_type;
+    output_mode_     = output_mode;
 
     if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
         (element_bitsize_ > 1 && input_bitsize_ <= 8)) {
@@ -105,7 +107,7 @@ void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, Ev
 
     if (fde_type_ == EvalType::kNaive) {
         enable_et_   = false;
-        output_mode_ = OutputMode::kAdditive;
+        output_mode_ = OutputType::kShiftedAdditive;
         if (enable_et_) {
             Logger::WarnLog(LOC, "Disabling early termination for naive evaluation: ET OFF");
         }
@@ -117,15 +119,15 @@ void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, Ev
             nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7 = 128
         } else if (input_bitsize_ < 17) {
             nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
-            if (output_mode_ == OutputMode::kBinaryPoint) {
-                output_mode_ = OutputMode::kAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputMode -> Additive");
+            if (output_mode_ == OutputType::kSingleBitMask) {
+                output_mode_ = OutputType::kShiftedAdditive;
+                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
             }
         } else if (input_bitsize_ < 33) {
             nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
-            if (output_mode_ == OutputMode::kBinaryPoint) {
-                output_mode_ = OutputMode::kAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputMode -> Additive");
+            if (output_mode_ == OutputType::kSingleBitMask) {
+                output_mode_ = OutputType::kShiftedAdditive;
+                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
             }
         }
         terminate_bitsize_ = std::max(nu, 0);
@@ -144,7 +146,7 @@ std::string DpfParameters::GetParametersInfo() const {
     oss << "(Input, Output, Terminate): (" << input_bitsize_ << ", " << element_bitsize_ << ", " << terminate_bitsize_ << ") bit";
     oss << " (Early termination: " << (enable_et_ ? "ON" : "OFF") << ")";
     oss << " (EvalType: " << GetEvalTypeString(fde_type_) << ")";
-    oss << " (OutputMode: " << GetOutputModeString(output_mode_) << ")";
+    oss << " (OutputType: " << GetOutputTypeString(output_mode_) << ")";
     return oss.str();
 }
 

@@ -88,11 +88,11 @@ private:
      * @param final_control_bit_1 The control bit for party 1.
      * @param key_pair The pair of DpfKey for the DPF key.
      */
-    void SetAdditiveOutput(uint64_t alpha, uint64_t beta,
+    void ComputeAdditiveShiftedOutput(uint64_t alpha, uint64_t beta,
                            block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
                            std::pair<DpfKey, DpfKey> &key_pair) const;
 
-    void SetBinaryPointOutput(uint64_t alpha, block &final_seed_0, block &final_seed_1,
+    void ComputeSingleBitMaskOutput(uint64_t alpha, block &final_seed_0, block &final_seed_1,
                               std::pair<DpfKey, DpfKey> &key_pair) const;
 };
 

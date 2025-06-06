@@ -17,7 +17,7 @@ namespace {
 const std::string kCurrentPath = fsswm::GetCurrentDirectory();
 const std::string kBenchOSPath = kCurrentPath + "/data/bench/os/";
 
-std::vector<uint64_t> db_bitsizes = {16, 20, 24, 28};
+std::vector<uint64_t> db_bitsizes = {16, 18, 20, 22, 24, 26, 28};
 // std::vector<uint64_t> db_bitsizes = fsswm::CreateSequence(10, 28);
 
 constexpr uint64_t repeat = 10;
@@ -33,7 +33,7 @@ using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::ThreePartyNetworkManager;
 using fsswm::TimerManager;
-using fsswm::ToString;
+using fsswm::ToString, fsswm::Format;
 using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
@@ -50,8 +50,89 @@ using fsswm::wm::OblivSelectKey;
 using fsswm::wm::OblivSelectKeyGenerator;
 using fsswm::wm::OblivSelectParameters;
 
-void OblivSelect_Offline_Bench() {
-    Logger::InfoLog(LOC, "OblivSelect_Offline_Bench...");
+void OblivSelect_ComputeDotProductBlockSIMD_Bench() {
+    for (auto db_bitsize : db_bitsizes) {
+        OblivSelectParameters     params(db_bitsize);
+        uint64_t                  n = params.GetParameters().GetInputBitsize();
+        DpfKeyGenerator           gen(params.GetParameters());
+        DpfEvaluator              eval(params.GetParameters());
+        BinaryReplicatedSharing3P brss(n);
+        OblivSelectEvaluator      eval_os(params, brss);
+        uint64_t                  alpha = brss.GenerateRandomValue();
+        uint64_t                  beta  = 1;
+        RepShareVecBlock          database_sh(1U << n);
+        for (size_t i = 0; i < database_sh.Size(); ++i) {
+            database_sh[0][i] = fsswm::MakeBlock(0, i);
+            database_sh[1][i] = fsswm::MakeBlock(0, i);
+        }
+        uint64_t pr_prev = brss.GenerateRandomValue();
+        uint64_t pr_next = brss.GenerateRandomValue();
+
+        TimerManager timer_mgr;
+        // Generate keys
+        std::pair<DpfKey, DpfKey> keys_next = gen.GenerateKeys(alpha, beta);
+        std::pair<DpfKey, DpfKey> keys_prev = gen.GenerateKeys(alpha, beta);
+
+        // Evaluate keys
+        int32_t timer = timer_mgr.CreateNewTimer("OblivSelect:ComputeDotProductBlockSIMD");
+        // Evaluate keys
+        timer_mgr.SelectTimer(timer);
+
+        for (uint64_t i = 0; i < repeat; ++i) {
+            timer_mgr.Start();
+            block result_prev = eval_os.ComputeDotProductBlockSIMD(keys_prev.first, database_sh[0], pr_prev);
+            block result_next = eval_os.ComputeDotProductBlockSIMD(keys_next.second, database_sh[1], pr_next);
+            Logger::InfoLog(LOC, "Result Prev: " + Format(result_prev) + ", Result Next: " + Format(result_next));
+            timer_mgr.Stop("n=" + ToString(db_bitsize) + " (" + ToString(i) + ")");
+        }
+        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
+    }
+}
+
+void OblivSelect_EvaluateFullDomainThenDotProduct_Bench() {
+    for (auto db_bitsize : db_bitsizes) {
+        OblivSelectParameters     params(db_bitsize);
+        uint64_t                  n  = params.GetParameters().GetInputBitsize();
+        uint64_t                  nu = params.GetParameters().GetTerminateBitsize();
+        DpfKeyGenerator           gen(params.GetParameters());
+        DpfEvaluator              eval(params.GetParameters());
+        BinaryReplicatedSharing3P brss(n);
+        OblivSelectEvaluator      eval_os(params, brss);
+        uint64_t                  alpha = brss.GenerateRandomValue();
+        uint64_t                  beta  = 1;
+
+        std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
+        RepShareVec64             database_sh(1U << n);
+        std::vector<uint64_t>     shuf_db_0(1U << n), shuf_db_1(1U << n);
+        for (size_t i = 0; i < database_sh.Size(); ++i) {
+            database_sh[0][i] = i;
+            database_sh[1][i] = i;
+        }
+        uint64_t                  pr_prev   = brss.GenerateRandomValue();
+        uint64_t                  pr_next   = brss.GenerateRandomValue();
+        std::pair<DpfKey, DpfKey> keys_next = gen.GenerateKeys(alpha, beta);
+        std::pair<DpfKey, DpfKey> keys_prev = gen.GenerateKeys(alpha, beta);
+
+        // Evaluate keys
+        TimerManager timer_mgr;
+        int32_t      timer = timer_mgr.CreateNewTimer("OblivSelect:EvaluateFullDomainThenDotProduct");
+        // Evaluate keys
+        timer_mgr.SelectTimer(timer);
+
+        for (uint64_t i = 0; i < repeat; ++i) {
+            timer_mgr.Start();
+            eval_os.EvaluateFullDomainThenDotProduct(
+                keys_prev.first, keys_next.second,
+                uv_prev, uv_next,
+                RepShareView64(database_sh), pr_prev, pr_next);
+            timer_mgr.Stop("n=" + ToString(db_bitsize) + " (" + ToString(i) + ")");
+        }
+        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
+    }
+}
+
+void OblivSelect_Binary_Offline_Bench() {
+    Logger::InfoLog(LOC, "OblivSelect_Binary_Offline_Bench...");
 
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters params(db_bitsize);
@@ -68,7 +149,7 @@ void OblivSelect_Offline_Bench() {
         int32_t      timer_keygen = timer_mgr.CreateNewTimer("OblivSelect KeyGen");
         int32_t      timer_off    = timer_mgr.CreateNewTimer("OblivSelect OfflineSetUp");
 
-        std::string key_path = kBenchOSPath + "oskey_d" + ToString(d);
+        std::string key_path = kBenchOSPath + "oskeybin_d" + ToString(d);
         std::string db_path  = kBenchOSPath + "db_d" + ToString(d);
         std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
@@ -114,12 +195,12 @@ void OblivSelect_Offline_Bench() {
         timer_mgr.Mark("ShareSave d=" + ToString(d));
         timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
     }
-    Logger::InfoLog(LOC, "OblivSelect_Offline_Bench - Finished");
+    Logger::InfoLog(LOC, "OblivSelect_Binary_Offline_Bench - Finished");
     // Logger::ExportLogList("./data/log/os_offline");
 }
 
-void OblivSelect_Online_Bench(const osuCrypto::CLP &cmd) {
-    Logger::InfoLog(LOC, "OblivSelect_Online_Bench...");
+void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd) {
+    Logger::InfoLog(LOC, "OblivSelect_Binary_Online_Bench...");
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
@@ -128,175 +209,90 @@ void OblivSelect_Online_Bench(const osuCrypto::CLP &cmd) {
         params.PrintParameters();
         uint64_t d = params.GetParameters().GetInputBitsize();
         FileIo   file_io;
-        ShareIo  sh_io;
-        KeyIo    key_io;
 
-        std::string key_path = kBenchOSPath + "oskey_d" + ToString(d);
+        std::string key_path = kBenchOSPath + "oskeybin_d" + ToString(d);
         std::string db_path  = kBenchOSPath + "db_d" + ToString(d);
         std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
-        // Define the task for each party
+        // Helper that returns a task lambda for a given party_id
+        auto MakeTask = [&](int party_id) {
+            // Capture d, params, paths, sh_io, key_io, repeat
+            return [=](osuCrypto::Channel &chl_next,
+                       osuCrypto::Channel &chl_prev) {
+                // (1) Set up TimerManager and timers
+                TimerManager timer_mgr;
+                int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
+                int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
+
+                // (2) Begin SetUp timing
+                timer_mgr.SelectTimer(timer_setup);
+                timer_mgr.Start();
+
+                // (3) Set up the binary replicated-sharing object and evaluator
+                BinaryReplicatedSharing3P brss(d);
+                OblivSelectEvaluator      eval(params, brss);
+                Channels                  chls(party_id, chl_prev, chl_next);
+                RepShareBlock             result_sh;
+
+                // (4) Load this party’s key
+                OblivSelectKey key(party_id, params);
+                KeyIo          key_io;
+                key_io.LoadKey(key_path + "_" + ToString(party_id), key);
+
+                // (5) Load this party’s database share and index share
+                RepShareVecBlock database_sh;
+                RepShare64       index_sh;
+                ShareIo          sh_io;
+                sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
+                sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
+
+                // (6) Setup PRF keys
+                brss.OnlineSetUp(party_id, kBenchOSPath + "prf");
+
+                // (7) Stop SetUp timer
+                timer_mgr.Stop("SetUp d=" + ToString(d));
+
+                // (8) Begin Eval timing
+                timer_mgr.SelectTimer(timer_eval);
+
+                // (9) Repeat Evaluate and measure each iteration
+                for (uint64_t i = 0; i < repeat; ++i) {
+                    timer_mgr.Start();
+                    eval.Evaluate(chls,
+                                  key,
+                                  RepShareViewBlock(database_sh),
+                                  index_sh,
+                                  result_sh);
+                    timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
+
+                    Logger::InfoLog(LOC, "Total data sent: " +
+                                             ToString(chls.GetStats()) + " bytes");
+                    chls.ResetStats();
+                }
+
+                // (10) Print all timing results
+                timer_mgr.PrintAllResults("d=" + ToString(d),
+                                          fsswm::MICROSECONDS,
+                                          true);
+            };
+        };
+
+        // Create tasks for parties 0, 1, and 2
+        auto task0 = MakeTask(0);
+        auto task1 = MakeTask(1);
+        auto task2 = MakeTask(2);
+
+        // Configure network based on party ID (from CLI/env) and wait for completion
         ThreePartyNetworkManager net_mgr;
-
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            TimerManager timer_mgr;
-            int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
-            int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
-
-            for (uint64_t i = 0; i < repeat; ++i) {
-                timer_mgr.SelectTimer(timer_setup);
-                timer_mgr.Start();
-                // Setup
-                BinaryReplicatedSharing3P brss(d);
-                OblivSelectEvaluator      eval(params, brss);
-                Channels                  chls(0, chl_prev, chl_next);
-                RepShareBlock             result_sh;
-
-                // Load keys
-                OblivSelectKey key(0, params);
-                key_io.LoadKey(key_path + "_0", key);
-                // Load data
-                RepShareVecBlock database_sh;
-                RepShare64       index_sh;
-                sh_io.LoadShare(db_path + "_0", database_sh);
-                sh_io.LoadShare(idx_path + "_0", index_sh);
-                // Setup the PRF keys
-                brss.OnlineSetUp(0, kBenchOSPath + "prf");
-                timer_mgr.Stop("SetUp(" + ToString(i) + ") d=" + ToString(d));
-
-                timer_mgr.SelectTimer(timer_eval);
-                timer_mgr.Start();
-                // Evaluate
-                eval.Evaluate(chls, key, RepShareViewBlock(database_sh), index_sh, result_sh);
-                timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
-                Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
-                chls.ResetStats();
-            }
-            timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
-        };
-
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            TimerManager timer_mgr;
-            int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
-            int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
-
-            for (uint64_t i = 0; i < repeat; ++i) {
-                timer_mgr.SelectTimer(timer_setup);
-                timer_mgr.Start();
-                // Setup
-                BinaryReplicatedSharing3P brss(d);
-                OblivSelectEvaluator      eval(params, brss);
-                Channels                  chls(1, chl_prev, chl_next);
-                RepShareBlock             result_sh;
-
-                // Load keys
-                OblivSelectKey key(1, params);
-                key_io.LoadKey(key_path + "_1", key);
-                // Load data
-                RepShareVecBlock database_sh;
-                RepShare64       index_sh;
-                sh_io.LoadShare(db_path + "_1", database_sh);
-                sh_io.LoadShare(idx_path + "_1", index_sh);
-                // Setup the PRF keys
-                brss.OnlineSetUp(1, kBenchOSPath + "prf");
-                timer_mgr.Stop("SetUp(" + ToString(i) + ") d=" + ToString(d));
-
-                timer_mgr.SelectTimer(timer_eval);
-                timer_mgr.Start();
-                // Evaluate
-                eval.Evaluate(chls, key, RepShareViewBlock(database_sh), index_sh, result_sh);
-                timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
-                Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
-                chls.ResetStats();
-            }
-            timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            TimerManager timer_mgr;
-            int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
-            int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
-
-            for (uint64_t i = 0; i < repeat; ++i) {
-                timer_mgr.SelectTimer(timer_setup);
-                timer_mgr.Start();
-                // Setup
-                BinaryReplicatedSharing3P brss(d);
-                OblivSelectEvaluator      eval(params, brss);
-                Channels                  chls(2, chl_prev, chl_next);
-                RepShareBlock             result_sh;
-
-                // Load keys
-                OblivSelectKey key(2, params);
-                key_io.LoadKey(key_path + "_2", key);
-                // Load data
-                RepShareVecBlock database_sh;
-                RepShare64       index_sh;
-                sh_io.LoadShare(db_path + "_2", database_sh);
-                sh_io.LoadShare(idx_path + "_2", index_sh);
-                // Setup the PRF keys
-                brss.OnlineSetUp(2, kBenchOSPath + "prf");
-                timer_mgr.Stop("SetUp(" + ToString(i) + ") d=" + ToString(d));
-
-                timer_mgr.SelectTimer(timer_eval);
-                timer_mgr.Start();
-                // Evaluate
-                eval.Evaluate(chls, key, RepShareViewBlock(database_sh), index_sh, result_sh);
-                timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
-                Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
-                chls.ResetStats();
-            }
-            timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
-        };
-
-        // Configure network based on party ID and wait for completion
-        net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+        net_mgr.AutoConfigure(party_id, task0, task1, task2);
         net_mgr.WaitForCompletion();
     }
-    Logger::InfoLog(LOC, "OblivSelect_Online_Bench - Finished");
+
+    Logger::InfoLog(LOC, "OblivSelect_Binary_Online_Bench - Finished");
 }
 
-void OblivSelect_DotProduct_Bench() {
-    for (auto db_bitsize : db_bitsizes) {
-        OblivSelectParameters     params(db_bitsize);
-        uint64_t                  n = params.GetParameters().GetInputBitsize();
-        DpfKeyGenerator           gen(params.GetParameters());
-        DpfEvaluator              eval(params.GetParameters());
-        BinaryReplicatedSharing3P brss(n);
-        OblivSelectEvaluator      eval_os(params, brss);
-        uint64_t                  alpha = 10;
-        uint64_t                  beta  = 1;
-        RepShareVecBlock          database_sh(1U << n);
-        for (size_t i = 0; i < database_sh.Size(); ++i) {
-            database_sh[0][i] = fsswm::MakeBlock(0, i);
-            database_sh[1][i] = fsswm::MakeBlock(0, i);
-        }
-
-        TimerManager timer_mgr;
-        // Generate keys
-        std::pair<DpfKey, DpfKey> keys_next = gen.GenerateKeys(alpha, beta);
-        std::pair<DpfKey, DpfKey> keys_prev = gen.GenerateKeys(alpha, beta);
-
-        // Evaluate keys
-        int32_t timer = timer_mgr.CreateNewTimer("OS DotProduct");
-        // Evaluate keys
-        timer_mgr.SelectTimer(timer);
-
-        for (uint64_t i = 0; i < repeat; ++i) {
-            timer_mgr.Start();
-            eval_os.FullDomainDotProduct(keys_prev.first, database_sh[0], 1);
-            eval_os.FullDomainDotProduct(keys_next.second, database_sh[1], 1);
-            timer_mgr.Stop("n=" + ToString(db_bitsize) + " (" + ToString(i) + ")");
-        }
-        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
-    }
-}
-
-void OblivSelect_Offline2_Bench() {
-    Logger::InfoLog(LOC, "OblivSelect_Offline_Bench...");
+void OblivSelect_Additive_Offline_Bench() {
+    Logger::InfoLog(LOC, "OblivSelect_Additive_Offline_Bench...");
 
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters params(db_bitsize);
@@ -313,9 +309,8 @@ void OblivSelect_Offline2_Bench() {
         int32_t      timer_keygen = timer_mgr.CreateNewTimer("OblivSelect KeyGen");
         int32_t      timer_off    = timer_mgr.CreateNewTimer("OblivSelect OfflineSetUp");
 
-        std::string key_path = kBenchOSPath + "oskey_d" + ToString(d);
-        std::string db1_path = kBenchOSPath + "db1_d" + ToString(d);
-        std::string db2_path = kBenchOSPath + "db2_d" + ToString(d);
+        std::string key_path = kBenchOSPath + "oskeyadd_d" + ToString(d);
+        std::string db_path  = kBenchOSPath + "db_add_d" + ToString(d);
         std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
         for (uint64_t i = 0; i < repeat; ++i) {
@@ -341,34 +336,31 @@ void OblivSelect_Offline2_Bench() {
         int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
         timer_mgr.SelectTimer(timer_data);
         timer_mgr.Start();
-        std::vector<uint64_t> database1(1U << d), database2(1U << d);
-        for (size_t i = 0; i < database1.size(); ++i) {
-            database1[i] = i;
-            database2[i] = i + 1;
+        std::vector<uint64_t> database(1U << d);
+        for (size_t i = 0; i < database.size(); ++i) {
+            database[i] = i;
         }
         uint64_t index = bss.GenerateRandomValue();
         timer_mgr.Mark("DataGen d=" + ToString(d));
 
-        std::array<RepShareVec64, 3> database1_sh = brss.ShareLocal(database1);
-        std::array<RepShareVec64, 3> database2_sh = brss.ShareLocal(database2);
-        std::array<RepShare64, 3>    index_sh     = brss.ShareLocal(index);
+        std::array<RepShareVec64, 3> database_sh = brss.ShareLocal(database);
+        std::array<RepShare64, 3>    index_sh    = brss.ShareLocal(index);
         timer_mgr.Mark("ShareGen d=" + ToString(d));
 
         // Save data
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
-            sh_io.SaveShare(db1_path + "_" + ToString(p), database1_sh[p]);
-            sh_io.SaveShare(db2_path + "_" + ToString(p), database2_sh[p]);
+            sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         }
         timer_mgr.Mark("ShareSave d=" + ToString(d));
         timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
     }
-    Logger::InfoLog(LOC, "OblivSelect_Offline_Bench - Finished");
+    Logger::InfoLog(LOC, "OblivSelect_Additive_Offline_Bench - Finished");
     // Logger::ExportLogList("./data/log/os_offline");
 }
 
-void OblivSelect_Online2_Bench(const osuCrypto::CLP &cmd) {
-    Logger::InfoLog(LOC, "OblivSelect_Online_Bench...");
+void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
+    Logger::InfoLog(LOC, "OblivSelect_Additive_Online_Bench...");
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
@@ -377,149 +369,88 @@ void OblivSelect_Online2_Bench(const osuCrypto::CLP &cmd) {
         params.PrintParameters();
         uint64_t d  = params.GetParameters().GetInputBitsize();
         uint64_t nu = params.GetParameters().GetTerminateBitsize();
-        FileIo   file_io;
-        ShareIo  sh_io;
-        KeyIo    key_io;
 
-        std::string key_path = kBenchOSPath + "oskey_d" + ToString(d);
-        std::string db1_path = kBenchOSPath + "db1_d" + ToString(d);
-        std::string db2_path = kBenchOSPath + "db2_d" + ToString(d);
+        std::string key_path = kBenchOSPath + "oskeyadd_d" + ToString(d);
+        std::string db_path  = kBenchOSPath + "db_add_d" + ToString(d);
         std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
-        // Define the task for each party
-        ThreePartyNetworkManager net_mgr;
+        // Helper that returns a task lambda for a given party_id
+        auto MakeTask = [&](int party_id) {
+            // Capture d, nu, params, and paths
+            return [=](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+                // (1) Set up TimerManager and timers
+                TimerManager timer_mgr;
+                int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
+                int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
 
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            TimerManager timer_mgr;
-            int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
-            int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
-
-            for (uint64_t i = 0; i < repeat; ++i) {
+                // (2) Begin SetUp timing
                 timer_mgr.SelectTimer(timer_setup);
                 timer_mgr.Start();
-                // Setup
+
+                // (3) Set up the replicated-sharing object and evaluator
                 BinaryReplicatedSharing3P brss(d);
                 OblivSelectEvaluator      eval(params, brss);
-                Channels                  chls(0, chl_prev, chl_next);
-                RepShare64                result1_sh, result2_sh;
+                Channels                  chls(party_id, chl_prev, chl_next);
+                RepShare64                result_sh;
 
-                // Load keys
-                OblivSelectKey key(0, params);
-                key_io.LoadKey(key_path + "_0", key);
-                // Load data
-                RepShareVec64             database1_sh, database2_sh;
+                // (4) Load this party’s key
+                OblivSelectKey key(party_id, params);
+                KeyIo          key_io;
+                key_io.LoadKey(key_path + "_" + ToString(party_id), key);
+
+                // (5) Load this party’s shares of both databases and the index
+                RepShareVec64             database_sh, _sh;
                 RepShare64                index_sh;
                 std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-                sh_io.LoadShare(db1_path + "_0", database1_sh);
-                sh_io.LoadShare(db2_path + "_0", database2_sh);
-                sh_io.LoadShare(idx_path + "_0", index_sh);
-                // Setup the PRF keys
-                brss.OnlineSetUp(0, kBenchOSPath + "prf");
-                timer_mgr.Stop("SetUp(" + ToString(i) + ") d=" + ToString(d));
+                ShareIo                   sh_io;
+                sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
+                sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
 
+                // (6) Setup PRF keys
+                brss.OnlineSetUp(party_id, kBenchOSPath + "prf");
+
+                // (7) Stop SetUp timer
+                timer_mgr.Stop("SetUp d=" + ToString(d));
+
+                // (8) Begin Eval timing
                 timer_mgr.SelectTimer(timer_eval);
-                timer_mgr.Start();
-                // Evaluate
-                // eval.Evaluate_FdeThenDP(chls, key, uv_prev, uv_next, RepShareView64(database1_sh), RepShareView64(database2_sh), index_sh, result1_sh, result2_sh);
-                eval.Evaluate_FdeThenDP(chls, key, uv_prev, uv_next, RepShareView64(database1_sh), index_sh, result1_sh);
-                timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
-                Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
-                Logger::InfoLog(LOC, "result1_sh: " + result1_sh.ToString());
-                chls.ResetStats();
-            }
-            timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+
+                // (9) Repeat Evaluate and measure each iteration
+                for (uint64_t i = 0; i < repeat; ++i) {
+                    timer_mgr.Start();
+                    eval.Evaluate(
+                        chls,
+                        key,
+                        uv_prev, uv_next,
+                        RepShareView64(database_sh),
+                        index_sh,
+                        result_sh);
+                    timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
+
+                    Logger::InfoLog(LOC, "Total data sent: " +
+                                             ToString(chls.GetStats()) + " bytes");
+                    chls.ResetStats();
+                }
+
+                // (10) Print all timing results
+                timer_mgr.PrintAllResults("d=" + ToString(d),
+                                          fsswm::MICROSECONDS,
+                                          true);
+            };
         };
 
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            TimerManager timer_mgr;
-            int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
-            int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
-
-            for (uint64_t i = 0; i < repeat; ++i) {
-                timer_mgr.SelectTimer(timer_setup);
-                timer_mgr.Start();
-                // Setup
-                BinaryReplicatedSharing3P brss(d);
-                OblivSelectEvaluator      eval(params, brss);
-                Channels                  chls(1, chl_prev, chl_next);
-                RepShare64                result1_sh, result2_sh;
-
-                // Load keys
-                OblivSelectKey key(1, params);
-                key_io.LoadKey(key_path + "_1", key);
-                // Load data
-                RepShareVec64             database1_sh, database2_sh;
-                RepShare64                index_sh;
-                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-                sh_io.LoadShare(db1_path + "_1", database1_sh);
-                sh_io.LoadShare(db2_path + "_1", database2_sh);
-                sh_io.LoadShare(idx_path + "_1", index_sh);
-                // Setup the PRF keys
-                brss.OnlineSetUp(1, kBenchOSPath + "prf");
-                timer_mgr.Stop("SetUp(" + ToString(i) + ") d=" + ToString(d));
-
-                timer_mgr.SelectTimer(timer_eval);
-                timer_mgr.Start();
-                // Evaluate
-                // eval.Evaluate_FdeThenDP(chls, key, uv_prev, uv_next, RepShareView64(database1_sh), RepShareView64(database2_sh), index_sh, result1_sh, result2_sh);
-                eval.Evaluate_FdeThenDP(chls, key, uv_prev, uv_next, RepShareView64(database1_sh), index_sh, result1_sh);
-                timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
-                Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
-                Logger::InfoLog(LOC, "result1_sh: " + result1_sh.ToString());
-                chls.ResetStats();
-            }
-            timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            TimerManager timer_mgr;
-            int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
-            int32_t      timer_eval  = timer_mgr.CreateNewTimer("OS Eval");
-
-            for (uint64_t i = 0; i < repeat; ++i) {
-                timer_mgr.SelectTimer(timer_setup);
-                timer_mgr.Start();
-                // Setup
-                BinaryReplicatedSharing3P brss(d);
-                OblivSelectEvaluator      eval(params, brss);
-                Channels                  chls(2, chl_prev, chl_next);
-                RepShare64                result1_sh, result2_sh;
-
-                // Load keys
-                OblivSelectKey key(2, params);
-                key_io.LoadKey(key_path + "_2", key);
-                // Load data
-                RepShareVec64             database1_sh, database2_sh;
-                RepShare64                index_sh;
-                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-                sh_io.LoadShare(db1_path + "_2", database1_sh);
-                sh_io.LoadShare(db2_path + "_2", database2_sh);
-                sh_io.LoadShare(idx_path + "_2", index_sh);
-                // Setup the PRF keys
-                brss.OnlineSetUp(2, kBenchOSPath + "prf");
-                timer_mgr.Stop("SetUp(" + ToString(i) + ") d=" + ToString(d));
-
-                timer_mgr.SelectTimer(timer_eval);
-                timer_mgr.Start();
-                // Evaluate
-                // eval.Evaluate_FdeThenDP(chls, key, uv_prev, uv_next, RepShareView64(database1_sh), RepShareView64(database2_sh), index_sh, result1_sh, result2_sh);
-                eval.Evaluate_FdeThenDP(chls, key, uv_prev, uv_next, RepShareView64(database1_sh), index_sh, result1_sh);
-                timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
-                Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");
-                Logger::InfoLog(LOC, "result1_sh: " + result1_sh.ToString());
-                chls.ResetStats();
-            }
-            timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
-        };
+        // Create tasks for parties 0, 1, and 2
+        auto task0 = MakeTask(0);
+        auto task1 = MakeTask(1);
+        auto task2 = MakeTask(2);
 
         // Configure network based on party ID and wait for completion
-        net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+        ThreePartyNetworkManager net_mgr;
+        net_mgr.AutoConfigure(party_id, task0, task1, task2);
         net_mgr.WaitForCompletion();
     }
-    Logger::InfoLog(LOC, "OblivSelect_Online_Bench - Finished");
+
+    Logger::InfoLog(LOC, "OblivSelect_Additive_Online_Bench - Finished");
 }
 
 }    // namespace bench_fsswm

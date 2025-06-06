@@ -18,7 +18,7 @@ const std::string kTestAdditivePath = kCurrentPath + "/data/test/ss3/";
 
 namespace test_fsswm {
 
-using fsswm::FileIo, fsswm::Logger, fsswm::ToString, fsswm::ToStringMatrix;
+using fsswm::Logger, fsswm::ToString, fsswm::ToStringMatrix;
 using fsswm::ThreePartyNetworkManager, fsswm::Channels;
 using fsswm::sharing::ReplicatedSharing3P;
 using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareMat64;
@@ -86,72 +86,43 @@ void Additive3P_Open_Online_Test() {
     for (const uint64_t bitsize : kBitsizes) {
         ShareIo sh_io;
 
-        // Define the task for each party
-        ThreePartyNetworkManager net_mgr;
-
         uint64_t              open_x;
         std::vector<uint64_t> open_x_vec;
         std::vector<uint64_t> open_x_flat;
         const std::string     x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
 
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_0;
-            RepShareVec64       x_vec_0;
-            RepShareMat64       x_flat_0;
-            Channels            chls(0, chl_prev, chl_next);
+        // Define the task for each party
+        auto MakeTask = [&](int party_id) {
+            return [=, &sh_io, &open_x, &open_x_vec, &open_x_flat](osuCrypto::Channel &chl_next,
+                                                                   osuCrypto::Channel &chl_prev) {
+                // (1) Set up the sharing object and channels
+                ReplicatedSharing3P rss(bitsize);
+                Channels            chls(party_id, chl_prev, chl_next);
 
-            // Load shares
-            sh_io.LoadShare(x_path + "_0", x_0);
-            sh_io.LoadShare(x_path + "_vec_0", x_vec_0);
-            sh_io.LoadShare(x_path + "_mat_0", x_flat_0);
+                // (2) Prepare local variables for each party (different variables for each type)
+                RepShare64    x_sh;
+                RepShareVec64 x_vec_sh;
+                RepShareMat64 x_flat_sh;
 
-            // Open shares
-            rss.Open(chls, x_0, open_x);
-            rss.Open(chls, x_vec_0, open_x_vec);
-            rss.Open(chls, x_flat_0, open_x_flat);
+                // (3) Construct file names and load shares
+                sh_io.LoadShare(x_path + "_" + ToString(party_id), x_sh);
+                sh_io.LoadShare(x_path + "_vec_" + ToString(party_id), x_vec_sh);
+                sh_io.LoadShare(x_path + "_mat_" + ToString(party_id), x_flat_sh);
+
+                // (4) Call Open and write the disclosure results to the same variables for all parties
+                rss.Open(chls, x_sh, open_x);
+                rss.Open(chls, x_vec_sh, open_x_vec);
+                rss.Open(chls, x_flat_sh, open_x_flat);
+            };
         };
 
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_1;
-            RepShareVec64       x_vec_1;
-            RepShareMat64       x_flat_1;
-            Channels            chls(1, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_1", x_1);
-            sh_io.LoadShare(x_path + "_vec_1", x_vec_1);
-            sh_io.LoadShare(x_path + "_mat_1", x_flat_1);
-
-            // Open shares
-            rss.Open(chls, x_1, open_x);
-            rss.Open(chls, x_vec_1, open_x_vec);
-            rss.Open(chls, x_flat_1, open_x_flat);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_2;
-            RepShareVec64       x_vec_2;
-            RepShareMat64       x_flat_2;
-            Channels            chls(2, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_2", x_2);
-            sh_io.LoadShare(x_path + "_vec_2", x_vec_2);
-            sh_io.LoadShare(x_path + "_mat_2", x_flat_2);
-
-            // Open shares
-            rss.Open(chls, x_2, open_x);
-            rss.Open(chls, x_vec_2, open_x_vec);
-            rss.Open(chls, x_flat_2, open_x_flat);
-        };
+        // Create tasks for each party
+        auto task_p0 = MakeTask(0);
+        auto task_p1 = MakeTask(1);
+        auto task_p2 = MakeTask(2);
 
         // Configure network based on party ID and wait for completion
+        ThreePartyNetworkManager net_mgr;
         net_mgr.AutoConfigure(-1, task_p0, task_p1, task_p2);
         net_mgr.WaitForCompletion();
 
@@ -172,318 +143,218 @@ void Additive3P_Open_Online_Test() {
 }
 
 void Additive3P_EvaluateAdd_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_Add_Online_Test...");
+    Logger::DebugLog(LOC, "Additive3P_EvaluateAdd_Online_Test...");
 
     for (const uint64_t bitsize : kBitsizes) {
         ShareIo sh_io;
 
-        // Define the task for each party
-        ThreePartyNetworkManager net_mgr;
-
-        uint64_t              open_z;
+        // Variables to hold the opened results for all parties
+        uint64_t              open_z = 0;
         std::vector<uint64_t> open_z_vec;
-        const std::string     x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
-        const std::string     y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
 
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_0, y_0, z_0;
-            RepShareVec64       x_vec_0, y_vec_0, z_vec_0;
-            Channels            chls(0, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_0", x_0);
-            sh_io.LoadShare(y_path + "_0", y_0);
-            sh_io.LoadShare(x_path + "_vec_0", x_vec_0);
-            sh_io.LoadShare(y_path + "_vec_0", y_vec_0);
-
-            // Evaluate Add
-            rss.EvaluateAdd(x_0, y_0, z_0);
-            rss.EvaluateAdd(x_vec_0, y_vec_0, z_vec_0);
-
-            Logger::DebugLog(LOC, "Party 0 z: " + z_0.ToString());
-            Logger::DebugLog(LOC, "Party 0 z_vec: " + z_vec_0.ToString());
-
-            // Open shares
-            rss.Open(chls, z_0, open_z);
-            rss.Open(chls, z_vec_0, open_z_vec);
-        };
-
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_1, y_1, z_1;
-            RepShareVec64       x_vec_1, y_vec_1, z_vec_1;
-            Channels            chls(1, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_1", x_1);
-            sh_io.LoadShare(y_path + "_1", y_1);
-            sh_io.LoadShare(x_path + "_vec_1", x_vec_1);
-            sh_io.LoadShare(y_path + "_vec_1", y_vec_1);
-
-            // Evaluate Add
-            rss.EvaluateAdd(x_1, y_1, z_1);
-            rss.EvaluateAdd(x_vec_1, y_vec_1, z_vec_1);
-
-            Logger::DebugLog(LOC, "Party 1 z: " + z_1.ToString());
-            Logger::DebugLog(LOC, "Party 1 z_vec: " + z_vec_1.ToString());
-
-            // Open shares
-            rss.Open(chls, z_1, open_z);
-            rss.Open(chls, z_vec_1, open_z_vec);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_2, y_2, z_2;
-            RepShareVec64       x_vec_2, y_vec_2, z_vec_2;
-            Channels            chls(2, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_2", x_2);
-            sh_io.LoadShare(y_path + "_2", y_2);
-            sh_io.LoadShare(x_path + "_vec_2", x_vec_2);
-            sh_io.LoadShare(y_path + "_vec_2", y_vec_2);
-
-            // Evaluate Add
-            rss.EvaluateAdd(x_2, y_2, z_2);
-            rss.EvaluateAdd(x_vec_2, y_vec_2, z_vec_2);
-
-            Logger::DebugLog(LOC, "Party 2 z: " + z_2.ToString());
-            Logger::DebugLog(LOC, "Party 2 z_vec: " + z_vec_2.ToString());
-
-            // Open shares
-            rss.Open(chls, z_2, open_z);
-            rss.Open(chls, z_vec_2, open_z_vec);
-        };
-
-        // Configure network based on party ID and wait for completion
-        net_mgr.AutoConfigure(-1, task_p0, task_p1, task_p2);
-        net_mgr.WaitForCompletion();
-
-        Logger::DebugLog(LOC, "open_z: " + ToString(open_z));
-        Logger::DebugLog(LOC, "open_z_vec: " + ToString(open_z_vec));
-
-        // Validate the opened value
-        if (open_z != 9)
-            throw osuCrypto::UnitTestFail("Additive protocol failed.");
-        if (open_z_vec != std::vector<uint64_t>({6, 6, 6, 6, 6}))
-            throw osuCrypto::UnitTestFail("Additive protocol failed.");
-    }
-
-    Logger::DebugLog(LOC, "Additive3P_Add_Online_Test - Passed");
-}
-
-void Additive3P_EvaluateMult_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_Mult_Online_Test...");
-
-    for (const uint64_t bitsize : kBitsizes) {
-        ShareIo sh_io;
-
-        // Define the task for each party
-        ThreePartyNetworkManager net_mgr;
-
-        uint64_t              open_z;
-        std::vector<uint64_t> open_z_vec;
-        const std::string     x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
-        const std::string     y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
-
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_0, y_0, z_0;
-            RepShareVec64       x_vec_0, y_vec_0, z_vec_0;
-            Channels            chls(0, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_0", x_0);
-            sh_io.LoadShare(y_path + "_0", y_0);
-            sh_io.LoadShare(x_path + "_vec_0", x_vec_0);
-            sh_io.LoadShare(y_path + "_vec_0", y_vec_0);
-
-            // Setup the PRF keys
-            rss.OnlineSetUp(0, kTestAdditivePath + "prf");
-
-            // Evaluate Mult
-            rss.EvaluateMult(chls, x_0, y_0, z_0);
-            rss.EvaluateMult(chls, x_vec_0, y_vec_0, z_vec_0);
-
-            Logger::DebugLog(LOC, "Party 0 z: " + z_0.ToString());
-            Logger::DebugLog(LOC, "Party 0 z_vec: " + z_vec_0.ToString());
-
-            // Open shares
-            rss.Open(chls, z_0, open_z);
-            rss.Open(chls, z_vec_0, open_z_vec);
-        };
-
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_1, y_1, z_1;
-            RepShareVec64       x_vec_1, y_vec_1, z_vec_1;
-            Channels            chls(1, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_1", x_1);
-            sh_io.LoadShare(y_path + "_1", y_1);
-            sh_io.LoadShare(x_path + "_vec_1", x_vec_1);
-            sh_io.LoadShare(y_path + "_vec_1", y_vec_1);
-
-            // Setup the PRF keys
-            rss.OnlineSetUp(1, kTestAdditivePath + "prf");
-
-            // Evaluate Mult
-            rss.EvaluateMult(chls, x_1, y_1, z_1);
-            rss.EvaluateMult(chls, x_vec_1, y_vec_1, z_vec_1);
-
-            Logger::DebugLog(LOC, "Party 1 z: " + z_1.ToString());
-            Logger::DebugLog(LOC, "Party 1 z_vec: " + z_vec_1.ToString());
-
-            // Open shares
-            rss.Open(chls, z_1, open_z);
-            rss.Open(chls, z_vec_1, open_z_vec);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          x_2, y_2, z_2;
-            RepShareVec64       x_vec_2, y_vec_2, z_vec_2;
-            Channels            chls(2, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_2", x_2);
-            sh_io.LoadShare(y_path + "_2", y_2);
-            sh_io.LoadShare(x_path + "_vec_2", x_vec_2);
-            sh_io.LoadShare(y_path + "_vec_2", y_vec_2);
-
-            // Setup the PRF keys
-            rss.OnlineSetUp(2, kTestAdditivePath + "prf");
-
-            // Evaluate Mult
-            rss.EvaluateMult(chls, x_2, y_2, z_2);
-            rss.EvaluateMult(chls, x_vec_2, y_vec_2, z_vec_2);
-
-            Logger::DebugLog(LOC, "Party 2 z: " + z_2.ToString());
-            Logger::DebugLog(LOC, "Party 2 z_vec: " + z_vec_2.ToString());
-
-            // Open shares
-            rss.Open(chls, z_2, open_z);
-            rss.Open(chls, z_vec_2, open_z_vec);
-        };
-
-        // Configure network based on party ID and wait for completion
-        net_mgr.AutoConfigure(-1, task_p0, task_p1, task_p2);
-        net_mgr.WaitForCompletion();
-
-        Logger::DebugLog(LOC, "open_z: " + ToString(open_z));
-        Logger::DebugLog(LOC, "open_z_vec: " + ToString(open_z_vec));
-
-        // Validate the opened value
-        if (open_z != 20)
-            throw osuCrypto::UnitTestFail("Additive protocol failed.");
-        if (open_z_vec != std::vector<uint64_t>({5, 8, 9, 8, 5}))
-            throw osuCrypto::UnitTestFail("Additive protocol failed.");
-    }
-
-    Logger::DebugLog(LOC, "Additive3P_Mult_Online_Test - Passed");
-}
-
-void Additive3P_EvaluateInnerProduct_Online_Test() {
-    Logger::DebugLog(LOC, "Additive3P_InnerProduct_Online_Test...");
-
-    for (const uint64_t bitsize : kBitsizes) {
-        ShareIo sh_io;
-
-        // Define the task for each party
-        ThreePartyNetworkManager net_mgr;
-
-        uint64_t          open_z;
         const std::string x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
         const std::string y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
 
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          z_0;
-            RepShareVec64       x_vec_0, y_vec_0;
-            Channels            chls(0, chl_prev, chl_next);
+        // Helper that returns a task lambda for a given party_id
+        auto MakeTask = [&](int party_id) {
+            // Capture bitsize, paths, sh_io, and opened-result references
+            return [=, &sh_io, &open_z, &open_z_vec](osuCrypto::Channel &chl_next,
+                                                     osuCrypto::Channel &chl_prev) {
+                // (1) Set up the sharing object and channels
+                ReplicatedSharing3P rss(bitsize);
+                Channels            chls(party_id, chl_prev, chl_next);
 
-            // Load shares
-            sh_io.LoadShare(x_path + "_vec_0", x_vec_0);
-            sh_io.LoadShare(y_path + "_vec_0", y_vec_0);
+                // (2) Prepare local share variables for inputs and outputs
+                RepShare64    x_sh, y_sh, z_sh;
+                RepShareVec64 x_vec_sh, y_vec_sh, z_vec_sh;
 
-            // Setup the PRF keys
-            rss.OnlineSetUp(0, kTestAdditivePath + "prf");
+                // (3) Construct file names and load shares
+                sh_io.LoadShare(x_path + "_" + ToString(party_id), x_sh);
+                sh_io.LoadShare(y_path + "_" + ToString(party_id), y_sh);
+                sh_io.LoadShare(x_path + "_vec_" + ToString(party_id), x_vec_sh);
+                sh_io.LoadShare(y_path + "_vec_" + ToString(party_id), y_vec_sh);
 
-            // Evaluate Mult
-            rss.EvaluateInnerProduct(chls, x_vec_0, y_vec_0, z_0);
+                // (4) Perform the additive evaluation on both scalar and vector
+                rss.EvaluateAdd(x_sh, y_sh, z_sh);
+                rss.EvaluateAdd(x_vec_sh, y_vec_sh, z_vec_sh);
 
-            Logger::DebugLog(LOC, "Party 0 z: " + z_0.ToString());
+                // (5) Log each party's z and z_vec for debugging
+                Logger::DebugLog(LOC, "Party " + ToString(party_id) +
+                                          " z: " + z_sh.ToString());
+                Logger::DebugLog(LOC, "Party " + ToString(party_id) +
+                                          " z_vec: " + z_vec_sh.ToString());
 
-            // Open shares
-            rss.Open(chls, z_0, open_z);
+                // (6) Open the shares and write the results into the same variables for all parties
+                rss.Open(chls, z_sh, open_z);
+                rss.Open(chls, z_vec_sh, open_z_vec);
+            };
         };
 
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          z_1;
-            RepShareVec64       x_vec_1, y_vec_1;
-            Channels            chls(1, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_vec_1", x_vec_1);
-            sh_io.LoadShare(y_path + "_vec_1", y_vec_1);
-
-            // Setup the PRF keys
-            rss.OnlineSetUp(1, kTestAdditivePath + "prf");
-
-            // Evaluate Mult
-            rss.EvaluateInnerProduct(chls, x_vec_1, y_vec_1, z_1);
-
-            Logger::DebugLog(LOC, "Party 1 z: " + z_1.ToString());
-
-            // Open shares
-            rss.Open(chls, z_1, open_z);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            ReplicatedSharing3P rss(bitsize);
-            RepShare64          z_2;
-            RepShareVec64       x_vec_2, y_vec_2;
-            Channels            chls(2, chl_prev, chl_next);
-
-            // Load shares
-            sh_io.LoadShare(x_path + "_vec_2", x_vec_2);
-            sh_io.LoadShare(y_path + "_vec_2", y_vec_2);
-
-            // Setup the PRF keys
-            rss.OnlineSetUp(2, kTestAdditivePath + "prf");
-
-            // Evaluate Mult
-            rss.EvaluateInnerProduct(chls, x_vec_2, y_vec_2, z_2);
-
-            Logger::DebugLog(LOC, "Party 2 z: " + z_2.ToString());
-
-            // Open shares
-            rss.Open(chls, z_2, open_z);
-        };
+        // Create tasks for parties 0, 1, and 2
+        auto task0 = MakeTask(0);
+        auto task1 = MakeTask(1);
+        auto task2 = MakeTask(2);
 
         // Configure network based on party ID and wait for completion
-        net_mgr.AutoConfigure(-1, task_p0, task_p1, task_p2);
+        ThreePartyNetworkManager net_mgr;
+        net_mgr.AutoConfigure(-1, task0, task1, task2);
         net_mgr.WaitForCompletion();
 
+        // At this point, all parties have the same open_z and open_z_vec
+        Logger::DebugLog(LOC, "open_z:     " + ToString(open_z));
+        Logger::DebugLog(LOC, "open_z_vec: " + ToString(open_z_vec));
+
+        // Validate the opened values
+        if (open_z != 9)
+            throw osuCrypto::UnitTestFail("Additive protocol failed: open_z != 9");
+        if (open_z_vec != std::vector<uint64_t>({6, 6, 6, 6, 6}))
+            throw osuCrypto::UnitTestFail("Additive protocol failed: open_z_vec mismatch");
+    }
+
+    Logger::DebugLog(LOC, "Additive3P_EvaluateAdd_Online_Test - Passed");
+}
+
+void Additive3P_EvaluateMult_Online_Test() {
+    Logger::DebugLog(LOC, "Additive3P_EvaluateMult_Online_Test...");
+
+    for (const uint64_t bitsize : kBitsizes) {
+        ShareIo sh_io;
+
+        // Variables for opened results (all parties will write into these)
+        uint64_t              open_z = 0;
+        std::vector<uint64_t> open_z_vec;
+
+        const std::string x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
+        const std::string y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
+
+        ThreePartyNetworkManager net_mgr;
+
+        // Helper that returns a task lambda for a given party_id
+        auto MakeTask = [&](int party_id) {
+            // Capture bitsize, paths, sh_io, and references to opened-result variables
+            return [=, &sh_io, &open_z, &open_z_vec](osuCrypto::Channel &chl_next,
+                                                     osuCrypto::Channel &chl_prev) {
+                // (1) Set up the replicated-sharing object and channels
+                ReplicatedSharing3P rss(bitsize);
+                Channels            chls(party_id, chl_prev, chl_next);
+
+                // (2) Prepare local share variables for inputs and outputs
+                RepShare64    x_sh, y_sh, z_sh;
+                RepShareVec64 x_vec_sh, y_vec_sh, z_vec_sh;
+
+                // (3) Construct file names and load shares
+                sh_io.LoadShare(x_path + "_" + ToString(party_id), x_sh);
+                sh_io.LoadShare(y_path + "_" + ToString(party_id), y_sh);
+                sh_io.LoadShare(x_path + "_vec_" + ToString(party_id), x_vec_sh);
+                sh_io.LoadShare(y_path + "_vec_" + ToString(party_id), y_vec_sh);
+
+                // (4) Setup PRF keys for secure multiplication
+                rss.OnlineSetUp(party_id, kTestAdditivePath + "prf");
+
+                // (5) Perform secure multiplication on both scalar and vector shares
+                rss.EvaluateMult(chls, x_sh, y_sh, z_sh);
+                rss.EvaluateMult(chls, x_vec_sh, y_vec_sh, z_vec_sh);
+
+                // (6) Log each party’s local z shares for debugging
+                Logger::DebugLog(LOC, "Party " + ToString(party_id) +
+                                          " z: " + z_sh.ToString());
+                Logger::DebugLog(LOC, "Party " + ToString(party_id) +
+                                          " z_vec: " + z_vec_sh.ToString());
+
+                // (7) Open the shares and write the results into the same variables for all parties
+                rss.Open(chls, z_sh, open_z);
+                rss.Open(chls, z_vec_sh, open_z_vec);
+            };
+        };
+
+        // Create tasks for parties 0, 1, and 2
+        auto task0 = MakeTask(0);
+        auto task1 = MakeTask(1);
+        auto task2 = MakeTask(2);
+
+        // Configure network based on party ID (CLI/env) and wait for completion
+        net_mgr.AutoConfigure(-1, task0, task1, task2);
+        net_mgr.WaitForCompletion();
+
+        // At this point, all parties have the same open_z and open_z_vec
+        Logger::DebugLog(LOC, "open_z:     " + ToString(open_z));
+        Logger::DebugLog(LOC, "open_z_vec: " + ToString(open_z_vec));
+
+        // Validate the opened values
+        if (open_z != 20)
+            throw osuCrypto::UnitTestFail("Additive protocol failed: open_z != 20");
+        if (open_z_vec != std::vector<uint64_t>({5, 8, 9, 8, 5}))
+            throw osuCrypto::UnitTestFail("Additive protocol failed: open_z_vec mismatch");
+    }
+
+    Logger::DebugLog(LOC, "Additive3P_EvaluateMult_Online_Test - Passed");
+}
+
+void Additive3P_EvaluateInnerProduct_Online_Test() {
+    Logger::DebugLog(LOC, "Additive3P_EvaluateInnerProduct_Online_Test...");
+
+    for (const uint64_t bitsize : kBitsizes) {
+        ShareIo sh_io;
+
+        // Variable for opened result (all parties will write into this)
+        uint64_t open_z = 0;
+
+        const std::string x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
+        const std::string y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
+
+        ThreePartyNetworkManager net_mgr;
+
+        // Helper that returns a task lambda for a given party_id
+        auto MakeTask = [&](int party_id) {
+            // Capture bitsize, paths, sh_io, and reference to opened-result variable
+            return [=, &sh_io, &open_z](osuCrypto::Channel &chl_next,
+                                        osuCrypto::Channel &chl_prev) {
+                // (1) Set up the replicated-sharing object and channels
+                ReplicatedSharing3P rss(bitsize);
+                Channels            chls(party_id, chl_prev, chl_next);
+
+                // (2) Prepare local share variables for vector inputs and output
+                RepShare64    z_sh;
+                RepShareVec64 x_vec_sh, y_vec_sh;
+
+                // (3) Construct file names and load vector shares
+                sh_io.LoadShare(x_path + "_vec_" + ToString(party_id), x_vec_sh);
+                sh_io.LoadShare(y_path + "_vec_" + ToString(party_id), y_vec_sh);
+
+                // (4) Setup PRF keys for secure inner product
+                rss.OnlineSetUp(party_id, kTestAdditivePath + "prf");
+
+                // (5) Perform secure inner product
+                rss.EvaluateInnerProduct(chls, x_vec_sh, y_vec_sh, z_sh);
+
+                // (6) Log each party’s local z share for debugging
+                Logger::DebugLog(LOC, "Party " + ToString(party_id) +
+                                          " z: " + z_sh.ToString());
+
+                // (7) Open the share and write the result into the same variable for all parties
+                rss.Open(chls, z_sh, open_z);
+            };
+        };
+
+        // Create tasks for parties 0, 1, and 2
+        auto task0 = MakeTask(0);
+        auto task1 = MakeTask(1);
+        auto task2 = MakeTask(2);
+
+        // Configure network based on party ID (CLI/env) and wait for completion
+        net_mgr.AutoConfigure(-1, task0, task1, task2);
+        net_mgr.WaitForCompletion();
+
+        // At this point, all parties have the same open_z
         Logger::DebugLog(LOC, "open_z: " + ToString(open_z));
 
         // Validate the opened value
         if (open_z != fsswm::Mod(35, bitsize))
-            throw osuCrypto::UnitTestFail("Additive protocol failed.");
+            throw osuCrypto::UnitTestFail(
+                "Additive protocol failed: open_z != Mod(35, " + ToString(bitsize) + ")");
     }
+
+    Logger::DebugLog(LOC, "Additive3P_EvaluateInnerProduct_Online_Test - Passed");
 }
 
 }    // namespace test_fsswm

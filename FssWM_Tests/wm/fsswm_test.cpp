@@ -41,7 +41,6 @@ namespace test_fsswm {
 using fsswm::Channels;
 using fsswm::FileIo;
 using fsswm::Logger;
-;
 using fsswm::ThreePartyNetworkManager;
 using fsswm::ToString, fsswm::ToStringMatrix;
 using fsswm::sharing::BinaryReplicatedSharing3P;
@@ -61,7 +60,8 @@ using fsswm::wm::KeyIo;
 void FssWM_Offline_Test() {
     Logger::DebugLog(LOC, "FssWM_Offline_Test...");
     std::vector<FssWMParameters> params_list = {
-        FssWMParameters(10),
+        FssWMParameters(10, 3, fsswm::fss::OutputType::kSingleBitMask),
+        FssWMParameters(10, 3, fsswm::fss::OutputType::kShiftedAdditive),
         // FssWMParameters(10),
         // FssWMParameters(15),
         // FssWMParameters(20),
@@ -78,15 +78,6 @@ void FssWM_Offline_Test() {
         ShareIo                   sh_io;
         KeyIo                     key_io;
 
-        // Generate keys
-        std::array<FssWMKey, 3> keys = gen.GenerateKeys();
-
-        // Save keys
-        std::string key_path = kTestFssWMPath + "fsswmkey_d" + ToString(d);
-        key_io.SaveKey(key_path + "_0", keys[0]);
-        key_io.SaveKey(key_path + "_1", keys[1]);
-        key_io.SaveKey(key_path + "_2", keys[2]);
-
         // Generate the database and index
         std::string           database = GenerateRandomString(ds - 2);
         FMIndex               fm(database);
@@ -96,30 +87,71 @@ void FssWM_Offline_Test() {
         Logger::DebugLog(LOC, "Query   : " + ToString(query));
         Logger::DebugLog(LOC, "Position: " + ToString(position));
 
-        std::array<RepShareMatBlock, 3> db_sh       = gen.GenerateDatabaseShare(fm);
-        std::array<RepShareVec64, 3>    query_sh    = brss.ShareLocal({0, ds - 1, 0});
-        std::array<RepShare64, 3>       position_sh = brss.ShareLocal(position);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToStringMatrix());
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " query share: " + query_sh[p].ToString());
-            Logger::DebugLog(LOC, "Party " + ToString(p) + " position share: " + position_sh[p].ToString());
-        }
+        // Generate keys
+        std::array<FssWMKey, 3> keys = gen.GenerateKeys();
 
-        // Save data
-        std::string db0_path      = kTestFssWMPath + "db0_d" + ToString(d);
-        std::string db1_path      = kTestFssWMPath + "db1_d" + ToString(d);
-        std::string query_path    = kTestFssWMPath + "query_d" + ToString(d);
-        std::string position_path = kTestFssWMPath + "position_d" + ToString(d);
+        if (params.GetOSParameters().GetParameters().GetOutputType() == fsswm::fss::OutputType::kSingleBitMask) {
+            // Save keys
+            std::string key_path = kTestFssWMPath + "fsswmkeySBM_d" + ToString(d);
+            key_io.SaveKey(key_path + "_0", keys[0]);
+            key_io.SaveKey(key_path + "_1", keys[1]);
+            key_io.SaveKey(key_path + "_2", keys[2]);
 
-        file_io.WriteBinary(db0_path, database);
-        file_io.WriteBinary(db1_path, database);
-        file_io.WriteBinary(query_path, query);
-        file_io.WriteBinary(position_path, position);
+            // Generate replicated shares for the database, query, and position
+            std::array<RepShareMatBlock, 3> db_sh       = gen.GenerateDatabaseBlockShare(fm);
+            std::array<RepShareVec64, 3>    query_sh    = brss.ShareLocal({0, ds - 1, 0});
+            std::array<RepShare64, 3>       position_sh = brss.ShareLocal(position);
+            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+                Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToStringMatrix());
+                Logger::DebugLog(LOC, "Party " + ToString(p) + " query share: " + query_sh[p].ToString());
+                Logger::DebugLog(LOC, "Party " + ToString(p) + " position share: " + position_sh[p].ToString());
+            }
 
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
-            sh_io.SaveShare(db0_path + "_" + ToString(p), db_sh[p]);
-            sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
-            sh_io.SaveShare(position_path + "_" + ToString(p), position_sh[p]);
+            // Save data
+            std::string db_path       = kTestFssWMPath + "dbSBM_d" + ToString(d);
+            std::string query_path    = kTestFssWMPath + "query_d" + ToString(d);
+            std::string position_path = kTestFssWMPath + "position_d" + ToString(d);
+
+            file_io.WriteBinary(db_path, database);
+            file_io.WriteBinary(query_path, query);
+            file_io.WriteBinary(position_path, position);
+
+            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+                sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
+                sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
+                sh_io.SaveShare(position_path + "_" + ToString(p), position_sh[p]);
+            }
+        } else {
+            // Save keys
+            std::string key_path = kTestFssWMPath + "fsswmkeySA_d" + ToString(d);
+            key_io.SaveKey(key_path + "_0", keys[0]);
+            key_io.SaveKey(key_path + "_1", keys[1]);
+            key_io.SaveKey(key_path + "_2", keys[2]);
+
+            // Generate replicated shares for the database, query, and position
+            std::array<RepShareMat64, 3> db_sh       = gen.GenerateDatabaseU64Share(fm);
+            std::array<RepShareVec64, 3> query_sh    = brss.ShareLocal({0, ds - 1, 0});
+            std::array<RepShare64, 3>    position_sh = brss.ShareLocal(position);
+            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+                Logger::DebugLog(LOC, "Party " + ToString(p) + " rank share: " + db_sh[p].ToStringMatrix());
+                Logger::DebugLog(LOC, "Party " + ToString(p) + " query share: " + query_sh[p].ToString());
+                Logger::DebugLog(LOC, "Party " + ToString(p) + " position share: " + position_sh[p].ToString());
+            }
+
+            // Save data
+            std::string db_path       = kTestFssWMPath + "dbSA_d" + ToString(d);
+            std::string query_path    = kTestFssWMPath + "query_d" + ToString(d);
+            std::string position_path = kTestFssWMPath + "position_d" + ToString(d);
+
+            file_io.WriteBinary(db_path, database);
+            file_io.WriteBinary(query_path, query);
+            file_io.WriteBinary(position_path, position);
+
+            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+                sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
+                sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
+                sh_io.SaveShare(position_path + "_" + ToString(p), position_sh[p]);
+            }
         }
 
         // Offline setup
@@ -128,11 +160,10 @@ void FssWM_Offline_Test() {
     Logger::DebugLog(LOC, "FssWM_Offline_Test - Passed");
 }
 
-void FssWM_Online_Test(const osuCrypto::CLP &cmd) {
-    Logger::DebugLog(LOC, "FssWM_Online_Test...");
+void FssWM_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd) {
+    Logger::DebugLog(LOC, "FssWM_SingleBitMask_Online_Test...");
     std::vector<FssWMParameters> params_list = {
-        FssWMParameters(10),
-        // FssWMParameters(10),
+        FssWMParameters(10, 3, fsswm::fss::OutputType::kSingleBitMask),
         // FssWMParameters(15),
         // FssWMParameters(20),
     };
@@ -140,113 +171,169 @@ void FssWM_Online_Test(const osuCrypto::CLP &cmd) {
     for (const auto &params : params_list) {
         params.PrintParameters();
         uint64_t d = params.GetDatabaseBitSize();
-        FileIo   file_io;
-        ShareIo  sh_io;
-        KeyIo    key_io;
 
-        uint64_t              result;
-        std::string           key_path      = kTestFssWMPath + "fsswmkey_d" + ToString(d);
-        std::string           db0_path      = kTestFssWMPath + "db0_d" + ToString(d);
-        std::string           db1_path      = kTestFssWMPath + "db1_d" + ToString(d);
-        std::string           query_path    = kTestFssWMPath + "query_d" + ToString(d);
-        std::string           position_path = kTestFssWMPath + "position_d" + ToString(d);
+        FileIo file_io;
+
+        uint64_t    result{0};
+        std::string key_path      = kTestFssWMPath + "fsswmkeySBM_d" + ToString(d);
+        std::string db_path       = kTestFssWMPath + "dbSBM_d" + ToString(d);
+        std::string query_path    = kTestFssWMPath + "query_d" + ToString(d);
+        std::string position_path = kTestFssWMPath + "position_d" + ToString(d);
+
         std::string           database;
         std::vector<uint64_t> query;
         uint64_t              position;
-        file_io.ReadBinary(db0_path, database);
-        file_io.ReadBinary(db1_path, database);
+        file_io.ReadBinary(db_path, database);
         file_io.ReadBinary(query_path, query);
         file_io.ReadBinary(position_path, position);
 
-        // Define the tasks for each party
+        // Create a task factory that captures everything needed by value,
+        // and captures `result` and `sh_io` by reference.
+        auto MakeTask = [&](int party_id) {
+            return [=, &result](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+                // Set up replicated sharing and evaluator for this party
+                BinaryReplicatedSharing3P brss(d);
+                FssWMEvaluator            eval(params, brss);
+                Channels                  chls(party_id, chl_prev, chl_next);
+
+                // Load this party's key
+                FssWMKey key(party_id, params);
+                KeyIo    key_io_local;
+                key_io_local.LoadKey(key_path + "_" + ToString(party_id), key);
+
+                // Load this party's shares of the database, query, and position
+                RepShareMatBlock db_sh;
+                RepShareVec64    query_sh;
+                RepShare64       position_sh;
+                ShareIo          sh_io;
+                sh_io.LoadShare(db_path + "_" + ToString(party_id), db_sh);
+                sh_io.LoadShare(query_path + "_" + ToString(party_id), query_sh);
+                sh_io.LoadShare(position_path + "_" + ToString(party_id), position_sh);
+
+                // Perform the PRF setup step
+                brss.OnlineSetUp(party_id, kTestFssWMPath + "prf");
+
+                // Evaluate the rank operation
+                RepShare64 result_sh;
+                eval.EvaluateRankCF_SingleBitMask(chls, key, db_sh, RepShareView64(query_sh), position_sh, result_sh);
+
+                // Open the resulting share to recover the final value
+                brss.Open(chls, result_sh, result);
+            };
+        };
+
+        // Instantiate tasks for parties 0, 1, and 2
+        auto task_p0 = MakeTask(0);
+        auto task_p1 = MakeTask(1);
+        auto task_p2 = MakeTask(2);
+
         ThreePartyNetworkManager net_mgr;
-
-        // Party 0 task
-        auto task_p0 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            BinaryReplicatedSharing3P brss(d);
-            FssWMEvaluator            eval(params, brss);
-            Channels                  chls(0, chl_prev, chl_next);
-
-            // Load keys
-            FssWMKey key(0, params);
-            key_io.LoadKey(key_path + "_0", key);
-            // Load data
-            RepShareMatBlock db_sh;
-            RepShareVec64    query_sh;
-            RepShare64       position_sh;
-            sh_io.LoadShare(db0_path + "_0", db_sh);
-            sh_io.LoadShare(query_path + "_0", query_sh);
-            sh_io.LoadShare(position_path + "_0", position_sh);
-            // Setup the PRF keys
-            brss.OnlineSetUp(0, kTestFssWMPath + "prf");
-            // Evaluate
-            RepShare64 result_sh;
-            eval.EvaluateRankCF(chls, key, db_sh, RepShareView64(query_sh), position_sh, result_sh);
-            brss.Open(chls, result_sh, result);
-        };
-
-        // Party 1 task
-        auto task_p1 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            BinaryReplicatedSharing3P brss(d);
-            FssWMEvaluator            eval(params, brss);
-            Channels                  chls(1, chl_prev, chl_next);
-
-            // Load keys
-            FssWMKey key(1, params);
-            key_io.LoadKey(key_path + "_1", key);
-            // Load data
-            RepShareMatBlock db_sh;
-            RepShareVec64    query_sh;
-            RepShare64       position_sh;
-            sh_io.LoadShare(db0_path + "_1", db_sh);
-            sh_io.LoadShare(query_path + "_1", query_sh);
-            sh_io.LoadShare(position_path + "_1", position_sh);
-            // Setup the PRF keys
-            brss.OnlineSetUp(1, kTestFssWMPath + "prf");
-            // Evaluate
-            RepShare64 result_sh;
-            eval.EvaluateRankCF(chls, key, db_sh, RepShareView64(query_sh), position_sh, result_sh);
-            brss.Open(chls, result_sh, result);
-        };
-
-        // Party 2 task
-        auto task_p2 = [&](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-            BinaryReplicatedSharing3P brss(d);
-            FssWMEvaluator            eval(params, brss);
-            Channels                  chls(2, chl_prev, chl_next);
-
-            // Load keys
-            FssWMKey key(2, params);
-            key_io.LoadKey(key_path + "_2", key);
-            // Load data
-            RepShareMatBlock db_sh;
-            RepShareVec64    query_sh;
-            RepShare64       position_sh;
-            sh_io.LoadShare(db0_path + "_2", db_sh);
-            sh_io.LoadShare(query_path + "_2", query_sh);
-            sh_io.LoadShare(position_path + "_2", position_sh);
-            // Setup the PRF keys
-            brss.OnlineSetUp(2, kTestFssWMPath + "prf");
-            // Evaluate
-            RepShare64 result_sh;
-            eval.EvaluateRankCF(chls, key, db_sh, RepShareView64(query_sh), position_sh, result_sh);
-            brss.Open(chls, result_sh, result);
-        };
-
-        // Configure network based on party ID and wait for completion
-        int party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+        int                      party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
         net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
         net_mgr.WaitForCompletion();
 
         Logger::DebugLog(LOC, "Result: " + ToString(result));
 
+        // Verify against the plain-wavelet-matrix rank computation
         FMIndex  fmi(database);
         uint64_t expected_result = fmi.GetWaveletMatrix().RankCF(2, position);
-        if (result != expected_result)
-            throw osuCrypto::UnitTestFail("FssWM_Online_Test failed: result = " + ToString(result) +
-                                          ", expected = " + ToString(expected_result));
+        if (result != expected_result) {
+            throw osuCrypto::UnitTestFail(
+                "FssWM_Online_Test failed: result = " + ToString(result) +
+                ", expected = " + ToString(expected_result));
+        }
     }
-    Logger::DebugLog(LOC, "FssWM_Online_Test - Passed");
+
+    Logger::DebugLog(LOC, "FssWM_SingleBitMask_Online_Test - Passed");
+}
+
+void FssWM_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd) {
+    Logger::DebugLog(LOC, "FssWM_ShiftedAdditive_Online_Test...");
+    std::vector<FssWMParameters> params_list = {
+        FssWMParameters(10, 3, fsswm::fss::OutputType::kShiftedAdditive),
+        // FssWMParameters(15),
+        // FssWMParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint64_t d  = params.GetDatabaseBitSize();
+        uint64_t nu = params.GetOSParameters().GetParameters().GetTerminateBitsize();
+
+        FileIo file_io;
+
+        uint64_t    result{0};
+        std::string key_path      = kTestFssWMPath + "fsswmkeySA_d" + ToString(d);
+        std::string db_path       = kTestFssWMPath + "dbSA_d" + ToString(d);
+        std::string query_path    = kTestFssWMPath + "query_d" + ToString(d);
+        std::string position_path = kTestFssWMPath + "position_d" + ToString(d);
+
+        std::string           database;
+        std::vector<uint64_t> query;
+        uint64_t              position;
+        file_io.ReadBinary(db_path, database);
+        file_io.ReadBinary(query_path, query);
+        file_io.ReadBinary(position_path, position);
+
+        // Create a task factory that captures everything needed by value,
+        // and captures `result` and `sh_io` by reference.
+        auto MakeTask = [&](int party_id) {
+            return [=, &result](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+                // Set up replicated sharing and evaluator for this party
+                BinaryReplicatedSharing3P brss(d);
+                FssWMEvaluator            eval(params, brss);
+                Channels                  chls(party_id, chl_prev, chl_next);
+
+                // Load this party's key
+                FssWMKey key(party_id, params);
+                KeyIo    key_io_local;
+                key_io_local.LoadKey(key_path + "_" + ToString(party_id), key);
+
+                // Load this party's shares of the database, query, and position
+                RepShareMat64 db_sh;
+                RepShareVec64 query_sh;
+                RepShare64    position_sh;
+                ShareIo       sh_io;
+                sh_io.LoadShare(db_path + "_" + ToString(party_id), db_sh);
+                sh_io.LoadShare(query_path + "_" + ToString(party_id), query_sh);
+                sh_io.LoadShare(position_path + "_" + ToString(party_id), position_sh);
+
+                // Perform the PRF setup step
+                brss.OnlineSetUp(party_id, kTestFssWMPath + "prf");
+
+                // Evaluate the rank operation
+                RepShare64                result_sh;
+                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
+                eval.EvaluateRankCF_ShiftedAdditive(chls, key, uv_prev, uv_next, db_sh, RepShareView64(query_sh), position_sh, result_sh);
+
+                // Open the resulting share to recover the final value
+                brss.Open(chls, result_sh, result);
+            };
+        };
+
+        // Instantiate tasks for parties 0, 1, and 2
+        auto task_p0 = MakeTask(0);
+        auto task_p1 = MakeTask(1);
+        auto task_p2 = MakeTask(2);
+
+        ThreePartyNetworkManager net_mgr;
+        int                      party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+        net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+        net_mgr.WaitForCompletion();
+
+        Logger::DebugLog(LOC, "Result: " + ToString(result));
+
+        // Verify against the plain-wavelet-matrix rank computation
+        FMIndex  fmi(database);
+        uint64_t expected_result = fmi.GetWaveletMatrix().RankCF(2, position);
+        if (result != expected_result) {
+            throw osuCrypto::UnitTestFail(
+                "FssWM_Online_Test failed: result = " + ToString(result) +
+                ", expected = " + ToString(expected_result));
+        }
+    }
+
+    Logger::DebugLog(LOC, "FssWM_ShiftedAdditive_Online_Test - Passed");
 }
 
 }    // namespace test_fsswm

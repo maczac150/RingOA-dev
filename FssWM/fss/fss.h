@@ -18,7 +18,6 @@ constexpr uint64_t kRight             = 1;
  */
 enum class EvalType
 {
-    // Evaluation types for DPF
     kNaive,
     kRecursion,
     kIterSingleBatch,
@@ -27,11 +26,10 @@ enum class EvalType
 /**
  * @brief Output modes for the Distributed Point Function (DPF).
  */
-enum class OutputMode
+enum class OutputType
 {
-    // Output modes for DPF
-    kAdditive,       // Output as block
-    kBinaryPoint,    // Output as uint64_t
+    kShiftedAdditive,
+    kSingleBitMask,
 };
 
 const EvalType kOptimizedEvalType = EvalType::kIterSingleBatch;
@@ -42,7 +40,7 @@ const EvalType kOptimizedEvalType = EvalType::kIterSingleBatch;
  * @return std::string The string representation of the evaluation type.
  */
 std::string GetEvalTypeString(const EvalType eval_type);
-std::string GetOutputModeString(const OutputMode mode);
+std::string GetOutputTypeString(const OutputType mode);
 
 /**
  * @brief Converts a block to a uint64_t value.
@@ -74,7 +72,7 @@ void SplitBlockToFieldVector(const std::vector<block> &blks,
 uint64_t GetSplitBlockValue(const block &blk,
                             uint64_t     chunk_exp,
                             uint64_t     element_idx,
-                            OutputMode   mode);
+                            OutputType   mode);
 
 }    // namespace fss
 }    // namespace fsswm

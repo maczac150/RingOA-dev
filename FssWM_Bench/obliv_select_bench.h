@@ -5,11 +5,12 @@
 
 namespace bench_fsswm {
 
-void OblivSelect_Offline_Bench();
-void OblivSelect_Online_Bench(const osuCrypto::CLP &cmd);
-void OblivSelect_DotProduct_Bench();
-void OblivSelect_Offline2_Bench();
-void OblivSelect_Online2_Bench(const osuCrypto::CLP &cmd);
+void OblivSelect_ComputeDotProductBlockSIMD_Bench();
+void OblivSelect_EvaluateFullDomainThenDotProduct_Bench();
+void OblivSelect_Binary_Offline_Bench();
+void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd);
+void OblivSelect_Additive_Offline_Bench();
+void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd);
 
 }    // namespace bench_fsswm
 

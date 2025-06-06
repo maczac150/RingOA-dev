@@ -30,12 +30,15 @@ public:
      * @brief Parameterized constructor for FssWMParameters.
      * @param database_bitsize The database size for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
+     * @param mode The output type for the FssWMParameters.
      */
-    FssWMParameters(const uint64_t database_bitsize, const uint64_t sigma = 3)
+    FssWMParameters(const uint64_t        database_bitsize,
+                    const uint64_t        sigma = 3,
+                    const fss::OutputType mode  = fss::OutputType::kShiftedAdditive)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
           sigma_(sigma),
-          os_params_(database_bitsize) {
+          os_params_(database_bitsize, mode) {
     }
 
     /**
@@ -43,12 +46,13 @@ public:
      * @param database_bitsize The database size for the FssWMParameters.
      * @param query_size The query size for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
+     * @param mode The output type for the FssWMParameters.
      */
-    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3) {
+    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3, const fss::OutputType mode = fss::OutputType::kShiftedAdditive) {
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
         sigma_            = sigma;
-        os_params_.ReconfigureParameters(database_bitsize);
+        os_params_.ReconfigureParameters(database_bitsize, mode);
     }
 
     /**
@@ -217,7 +221,8 @@ public:
      * @param fm The FMIndex used to generate the shares.
      * @return std::array<std::pair<sharing::RepShareMat64, sharing::RepShareMat64>, 3> The replicated shares for the database.
      */
-    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseShare(const FMIndex &fm);
+    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseBlockShare(const FMIndex &fm) const;
+    std::array<sharing::RepShareMat64, 3>    GenerateDatabaseU64Share(const FMIndex &fm) const;
 
     /**
      * @brief Generate keys for the FssWM.
@@ -249,12 +254,21 @@ public:
     FssWMEvaluator(const FssWMParameters              &params,
                    sharing::BinaryReplicatedSharing3P &brss);
 
-    void EvaluateRankCF(Channels                        &chls,
-                        const FssWMKey                  &key,
-                        const sharing::RepShareMatBlock &wm_tables,
-                        const sharing::RepShareView64   &char_sh,
-                        sharing::RepShare64             &position_sh,
-                        sharing::RepShare64             &result) const;
+    void EvaluateRankCF_SingleBitMask(Channels                        &chls,
+                                      const FssWMKey                  &key,
+                                      const sharing::RepShareMatBlock &wm_tables,
+                                      const sharing::RepShareView64   &char_sh,
+                                      sharing::RepShare64             &position_sh,
+                                      sharing::RepShare64             &result) const;
+
+    void EvaluateRankCF_ShiftedAdditive(Channels                      &chls,
+                                        const FssWMKey                &key,
+                                        std::vector<block>            &uv_prev,
+                                        std::vector<block>            &uv_next,
+                                        const sharing::RepShareMat64  &wm_tables,
+                                        const sharing::RepShareView64 &char_sh,
+                                        sharing::RepShare64           &position_sh,
+                                        sharing::RepShare64           &result) const;
 
 private:
     FssWMParameters                     params_;  /**< FssWMParameters for the FssWMEvaluator. */

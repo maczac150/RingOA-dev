@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "FssWM/utils/block.h"
 #include "FssWM/utils/to_string.h"
@@ -70,11 +71,25 @@ struct RepShare {
         buffer.insert(buffer.end(), ptr, ptr + 2 * sizeof(T));
     }
 
+    void SerializeToStream(std::ofstream &ofs) const {
+        ofs.write(reinterpret_cast<const char *>(data.data()), 2 * sizeof(T));
+        if (!ofs) {
+            throw std::runtime_error("Failed to write RepShare to stream");
+        }
+    }
+
     // Deserialize from byte buffer (little-endian)
     void Deserialize(const std::vector<uint8_t> &buffer) {
         if (buffer.size() < 2 * sizeof(T))
             throw std::invalid_argument("RepShare::Deserialize: buffer too small");
         std::memcpy(data.data(), buffer.data(), 2 * sizeof(T));
+    }
+
+    void DeserializeFromStream(std::ifstream &ifs) {
+        ifs.read(reinterpret_cast<char *>(data.data()), 2 * sizeof(T));
+        if (!ifs) {
+            throw std::runtime_error("Failed to read RepShare from stream");
+        }
     }
 };
 
@@ -146,34 +161,90 @@ struct RepShareVec {
         return oss.str();
     }
 
-    void Serialize(std::vector<uint8_t> &buffer) const {
+    // void Serialize(std::vector<uint8_t> &buffer) const {
+    //     // Serialize the number of shares
+    //     uint64_t ns = static_cast<uint64_t>(num_shares);
+    //     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&ns), reinterpret_cast<const uint8_t *>(&ns) + sizeof(ns));
+
+    //     // Serialize the share data
+    //     size_t bytes_per_vector = sizeof(T) * num_shares;
+    //     for (int i = 0; i < 2; ++i) {
+    //         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(data[i].data());
+    //         buffer.insert(buffer.end(), ptr, ptr + bytes_per_vector);
+    //     }
+    // }
+
+    // void Deserialize(const std::vector<uint8_t> &buffer) {
+    //     size_t offset = 0;
+
+    //     // Deserialize the number of shares
+    //     uint64_t ns = 0;
+    //     std::memcpy(&ns, buffer.data() + offset, sizeof(ns));
+    //     num_shares = static_cast<size_t>(ns);
+    //     offset += sizeof(ns);
+
+    //     // Resize the share data vectors
+    //     data[0].resize(num_shares);
+    //     data[1].resize(num_shares);
+
+    //     // Deserialize the share data
+    //     size_t bytes_per_vector = sizeof(T) * num_shares;
+    //     for (int i = 0; i < 2; ++i) {
+    //         std::memcpy(data[i].data(), buffer.data() + offset, bytes_per_vector);
+    //         offset += bytes_per_vector;
+    //     }
+    // }
+
+    /**
+     * @brief Serializes the RepShareVec to a binary stream.
+     * @param ofs The output file stream to write the serialized data.
+     */
+    void SerializeToStream(std::ofstream &ofs) const {
         // Serialize the number of shares
-        buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&num_shares), reinterpret_cast<const uint8_t *>(&num_shares) + sizeof(num_shares));
+        uint64_t ns = static_cast<uint64_t>(num_shares);
+        ofs.write(reinterpret_cast<const char *>(&ns), sizeof(ns));
+        if (!ofs) {
+            throw std::runtime_error("Failed to write number of shares to stream");
+        }
 
         // Serialize the share data
-        size_t bytes = sizeof(T) * num_shares;
+        size_t bytes_per_vector = sizeof(T) * num_shares;
         for (int i = 0; i < 2; ++i) {
-            const uint8_t *ptr = reinterpret_cast<const uint8_t *>(data[i].data());
-            buffer.insert(buffer.end(), ptr, ptr + bytes);
+            if (data[i].empty())
+                continue;    // Skip empty vectors
+            ofs.write(reinterpret_cast<const char *>(data[i].data()), bytes_per_vector);
+            if (!ofs) {
+                throw std::runtime_error("Failed to write share data to stream");
+            }
         }
     }
 
-    void Deserialize(const std::vector<uint8_t> &buffer) {
-        size_t offset = 0;
-
+    /**
+     * @brief Deserializes the RepShareVec from a binary stream.
+     * @param ifs The input file stream to read the serialized data.
+     */
+    void DeserializeFromStream(std::ifstream &ifs) {
         // Deserialize the number of shares
-        std::memcpy(&num_shares, buffer.data() + offset, sizeof(num_shares));
-        offset += sizeof(num_shares);
+        uint64_t ns = 0;
+        ifs.read(reinterpret_cast<char *>(&ns), sizeof(ns));
+        if (!ifs) {
+            throw std::runtime_error("Failed to read number of shares from stream");
+        }
+        num_shares = static_cast<size_t>(ns);
 
         // Resize the share data vectors
         data[0].resize(num_shares);
         data[1].resize(num_shares);
 
         // Deserialize the share data
-        size_t bytes = sizeof(T) * num_shares;
+        size_t bytes_per_vector = sizeof(T) * num_shares;
         for (int i = 0; i < 2; ++i) {
-            std::memcpy(data[i].data(), buffer.data() + offset, bytes);
-            offset += bytes;
+            if (num_shares == 0)
+                continue;    // Skip empty vectors
+            ifs.read(reinterpret_cast<char *>(data[i].data()), bytes_per_vector);
+            if (!ifs) {
+                throw std::runtime_error("Failed to read share data from stream");
+            }
         }
     }
 };
@@ -295,31 +366,84 @@ struct RepShareMat {
         return oss.str();
     }
 
-    void Serialize(std::vector<uint8_t> &buffer) const {
-        // Serialize dimensions
-        buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&rows), reinterpret_cast<const uint8_t *>(&rows) + sizeof(rows));
-        buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&cols), reinterpret_cast<const uint8_t *>(&cols) + sizeof(cols));
+    // void Serialize(std::vector<uint8_t> &buffer) const {
+    //     // Serialize dimensions
+    //     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&rows), reinterpret_cast<const uint8_t *>(&rows) + sizeof(rows));
+    //     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&cols), reinterpret_cast<const uint8_t *>(&cols) + sizeof(cols));
 
-        // Serialize the share data
-        shares.Serialize(buffer);
+    //     // Serialize the share data
+    //     shares.Serialize(buffer);
+    // }
+
+    // void Deserialize(const std::vector<uint8_t> &buffer) {
+    //     size_t offset = 0;
+
+    //     // Deserialize dimensions
+    //     std::memcpy(&rows, buffer.data() + offset, sizeof(rows));
+    //     offset += sizeof(rows);
+    //     std::memcpy(&cols, buffer.data() + offset, sizeof(cols));
+    //     offset += sizeof(cols);
+
+    //     // Resize internal shares
+    //     shares.num_shares = rows * cols;
+    //     shares.data[0].resize(shares.num_shares);
+    //     shares.data[1].resize(shares.num_shares);
+
+    //     // Deserialize the share data
+    //     shares.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.end()));
+    // }
+
+    /**
+     * @brief Write [rows, cols] (each as uint64_t) and then all shares into 'ofs'.
+     *        This never creates an intermediate gigantic buffer; it writes directly to the file.
+     * @param ofs  An open std::ofstream in binary mode.
+     */
+    void SerializeToStream(std::ofstream &ofs) const {
+        // 1) Write 'rows' and 'cols' as 64‐bit integers
+        uint64_t r = static_cast<uint64_t>(rows);
+        uint64_t c = static_cast<uint64_t>(cols);
+
+        ofs.write(reinterpret_cast<const char *>(&r), sizeof(r));
+        if (!ofs) {
+            throw std::runtime_error("Failed to write rows to stream");
+        }
+
+        ofs.write(reinterpret_cast<const char *>(&c), sizeof(c));
+        if (!ofs) {
+            throw std::runtime_error("Failed to write cols to stream");
+        }
+
+        // 2) Delegate to RepShareVec<T>::SerializeToStream() to write all share data
+        shares.SerializeToStream(ofs);
     }
 
-    void Deserialize(const std::vector<uint8_t> &buffer) {
-        size_t offset = 0;
+    /**
+     * @brief Read [rows, cols], resize internal storage, then read all shares from 'ifs'.
+     * @param ifs  An open std::ifstream in binary mode.
+     */
+    void DeserializeFromStream(std::ifstream &ifs) {
+        // 1) Read 'rows' and 'cols' as 64‐bit integers
+        uint64_t r = 0, c = 0;
+        ifs.read(reinterpret_cast<char *>(&r), sizeof(r));
+        if (!ifs) {
+            throw std::runtime_error("RepShareMat::DeserializeFromStream failed to read 'rows'");
+        }
+        ifs.read(reinterpret_cast<char *>(&c), sizeof(c));
+        if (!ifs) {
+            throw std::runtime_error("RepShareMat::DeserializeFromStream failed to read 'cols'");
+        }
 
-        // Deserialize dimensions
-        std::memcpy(&rows, buffer.data() + offset, sizeof(rows));
-        offset += sizeof(rows);
-        std::memcpy(&cols, buffer.data() + offset, sizeof(cols));
-        offset += sizeof(cols);
+        rows = static_cast<size_t>(r);
+        cols = static_cast<size_t>(c);
 
-        // Resize internal shares
-        shares.num_shares = rows * cols;
-        shares.data[0].resize(shares.num_shares);
-        shares.data[1].resize(shares.num_shares);
+        // 2) Resize internal RepShareVec so it can hold rows*cols shares
+        size_t total      = rows * cols;
+        shares.num_shares = total;
+        shares.data[0].resize(total);
+        shares.data[1].resize(total);
 
-        // Deserialize the share data
-        shares.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.end()));
+        // 3) Delegate to RepShareVec<T>::DeserializeFromStream() to read the actual shares
+        shares.DeserializeFromStream(ifs);
     }
 };
 
