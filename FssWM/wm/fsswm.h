@@ -270,6 +270,16 @@ public:
                                         sharing::RepShare64           &position_sh,
                                         sharing::RepShare64           &result) const;
 
+    void EvaluateRankCF_ShiftedAdditive_Parallel(Channels                      &chls,
+                                                 const FssWMKey                &key1,
+                                                 const FssWMKey                &key2,
+                                                 std::vector<block>            &uv_prev,
+                                                 std::vector<block>            &uv_next,
+                                                 const sharing::RepShareMat64  &wm_tables,
+                                                 const sharing::RepShareView64 &char_sh,
+                                                 sharing::RepShareVec64        &position_sh,
+                                                 sharing::RepShareVec64        &result) const;
+
 private:
     FssWMParameters                     params_;  /**< FssWMParameters for the FssWMEvaluator. */
     OblivSelectEvaluator                os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */

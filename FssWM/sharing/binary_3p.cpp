@@ -409,14 +409,44 @@ void BinaryReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShare64 
     EvaluateXor(x_sh, c_and_xy_sh, z_sh);
 }
 
+void BinaryReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, const RepShare64 &c_sh, RepShareVec64 &z_vec_sh) {
+    if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
+        Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateSelect.");
+        return;
+    }
+
+    if (z_vec_sh.num_shares != x_vec_sh.num_shares) {
+        z_vec_sh.num_shares = x_vec_sh.num_shares;
+        z_vec_sh.data[0].resize(x_vec_sh.num_shares);
+        z_vec_sh.data[1].resize(x_vec_sh.num_shares);
+    }
+
+    const size_t  n = x_vec_sh.num_shares;
+    RepShareVec64 xy_sh(n);
+    EvaluateXor(x_vec_sh, y_vec_sh, xy_sh);
+    RepShareVec64 c_and_xy_sh(n);
+
+    for (uint64_t i = 0; i < xy_sh.num_shares; ++i) {
+        uint64_t   t_sh = (xy_sh.data[0][i] & c_sh.data[0]) ^ (xy_sh.data[1][i] & c_sh.data[0]) ^ (xy_sh.data[0][i] & c_sh.data[1]);
+        RepShare64 r_sh;
+        Rand(r_sh);
+        c_and_xy_sh.data[0][i] = t_sh ^ r_sh.data[0] ^ r_sh.data[1];
+    }
+
+    chls.next.send(c_and_xy_sh.data[0]);
+    chls.prev.recv(c_and_xy_sh.data[1]);
+
+    EvaluateXor(x_vec_sh, c_and_xy_sh, z_vec_sh);
+}
+
 void BinaryReplicatedSharing3P::RandOffline(const std::string &file_path) const {
-    Logger::DebugLog(LOC, "Offline Rand for BinaryReplicatedSharing3P.");
     block                            key_0 = GlobalRng::Rand<block>();
     block                            key_1 = GlobalRng::Rand<block>();
     block                            key_2 = GlobalRng::Rand<block>();
     std::array<block, kThreeParties> keys  = {key_0, key_1, key_2};
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Offline Rand for BinaryReplicatedSharing3P.");
     for (uint64_t i = 0; i < kThreeParties; ++i) {
         Logger::DebugLog(LOC, "[P" + ToString(i) + "] Prf keys (i): " + Format(keys[i]) + ", (i-1): " + Format(keys[(i + 2) % kThreeParties]));
     }

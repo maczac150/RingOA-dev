@@ -300,7 +300,7 @@ void FssFMI_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd) {
                 // Evaluate the longest-prefix-match operation
                 RepShareVec64             result_sh(qs);
                 std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-                eval.EvaluateLPM_ShiftedAdditive(chls, key, uv_prev, uv_next, db_sh, query_sh, result_sh);
+                eval.EvaluateLPM_ShiftedAdditive_Parallel(chls, key, uv_prev, uv_next, db_sh, query_sh, result_sh);
 
                 // Open the resulting share vector to recover the final plaintext vector
                 brss.Open(chls, result_sh, result);

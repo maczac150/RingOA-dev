@@ -17,10 +17,10 @@ namespace {
 const std::string kCurrentPath = fsswm::GetCurrentDirectory();
 const std::string kBenchOSPath = kCurrentPath + "/data/bench/os/";
 
-std::vector<uint64_t> db_bitsizes = {16, 18, 20, 22, 24, 26, 28};
+std::vector<uint64_t> db_bitsizes = {16, 18, 20, 22, 24, 26};
 // std::vector<uint64_t> db_bitsizes = fsswm::CreateSequence(10, 28);
 
-constexpr uint64_t repeat = 10;
+constexpr uint64_t kRepeatDefault = 10;
 
 }    // namespace
 
@@ -50,7 +50,9 @@ using fsswm::wm::OblivSelectKey;
 using fsswm::wm::OblivSelectKeyGenerator;
 using fsswm::wm::OblivSelectParameters;
 
-void OblivSelect_ComputeDotProductBlockSIMD_Bench() {
+void OblivSelect_ComputeDotProductBlockSIMD_Bench(const osuCrypto::CLP &cmd) {
+    Logger::InfoLog(LOC, "OblivSelect_ComputeDotProductBlockSIMD_Bench...");
+    uint64_t repeat = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters     params(db_bitsize);
         uint64_t                  n = params.GetParameters().GetInputBitsize();
@@ -87,9 +89,12 @@ void OblivSelect_ComputeDotProductBlockSIMD_Bench() {
         }
         timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
     }
+    Logger::InfoLog(LOC, "OblivSelect_ComputeDotProductBlockSIMD_Bench - Finished");
 }
 
-void OblivSelect_EvaluateFullDomainThenDotProduct_Bench() {
+void OblivSelect_EvaluateFullDomainThenDotProduct_Bench(const osuCrypto::CLP &cmd) {
+    Logger::InfoLog(LOC, "OblivSelect_EvaluateFullDomainThenDotProduct_Bench...");
+    uint64_t repeat = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters     params(db_bitsize);
         uint64_t                  n  = params.GetParameters().GetInputBitsize();
@@ -129,10 +134,12 @@ void OblivSelect_EvaluateFullDomainThenDotProduct_Bench() {
         }
         timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
     }
+    Logger::InfoLog(LOC, "OblivSelect_EvaluateFullDomainThenDotProduct_Bench - Finished");
 }
 
-void OblivSelect_Binary_Offline_Bench() {
+void OblivSelect_Binary_Offline_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Binary_Offline_Bench...");
+    uint64_t repeat = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
 
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters params(db_bitsize);
@@ -149,8 +156,8 @@ void OblivSelect_Binary_Offline_Bench() {
         int32_t      timer_keygen = timer_mgr.CreateNewTimer("OblivSelect KeyGen");
         int32_t      timer_off    = timer_mgr.CreateNewTimer("OblivSelect OfflineSetUp");
 
-        std::string key_path = kBenchOSPath + "oskeybin_d" + ToString(d);
-        std::string db_path  = kBenchOSPath + "db_d" + ToString(d);
+        std::string key_path = kBenchOSPath + "oskeySBM_d" + ToString(d);
+        std::string db_path  = kBenchOSPath + "dbSBM_d" + ToString(d);
         std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
         for (uint64_t i = 0; i < repeat; ++i) {
@@ -196,29 +203,28 @@ void OblivSelect_Binary_Offline_Bench() {
         timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "OblivSelect_Binary_Offline_Bench - Finished");
-    // Logger::ExportLogList("./data/log/os_offline");
 }
 
 void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Binary_Online_Bench...");
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+    uint64_t    repeat   = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
-    for (auto db_bitsize : db_bitsizes) {
-        OblivSelectParameters params(db_bitsize);
-        params.PrintParameters();
-        uint64_t d = params.GetParameters().GetInputBitsize();
-        FileIo   file_io;
+    // Helper that returns a task lambda for a given party_id
+    auto MakeTask = [&](int party_id) {
+        // Capture d, params, paths, sh_io, key_io, repeat
+        return [=](osuCrypto::Channel &chl_next,
+                   osuCrypto::Channel &chl_prev) {
+            for (auto db_bitsize : db_bitsizes) {
+                OblivSelectParameters params(db_bitsize);
+                params.PrintParameters();
+                uint64_t d = params.GetParameters().GetInputBitsize();
+                FileIo   file_io;
 
-        std::string key_path = kBenchOSPath + "oskeybin_d" + ToString(d);
-        std::string db_path  = kBenchOSPath + "db_d" + ToString(d);
-        std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
-
-        // Helper that returns a task lambda for a given party_id
-        auto MakeTask = [&](int party_id) {
-            // Capture d, params, paths, sh_io, key_io, repeat
-            return [=](osuCrypto::Channel &chl_next,
-                       osuCrypto::Channel &chl_prev) {
+                std::string key_path = kBenchOSPath + "oskeySBM_d" + ToString(d);
+                std::string db_path  = kBenchOSPath + "dbSBM_d" + ToString(d);
+                std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
                 // (1) Set up TimerManager and timers
                 TimerManager timer_mgr;
                 int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
@@ -271,28 +277,27 @@ void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd) {
                 }
 
                 // (10) Print all timing results
-                timer_mgr.PrintAllResults("d=" + ToString(d),
-                                          fsswm::MICROSECONDS,
-                                          true);
-            };
+                timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+            }
         };
+    };
 
-        // Create tasks for parties 0, 1, and 2
-        auto task0 = MakeTask(0);
-        auto task1 = MakeTask(1);
-        auto task2 = MakeTask(2);
+    // Create tasks for parties 0, 1, and 2
+    auto task0 = MakeTask(0);
+    auto task1 = MakeTask(1);
+    auto task2 = MakeTask(2);
 
-        // Configure network based on party ID (from CLI/env) and wait for completion
-        ThreePartyNetworkManager net_mgr;
-        net_mgr.AutoConfigure(party_id, task0, task1, task2);
-        net_mgr.WaitForCompletion();
-    }
+    // Configure network based on party ID (from CLI/env) and wait for completion
+    ThreePartyNetworkManager net_mgr;
+    net_mgr.AutoConfigure(party_id, task0, task1, task2);
+    net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "OblivSelect_Binary_Online_Bench - Finished");
 }
 
-void OblivSelect_Additive_Offline_Bench() {
+void OblivSelect_Additive_Offline_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Additive_Offline_Bench...");
+    uint64_t repeat = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
 
     for (auto db_bitsize : db_bitsizes) {
         OblivSelectParameters params(db_bitsize);
@@ -309,8 +314,8 @@ void OblivSelect_Additive_Offline_Bench() {
         int32_t      timer_keygen = timer_mgr.CreateNewTimer("OblivSelect KeyGen");
         int32_t      timer_off    = timer_mgr.CreateNewTimer("OblivSelect OfflineSetUp");
 
-        std::string key_path = kBenchOSPath + "oskeyadd_d" + ToString(d);
-        std::string db_path  = kBenchOSPath + "db_add_d" + ToString(d);
+        std::string key_path = kBenchOSPath + "oskeySA_d" + ToString(d);
+        std::string db_path  = kBenchOSPath + "dbSA_d" + ToString(d);
         std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
         for (uint64_t i = 0; i < repeat; ++i) {
@@ -356,28 +361,28 @@ void OblivSelect_Additive_Offline_Bench() {
         timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "OblivSelect_Additive_Offline_Bench - Finished");
-    // Logger::ExportLogList("./data/log/os_offline");
 }
 
 void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Additive_Online_Bench...");
+    uint64_t    repeat   = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
-    for (auto db_bitsize : db_bitsizes) {
-        OblivSelectParameters params(db_bitsize);
-        params.PrintParameters();
-        uint64_t d  = params.GetParameters().GetInputBitsize();
-        uint64_t nu = params.GetParameters().GetTerminateBitsize();
+    // Helper that returns a task lambda for a given party_id
+    auto MakeTask = [&](int party_id) {
+        // Capture d, nu, params, and paths
+        return [=](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+            for (auto db_bitsize : db_bitsizes) {
+                OblivSelectParameters params(db_bitsize);
+                params.PrintParameters();
+                uint64_t d  = params.GetParameters().GetInputBitsize();
+                uint64_t nu = params.GetParameters().GetTerminateBitsize();
 
-        std::string key_path = kBenchOSPath + "oskeyadd_d" + ToString(d);
-        std::string db_path  = kBenchOSPath + "db_add_d" + ToString(d);
-        std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
+                std::string key_path = kBenchOSPath + "oskeySA_d" + ToString(d);
+                std::string db_path  = kBenchOSPath + "dbSA_d" + ToString(d);
+                std::string idx_path = kBenchOSPath + "idx_d" + ToString(d);
 
-        // Helper that returns a task lambda for a given party_id
-        auto MakeTask = [&](int party_id) {
-            // Capture d, nu, params, and paths
-            return [=](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
                 // (1) Set up TimerManager and timers
                 TimerManager timer_mgr;
                 int32_t      timer_setup = timer_mgr.CreateNewTimer("OS SetUp");
@@ -427,28 +432,26 @@ void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
                         result_sh);
                     timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d));
 
-                    Logger::InfoLog(LOC, "Total data sent: " +
-                                             ToString(chls.GetStats()) + " bytes");
+                    if (i < 2)
+                        Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + " bytes");
                     chls.ResetStats();
                 }
 
                 // (10) Print all timing results
-                timer_mgr.PrintAllResults("d=" + ToString(d),
-                                          fsswm::MICROSECONDS,
-                                          true);
-            };
+                timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+            }
         };
+    };
 
-        // Create tasks for parties 0, 1, and 2
-        auto task0 = MakeTask(0);
-        auto task1 = MakeTask(1);
-        auto task2 = MakeTask(2);
+    // Create tasks for parties 0, 1, and 2
+    auto task0 = MakeTask(0);
+    auto task1 = MakeTask(1);
+    auto task2 = MakeTask(2);
 
-        // Configure network based on party ID and wait for completion
-        ThreePartyNetworkManager net_mgr;
-        net_mgr.AutoConfigure(party_id, task0, task1, task2);
-        net_mgr.WaitForCompletion();
-    }
+    // Configure network based on party ID and wait for completion
+    ThreePartyNetworkManager net_mgr;
+    net_mgr.AutoConfigure(party_id, task0, task1, task2);
+    net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "OblivSelect_Additive_Online_Bench - Finished");
 }

@@ -125,7 +125,8 @@ private:
 struct FssFMIKey {
     uint64_t                  num_wm_keys;
     uint64_t                  num_zt_keys;
-    std::vector<wm::FssWMKey> wm_keys;
+    std::vector<wm::FssWMKey> wm_f_keys;
+    std::vector<wm::FssWMKey> wm_g_keys;
     std::vector<ZeroTestKey>  zt_keys;
 
     /**
@@ -163,7 +164,11 @@ struct FssFMIKey {
      * @return bool True if the FssFMIKey are equal, false otherwise.
      */
     bool operator==(const FssFMIKey &rhs) const {
-        return (num_wm_keys == rhs.num_wm_keys) && (num_zt_keys == rhs.num_zt_keys) && (wm_keys == rhs.wm_keys) && (zt_keys == rhs.zt_keys);
+        return (num_wm_keys == rhs.num_wm_keys) &&
+               (num_zt_keys == rhs.num_zt_keys) &&
+               (wm_f_keys == rhs.wm_f_keys) &&
+               (wm_g_keys == rhs.wm_g_keys) &&
+               (zt_keys == rhs.zt_keys);
     }
     bool operator!=(const FssFMIKey &rhs) const {
         return !(*this == rhs);
@@ -267,6 +272,14 @@ public:
                                      const sharing::RepShareMat64 &wm_tables,
                                      const sharing::RepShareMat64 &query,
                                      sharing::RepShareVec64       &result) const;
+
+    void EvaluateLPM_ShiftedAdditive_Parallel(Channels                     &chls,
+                                              const FssFMIKey              &key,
+                                              std::vector<block>           &uv_prev,
+                                              std::vector<block>           &uv_next,
+                                              const sharing::RepShareMat64 &wm_tables,
+                                              const sharing::RepShareMat64 &query,
+                                              sharing::RepShareVec64       &result) const;
 
 private:
     FssFMIParameters                    params_;  /**< FssFMIParameters for the FssFMIEvaluator. */

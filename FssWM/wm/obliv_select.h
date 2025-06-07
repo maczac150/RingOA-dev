@@ -243,6 +243,15 @@ public:
                   const sharing::RepShare64     &index,
                   sharing::RepShare64           &result) const;
 
+    void Evaluate_Parallel(Channels                      &chls,
+                           const OblivSelectKey          &key1,
+                           const OblivSelectKey          &key2,
+                           std::vector<block>            &uv_prev,
+                           std::vector<block>            &uv_next,
+                           const sharing::RepShareView64 &database,
+                           const sharing::RepShareVec64  &index,
+                           sharing::RepShareVec64        &result) const;
+
     block ComputeDotProductBlockSIMD(const fss::dpf::DpfKey       &key,
                                      const std::span<const block> &database,
                                      const uint64_t                pr) const;
@@ -265,6 +274,11 @@ private:
     std::pair<uint64_t, uint64_t> ReconstructPRBinary(Channels                  &chls,
                                                       const OblivSelectKey      &key,
                                                       const sharing::RepShare64 &index) const;
+
+    std::array<uint64_t, 4> ReconstructPRBinary(Channels                     &chls,
+                                                const OblivSelectKey         &key1,
+                                                const OblivSelectKey         &key2,
+                                                const sharing::RepShareVec64 &index) const;
 
     void EvaluateNextSeed(const uint64_t current_level, const block &current_seed, const bool &current_control_bit,
                           std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,

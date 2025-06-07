@@ -259,6 +259,69 @@ void OblivSelectEvaluator::Evaluate(Channels                      &chls,
 #endif
 }
 
+void OblivSelectEvaluator::Evaluate_Parallel(Channels                      &chls,
+                                             const OblivSelectKey          &key1,
+                                             const OblivSelectKey          &key2,
+                                             std::vector<block>            &uv_prev,
+                                             std::vector<block>            &uv_next,
+                                             const sharing::RepShareView64 &database,
+                                             const sharing::RepShareVec64  &index,
+                                             sharing::RepShareVec64        &result) const {
+
+    uint64_t party_id = chls.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
+
+    if (uv_prev.size() != (1UL << nu) || uv_next.size() != (1UL << nu)) {
+        Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv_prev.size()) + " != " + ToString(1UL << nu) +
+                                  " or " + ToString(uv_next.size()) + " != " + ToString(1UL << nu));
+    }
+    if (database.Size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database.Size()) + " != " + ToString(1UL << d));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+    Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
+    Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
+#endif
+
+    // Reconstruct p ^ r_i
+    // pr: [pr_prev1, pr_next1, pr_prev2, pr_next2]
+    std::array<uint64_t, 4> pr = ReconstructPRBinary(chls, key1, key2, index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " pr_prev1: " + ToString(pr[0]) + ", pr_next1: " + ToString(pr[1]) +
+                              ", pr_prev2: " + ToString(pr[2]) + ", pr_next2: " + ToString(pr[3]));
+#endif
+
+    // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block
+    auto [dp_prev1, dp_next1] = EvaluateFullDomainThenDotProduct(
+        key1.prev_key, key1.next_key, uv_prev, uv_next, database, pr[0], pr[1]);
+    auto [dp_prev2, dp_next2] = EvaluateFullDomainThenDotProduct(
+        key2.prev_key, key2.next_key, uv_prev, uv_next, database, pr[2], pr[3]);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + "dp_prev1: " + ToString(dp_prev1) + ", dp_next1: " + ToString(dp_next1));
+    Logger::DebugLog(LOC, party_str + "dp_prev2: " + ToString(dp_prev2) + ", dp_next2: " + ToString(dp_next2));
+#endif
+
+    uint64_t            selected1_sh = dp_prev1 ^ dp_next1;
+    uint64_t            selected2_sh = dp_prev2 ^ dp_next2;
+    sharing::RepShare64 r1_sh, r2_sh;
+    brss_.Rand(r1_sh);
+    brss_.Rand(r2_sh);
+    result[0][0] = selected1_sh ^ r1_sh[0] ^ r1_sh[1];
+    result[0][1] = selected2_sh ^ r2_sh[0] ^ r2_sh[1];
+    chls.next.send(result[0]);
+    chls.prev.recv(result[1]);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " result: " + ToString(result[0]) + ", " + ToString(result[1]));
+#endif
+}
+
 block OblivSelectEvaluator::ComputeDotProductBlockSIMD(const fss::dpf::DpfKey       &key,
                                                        const std::span<const block> &database,
                                                        const uint64_t                pr) const {
@@ -526,7 +589,6 @@ std::pair<uint64_t, uint64_t> OblivSelectEvaluator::ReconstructPRBinary(Channels
         brss_.EvaluateXor(index, r_1_sh, pr_next_sh);
         chls.prev.send(pr_prev_sh[0]);
         chls.next.send(pr_next_sh[1]);
-
         uint64_t p_r_0_prev;
         uint64_t p_r_1_next;
         chls.prev.recv(p_r_0_prev);
@@ -535,6 +597,104 @@ std::pair<uint64_t, uint64_t> OblivSelectEvaluator::ReconstructPRBinary(Channels
         pr_prev = pr_next_sh[0] ^ pr_next_sh[1] ^ p_r_1_next;
     }
     return std::make_pair(pr_prev, pr_next);
+}
+
+std::array<uint64_t, 4> OblivSelectEvaluator::ReconstructPRBinary(Channels                     &chls,
+                                                                  const OblivSelectKey         &key1,
+                                                                  const OblivSelectKey         &key2,
+                                                                  const sharing::RepShareVec64 &index) const {
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "ReconstructPR for Party " + ToString(chls.party_id));
+#endif
+
+    // Set replicated sharing of random value
+    uint64_t               pr_prev1 = 0, pr_next1 = 0, pr_prev2 = 0, pr_next2 = 0;
+    sharing::RepShareVec64 r_0_sh(2), r_1_sh(2), r_2_sh(2);
+
+    switch (chls.party_id) {
+        case 0:
+            r_0_sh.Set(0, sharing::RepShare64(key1.r_sh_0, key1.r_sh_1));
+            r_1_sh.Set(0, sharing::RepShare64(key1.next_r_sh, 0));
+            r_2_sh.Set(0, sharing::RepShare64(0, key1.prev_r_sh));
+            r_0_sh.Set(1, sharing::RepShare64(key2.r_sh_0, key2.r_sh_1));
+            r_1_sh.Set(1, sharing::RepShare64(key2.next_r_sh, 0));
+            r_2_sh.Set(1, sharing::RepShare64(0, key2.prev_r_sh));
+            break;
+        case 1:
+            r_0_sh.Set(0, sharing::RepShare64(0, key1.prev_r_sh));
+            r_1_sh.Set(0, sharing::RepShare64(key1.r_sh_0, key1.r_sh_1));
+            r_2_sh.Set(0, sharing::RepShare64(key1.next_r_sh, 0));
+            r_0_sh.Set(1, sharing::RepShare64(0, key2.prev_r_sh));
+            r_1_sh.Set(1, sharing::RepShare64(key2.r_sh_0, key2.r_sh_1));
+            r_2_sh.Set(1, sharing::RepShare64(key2.next_r_sh, 0));
+            break;
+        case 2:
+            r_0_sh.Set(0, sharing::RepShare64(key1.next_r_sh, 0));
+            r_1_sh.Set(0, sharing::RepShare64(0, key1.prev_r_sh));
+            r_2_sh.Set(0, sharing::RepShare64(key1.r_sh_0, key1.r_sh_1));
+            r_0_sh.Set(1, sharing::RepShare64(key2.next_r_sh, 0));
+            r_1_sh.Set(1, sharing::RepShare64(0, key2.prev_r_sh));
+            r_2_sh.Set(1, sharing::RepShare64(key2.r_sh_0, key2.r_sh_1));
+            break;
+        default:
+            Logger::ErrorLog(LOC, "Invalid party_id: " + ToString(chls.party_id));
+            return std::array<uint64_t, 4>{0, 0, 0, 0};
+    }
+
+    // Reconstruct p ^ r_i
+    sharing::RepShareVec64 pr_prev_sh(2);
+    sharing::RepShareVec64 pr_next_sh(2);
+
+    if (chls.party_id == 0) {
+        // p ^ r_1 between Party 0 and Party 2
+        // p ^ r_2 between Party 0 and Party 1
+        brss_.EvaluateXor(index, r_1_sh, pr_prev_sh);
+        brss_.EvaluateXor(index, r_2_sh, pr_next_sh);
+        chls.prev.send(pr_prev_sh[0]);
+        chls.next.send(pr_next_sh[1]);
+        std::vector<uint64_t> p_r_1_prev(2);
+        std::vector<uint64_t> p_r_2_next(2);
+        chls.next.recv(p_r_2_next);
+        chls.prev.recv(p_r_1_prev);
+        pr_next1 = p_r_1_prev[0] ^ pr_prev_sh[0][0] ^ pr_prev_sh[1][0];
+        pr_prev1 = pr_next_sh[0][0] ^ pr_next_sh[1][0] ^ p_r_2_next[0];
+        pr_next2 = p_r_1_prev[1] ^ pr_prev_sh[0][1] ^ pr_prev_sh[1][1];
+        pr_prev2 = pr_next_sh[0][1] ^ pr_next_sh[1][1] ^ p_r_2_next[1];
+
+    } else if (chls.party_id == 1) {
+        // p ^ r_0 between Party 1 and Party 2
+        // p ^ r_2 between Party 0 and Party 1
+        brss_.EvaluateXor(index, r_0_sh, pr_next_sh);
+        brss_.EvaluateXor(index, r_2_sh, pr_prev_sh);
+        chls.next.send(pr_next_sh[1]);
+        chls.prev.send(pr_prev_sh[0]);
+        std::vector<uint64_t> p_r_0_next(2);
+        std::vector<uint64_t> p_r_2_prev(2);
+        chls.prev.recv(p_r_2_prev);
+        chls.next.recv(p_r_0_next);
+        pr_next1 = p_r_2_prev[0] ^ pr_prev_sh[0][0] ^ pr_prev_sh[1][0];
+        pr_prev1 = pr_next_sh[0][0] ^ pr_next_sh[1][0] ^ p_r_0_next[0];
+        pr_next2 = p_r_2_prev[1] ^ pr_prev_sh[0][1] ^ pr_prev_sh[1][1];
+        pr_prev2 = pr_next_sh[0][1] ^ pr_next_sh[1][1] ^ p_r_0_next[1];
+
+    } else {
+        // p ^ r_0 between Party 1 and Party 2
+        // p ^ r_1 between Party 0 and Party 2
+        brss_.EvaluateXor(index, r_0_sh, pr_prev_sh);
+        brss_.EvaluateXor(index, r_1_sh, pr_next_sh);
+        chls.prev.send(pr_prev_sh[0]);
+        chls.next.send(pr_next_sh[1]);
+        std::vector<uint64_t> p_r_0_prev(2);
+        std::vector<uint64_t> p_r_1_next(2);
+        chls.prev.recv(p_r_0_prev);
+        chls.next.recv(p_r_1_next);
+        pr_next1 = p_r_0_prev[0] ^ pr_prev_sh[0][0] ^ pr_prev_sh[1][0];
+        pr_prev1 = pr_next_sh[0][0] ^ pr_next_sh[1][0] ^ p_r_1_next[0];
+        pr_next2 = p_r_0_prev[1] ^ pr_prev_sh[0][1] ^ pr_prev_sh[1][1];
+        pr_prev2 = pr_next_sh[0][1] ^ pr_next_sh[1][1] ^ p_r_1_next[1];
+    }
+    return std::array<uint64_t, 4>{pr_prev1, pr_next1, pr_prev2, pr_next2};
 }
 
 void OblivSelectEvaluator::EvaluateNextSeed(

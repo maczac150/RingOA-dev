@@ -249,12 +249,63 @@ void FssWMEvaluator::EvaluateRankCF_ShiftedAdditive(Channels                    
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         Logger::DebugLog(LOC, party_str + "Rank01 share for character " + ToString(i) + ": " +
-                                 ToString(rank01_sh[0]) + ", " + ToString(rank01_sh[1]));
+                                  ToString(rank01_sh[0]) + ", " + ToString(rank01_sh[1]));
         Logger::DebugLog(LOC, party_str + "Rank0 share: " + ToString(rank0_sh[0]) + ", " + ToString(rank0_sh[1]));
         Logger::DebugLog(LOC, party_str + "Rank1 share: " + ToString(rank1_sh[0]) + ", " + ToString(rank1_sh[1]));
         uint64_t open_position = 0;
         brss_.Open(chls, position_sh, open_position);
         Logger::DebugLog(LOC, party_str + "Rank CF for character " + ToString(i) + ": " + ToString(open_position));
+#endif
+    }
+    result = position_sh;
+}
+
+void FssWMEvaluator::EvaluateRankCF_ShiftedAdditive_Parallel(Channels                      &chls,
+                                                             const FssWMKey                &key1,
+                                                             const FssWMKey                &key2,
+                                                             std::vector<block>            &uv_prev,
+                                                             std::vector<block>            &uv_next,
+                                                             const sharing::RepShareMat64  &wm_tables,
+                                                             const sharing::RepShareView64 &char_sh,
+                                                             sharing::RepShareVec64        &position_sh,
+                                                             sharing::RepShareVec64        &result) const {
+    uint64_t d        = params_.GetDatabaseBitSize();
+    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssWM key"));
+    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
+    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+#endif
+
+    sharing::RepShareVec64 rank01_sh(2);
+    sharing::RepShareVec64 rank0_sh(2), rank1_sh(2);
+    for (uint64_t i = 0; i < sigma; ++i) {
+        os_eval_.Evaluate_Parallel(chls, key1.os_keys[i], key2.os_keys[i], uv_prev, uv_next, wm_tables.RowView(i), position_sh, rank01_sh);
+
+        for (uint64_t j = 0; j < rank01_sh.Size(); ++j) {
+            rank0_sh[0][j] = GetU32Low(rank01_sh[0][j]);
+            rank0_sh[1][j] = GetU32Low(rank01_sh[1][j]);
+            rank1_sh[0][j] = GetU32High(rank01_sh[0][j]);
+            rank1_sh[1][j] = GetU32High(rank01_sh[1][j]);
+        }
+
+        brss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, party_str + "Rank01 share for character " + ToString(i) + ": " +
+                                  ToString(rank01_sh[0]) + ", " + ToString(rank01_sh[1]));
+        Logger::DebugLog(LOC, party_str + "Rank0 share: " + ToString(rank0_sh[0]) + ", " + ToString(rank0_sh[1]));
+        Logger::DebugLog(LOC, party_str + "Rank1 share: " + ToString(rank1_sh[0]) + ", " + ToString(rank1_sh[1]));
+        std::vector<uint64_t> open_position(2);
+        brss_.Open(chls, position_sh, open_position);
+        Logger::DebugLog(LOC, party_str + "Rank CF for character " + ToString(i) + ": " + ToString(open_position[0]) + ", " + ToString(open_position[1]));
 #endif
     }
     result = position_sh;

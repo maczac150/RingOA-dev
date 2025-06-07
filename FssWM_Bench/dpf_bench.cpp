@@ -65,7 +65,7 @@ void Dpf_Fde_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    // Logger::ExportLogList("./data/log/dpf_bench");
+    // Logger::ExportLogList("./data/logs/dpf_bench");
 }
 
 void Dpf_Fde_Convert_Bench() {
@@ -105,7 +105,7 @@ void Dpf_Fde_Convert_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    // Logger::ExportLogList("./data/log/dpf_bench");
+    // Logger::ExportLogList("./data/logs/dpf_bench");
 }
 
 void Dpf_Fde_One_Bench() {
@@ -154,7 +154,7 @@ void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
 
     Logger::InfoLog(LOC, "Pir Benchmark started");
     for (auto size : sizes) {
-        DpfParameters   params(size, 1, EvalType::kIterSingleBatch);
+        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputType::kSingleBitMask);
         uint64_t        n = params.GetInputBitsize();
         DpfKeyGenerator gen(params);
         DpfEvaluator    eval(params);
