@@ -6,6 +6,7 @@
 #include <map>
 
 #include "file_io.h"
+#include "utils.h"
 
 namespace {
 

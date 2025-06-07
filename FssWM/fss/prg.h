@@ -18,8 +18,11 @@ public:
      * @brief Default constructor for PseudoRandomGenerator.
      * @param init_seed0 The initial seed for the PRG.
      * @param init_seed1 The initial seed for the PRG.
+     * @param init_seed2 The initial seed for the PRG.
+     * @param init_seed3 The initial seed for the PRG.
      */
-    PseudoRandomGenerator(block init_seed0, block init_seed1);
+    PseudoRandomGenerator(block init_seed0, block init_seed1,
+                          block init_seed2, block init_seed3);
 
     /**
      * @brief Encrypts the input block using a single AES key.
@@ -28,6 +31,14 @@ public:
      * @param key_lr The AES key to be used.
      */
     void Expand(block seed_in, block &seed_out, bool key_lr);
+
+    /**
+     * @brief Encrypts the input block using a single AES key.
+     * @param seed_in The input block to be encrypted.
+     * @param seed_out The output block after encryption.
+     * @param key_lr The AES key to be used.
+     */
+    void ExpandValue(block seed_in, block &seed_out, bool key_lr);
 
     /**
      * @brief Encrypts an array of 8 input blocks using a single AES key.
@@ -44,19 +55,18 @@ public:
      */
     void DoubleExpand(block seed_in, std::array<block, 2> &seed_out);
 
-private:
-    std::array<osuCrypto::AES, 2> aes_; /**< AES instances for the PRG from osuCrypto. */
-};
+    /**
+     * @brief Encrypts the input block using the PRG.
+     * @param seed_in The input block to be encrypted.
+     * @param seed_out The output block after encryption.
+     */
+    void DoubleExpandValue(block seed_in, std::array<block, 2> &seed_out);
 
-class PseudoRandomGeneratorSingleton {
-public:
     static PseudoRandomGenerator &GetInstance();
 
-    PseudoRandomGeneratorSingleton(const PseudoRandomGeneratorSingleton &)            = delete;
-    PseudoRandomGeneratorSingleton &operator=(const PseudoRandomGeneratorSingleton &) = delete;
-
 private:
-    PseudoRandomGeneratorSingleton() = default;
+    std::array<osuCrypto::AES, 2> aes_seed_;  /**< AES instances for the PRG from osuCrypto. */
+    std::array<osuCrypto::AES, 2> aes_value_; /**< AES instances for the PRG from osuCrypto. */
 };
 
 }    // namespace prg

@@ -4,8 +4,10 @@
 
 namespace {
 
-const fsswm::block kPrgKeySeedLeft  = fsswm::MakeBlock(0xf2416bf54f02e446, 0xcc2ce93fdbcccc28);    // First half of the SHA256 hash for `dpf::kPrgKeySeedLeft`
-const fsswm::block kPrgKeySeedRight = fsswm::MakeBlock(0x65776b0991b8d225, 0xdac18583c2123349);    // First half of the SHA256 hash for `dpf::kPrgKeySeedRight`
+const fsswm::block kPrgKeySeedLeft   = fsswm::MakeBlock(0x00, 0x00);
+const fsswm::block kPrgKeySeedRight  = fsswm::MakeBlock(0x00, 0x01);
+const fsswm::block kPrgKeyValueRight = fsswm::MakeBlock(0x01, 0x00);
+const fsswm::block kPrgKeyValueLeft  = fsswm::MakeBlock(0x01, 0x01);
 
 }    // namespace
 
@@ -13,14 +15,23 @@ namespace fsswm {
 namespace fss {
 namespace prg {
 
-PseudoRandomGenerator::PseudoRandomGenerator(block init_seed0, block init_seed1) {
-    aes_[0].setKey(init_seed0);
-    aes_[1].setKey(init_seed1);
+PseudoRandomGenerator::PseudoRandomGenerator(block init_seed0, block init_seed1,
+                                             block init_seed2, block init_seed3) {
+    aes_seed_[0].setKey(init_seed0);
+    aes_seed_[1].setKey(init_seed1);
+    aes_value_[0].setKey(init_seed2);
+    aes_value_[1].setKey(init_seed3);
 }
 
 void PseudoRandomGenerator::Expand(block seed_in, block &seed_out, bool key_lr) {
     block tmp = seed_in;
-    aes_[key_lr].ecbEncBlock(tmp, tmp);
+    aes_seed_[key_lr].ecbEncBlock(tmp, tmp);
+    seed_out = seed_in ^ tmp;
+}
+
+void PseudoRandomGenerator::ExpandValue(block seed_in, block &seed_out, bool key_lr) {
+    block tmp = seed_in;
+    aes_value_[key_lr].ecbEncBlock(tmp, tmp);
     seed_out = seed_in ^ tmp;
 }
 
@@ -36,7 +47,7 @@ void PseudoRandomGenerator::Expand(std::array<block, 8> &seed_in, std::array<blo
     tmp[6] = seed_in[6];
     tmp[7] = seed_in[7];
 
-    aes_[key_lr].ecbEncBlocks<8>(tmp.data(), tmp.data());
+    aes_seed_[key_lr].ecbEncBlocks<8>(tmp.data(), tmp.data());
 
     seed_out[0] = seed_in[0] ^ tmp[0];
     seed_out[1] = seed_in[1] ^ tmp[1];
@@ -53,15 +64,28 @@ void PseudoRandomGenerator::DoubleExpand(block seed_in, std::array<block, 2> &se
     tmp[0] = seed_out[0] = seed_in;
     tmp[1] = seed_out[1] = seed_in;
 
-    aes_[0].ecbEncBlock(tmp[0], tmp[0]);
-    aes_[1].ecbEncBlock(tmp[1], tmp[1]);
+    aes_seed_[0].ecbEncBlock(tmp[0], tmp[0]);
+    aes_seed_[1].ecbEncBlock(tmp[1], tmp[1]);
 
     seed_out[0] = seed_out[0] ^ tmp[0];
     seed_out[1] = seed_out[1] ^ tmp[1];
 }
 
-PseudoRandomGenerator &PseudoRandomGeneratorSingleton::GetInstance() {
-    static PseudoRandomGenerator instance(kPrgKeySeedLeft, kPrgKeySeedRight);
+void PseudoRandomGenerator::DoubleExpandValue(block seed_in, std::array<block, 2> &seed_out) {
+    block tmp[2];
+    tmp[0] = seed_out[0] = seed_in;
+    tmp[1] = seed_out[1] = seed_in;
+
+    aes_value_[0].ecbEncBlock(tmp[0], tmp[0]);
+    aes_value_[1].ecbEncBlock(tmp[1], tmp[1]);
+
+    seed_out[0] = seed_out[0] ^ tmp[0];
+    seed_out[1] = seed_out[1] ^ tmp[1];
+}
+
+PseudoRandomGenerator &PseudoRandomGenerator::GetInstance() {
+    static PseudoRandomGenerator instance(
+        kPrgKeySeedLeft, kPrgKeySeedRight, kPrgKeyValueLeft, kPrgKeyValueRight);
     return instance;
 }
 

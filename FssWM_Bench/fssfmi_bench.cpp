@@ -35,8 +35,9 @@ std::string GenerateRandomString(size_t length, const std::string &charset = "AT
     return result;
 }
 
-std::vector<uint64_t> text_bitsizes     = {16, 18, 20, 22, 24, 26};
-std::vector<uint64_t> text_bitsizes_all = fsswm::CreateSequence(10, 27);
+// std::vector<uint64_t> text_bitsizes = fsswm::CreateSequence(10, 27);
+// std::vector<uint64_t> text_bitsizes     = {16, 18, 20, 22, 24, 26};
+std::vector<uint64_t> text_bitsizes     = {24};
 std::vector<uint64_t> query_sizes       = {16};
 
 constexpr uint64_t kRepeatDefault = 10;
@@ -136,7 +137,7 @@ void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "FssFMI_Offline_Bench - Finished");
-    // Logger::ExportLogList("./data/logs/fssfmi_offline");
+    Logger::ExportLogList("./data/logs/fssfmi_offline");
 }
 
 void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {

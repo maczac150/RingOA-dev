@@ -13,6 +13,7 @@ set(TEST_SOURCES
     utils/file_io_test.cpp
     fss/prg_test.cpp
     fss/dpf_test.cpp
+    fss/dcf_test.cpp
     sharing/additive_2p_test.cpp
     sharing/binary_2p_test.cpp
     sharing/additive_3p_test.cpp
@@ -20,6 +21,7 @@ set(TEST_SOURCES
     wm/wm_test.cpp
     wm/obliv_select_test.cpp
     wm/fsswm_test.cpp
+    wm/ddcf_test.cpp
     fm_index/zt_test.cpp
     fm_index/fssfmi_test.cpp
     test_main.cpp

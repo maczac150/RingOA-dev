@@ -7,6 +7,7 @@
 #include "FssWM/utils/rng.h"
 #include "FssWM_Tests/fm_index/fssfmi_test.h"
 #include "FssWM_Tests/fm_index/zt_test.h"
+#include "FssWM_Tests/fss/dcf_test.h"
 #include "FssWM_Tests/fss/dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
 #include "FssWM_Tests/sharing/additive_2p_test.h"
@@ -17,6 +18,7 @@
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
 #include "FssWM_Tests/utils/utils_test.h"
+#include "FssWM_Tests/wm/ddcf_test.h"
 #include "FssWM_Tests/wm/fsswm_test.h"
 #include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
@@ -35,6 +37,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Test", Dpf_Fde_Test);
     t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
     t.add("Dpf_Pir_Test", Dpf_Pir_Test);
+    t.add("Dcf_EvalAt_Test", Dcf_EvalAt_Test);
+    t.add("Dcf_Fde_Test", Dcf_Fde_Test);
     t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
     t.add("Additive2P_EvaluateAdd_Online_Test", Additive2P_EvaluateAdd_Online_Test);
     t.add("Additive2P_EvaluateMult_Offline_Test", Additive2P_EvaluateMult_Offline_Test);
@@ -65,6 +69,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("FssWM_Offline_Test", FssWM_Offline_Test);
     t.add("FssWM_SingleBitMask_Online_Test", FssWM_SingleBitMask_Online_Test);
     t.add("FssWM_ShiftedAdditive_Online_Test", FssWM_ShiftedAdditive_Online_Test);
+    t.add("Ddcf_EvalAt_Test", Ddcf_EvalAt_Test);
+    t.add("Ddcf_Fde_Test", Ddcf_Fde_Test);
     t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);
     t.add("FssFMI_SingleBitMask_Online_Test", FssFMI_SingleBitMask_Online_Test);
     t.add("FssFMI_ShiftedAdditive_Online_Test", FssFMI_ShiftedAdditive_Online_Test);

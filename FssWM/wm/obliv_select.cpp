@@ -168,7 +168,7 @@ OblivSelectEvaluator::OblivSelectEvaluator(
     const OblivSelectParameters        &params,
     sharing::BinaryReplicatedSharing3P &brss)
     : params_(params), eval_(params.GetParameters()), brss_(brss),
-      G_(fss::prg::PseudoRandomGeneratorSingleton::GetInstance()) {
+      G_(fss::prg::PseudoRandomGenerator::GetInstance()) {
 }
 
 void OblivSelectEvaluator::Evaluate(Channels                         &chls,

@@ -16,7 +16,7 @@ using fsswm::ToString, fsswm::Format;
 void Prg_Test() {
     Logger::DebugLog(LOC, "Prg_Test...");
 
-    fsswm::fss::prg::PseudoRandomGenerator prg = fsswm::fss::prg::PseudoRandomGeneratorSingleton::GetInstance();
+    fsswm::fss::prg::PseudoRandomGenerator prg = fsswm::fss::prg::PseudoRandomGenerator::GetInstance();
     Logger::DebugLog(LOC, "PseudoRandomGenerator created successfully");
 
     block                seed_in = fsswm::MakeBlock(0x1234567890abcdef, 0x1234567890abcdef);

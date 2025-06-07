@@ -14,7 +14,7 @@ namespace dpf {
 
 DpfEvaluator::DpfEvaluator(const DpfParameters &params)
     : params_(params),
-      G_(prg::PseudoRandomGeneratorSingleton::GetInstance()) {
+      G_(prg::PseudoRandomGenerator::GetInstance()) {
 }
 
 uint64_t DpfEvaluator::EvaluateAt(const DpfKey &key, uint64_t x) const {

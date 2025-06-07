@@ -12,7 +12,7 @@ namespace dpf {
 
 DpfKeyGenerator::DpfKeyGenerator(const DpfParameters &params)
     : params_(params),
-      G_(prg::PseudoRandomGeneratorSingleton::GetInstance()) {
+      G_(prg::PseudoRandomGenerator::GetInstance()) {
 }
 
 std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t beta) const {

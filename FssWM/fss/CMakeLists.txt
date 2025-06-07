@@ -9,6 +9,9 @@ add_library(fss
     dpf_key.cpp
     dpf_gen.cpp
     dpf_eval.cpp
+    dcf_key.cpp
+    dcf_gen.cpp
+    dcf_eval.cpp
 )
 
 # Include directories
