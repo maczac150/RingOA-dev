@@ -56,9 +56,8 @@ void Ddcf_EvalAt_Test() {
     for (auto [n, e] : size_pair) {
         DdcfParameters param(n, e);
         param.PrintParameters();
-        BinarySharing2P             bss(e);
-        DdcfKeyGenerator            gen(param, bss);
-        DdcfEvaluator               eval(param, bss);
+        DdcfKeyGenerator            gen(param);
+        DdcfEvaluator               eval(param);
         uint64_t                    alpha  = 5;
         uint64_t                    beta_1 = 1;
         uint64_t                    beta_2 = 2;
@@ -94,9 +93,8 @@ void Ddcf_Fde_Test() {
     for (auto [n, e] : size_pair) {
         DdcfParameters param(n, e);
         param.PrintParameters();
-        BinarySharing2P  bss(e);
-        DdcfKeyGenerator gen(param, bss);
-        DdcfEvaluator    eval(param, bss);
+        DdcfKeyGenerator gen(param);
+        DdcfEvaluator    eval(param);
         uint64_t         alpha  = 5;
         uint64_t         beta_1 = 1;
         uint64_t         beta_2 = 2;

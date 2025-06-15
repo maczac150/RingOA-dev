@@ -1,18 +1,11 @@
-#ifndef WM_DDCF_KEY_H_
-#define WM_DDCF_KEY_H_
+#ifndef WM_DDCF_H_
+#define WM_DDCF_H_
 
 #include "FssWM/fss/dcf_eval.h"
 #include "FssWM/fss/dcf_gen.h"
 #include "FssWM/fss/dcf_key.h"
 
 namespace fsswm {
-
-namespace sharing {
-
-class BinarySharing2P;
-
-}    // namespace sharing
-
 namespace fss {
 namespace prg {
 
@@ -194,7 +187,7 @@ public:
      * @brief Parameterized constructor for DdcfKeyGenerator.
      * @param params DdcfParameters for the DdcfKey.
      */
-    explicit DdcfKeyGenerator(const DdcfParameters &params, sharing::BinarySharing2P &bss);
+    explicit DdcfKeyGenerator(const DdcfParameters &params);
 
     /**
      * @brief Generate a DDCF key for the given alpha and beta values.
@@ -208,7 +201,6 @@ public:
 private:
     DdcfParameters            params_; /**< DDCF parameters for the DDCF key. */
     fss::dcf::DcfKeyGenerator gen_;    /**< DCF key generator for the DDCF key. */
-    sharing::BinarySharing2P &bss_;    /**< Binary sharing for 2-party for the DDCF key. */
 };
 
 /**
@@ -225,7 +217,7 @@ public:
      * @brief Parameterized constructor for DdcfEvaluator.
      * @param params DdcfParameters for the DdcfKey.
      */
-    explicit DdcfEvaluator(const DdcfParameters &params, sharing::BinarySharing2P &bss);
+    explicit DdcfEvaluator(const DdcfParameters &params);
 
     /**
      * @brief Evaluate the DDCF key at the given x value.
@@ -236,12 +228,11 @@ public:
     uint64_t EvaluateAt(const DdcfKey &key, uint64_t x) const;
 
 private:
-    DdcfParameters            params_; /**< DDCF parameters for the DDCF key. */
-    fss::dcf::DcfEvaluator    eval_;   /**< DCF evaluator for the DDCF key. */
-    sharing::BinarySharing2P &bss_;    /**< Binary sharing for 2-party for the DDCF key. */
+    DdcfParameters         params_; /**< DDCF parameters for the DDCF key. */
+    fss::dcf::DcfEvaluator eval_;   /**< DCF evaluator for the DDCF key. */
 };
 
 }    // namespace wm
 }    // namespace fsswm
 
-#endif    // WM_DDCF_KEY_H_
+#endif    // WM_DDCF_H_

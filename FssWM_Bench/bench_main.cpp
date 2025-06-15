@@ -24,6 +24,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("OblivSelect_Binary_Online_Bench", OblivSelect_Binary_Online_Bench);
     t.add("OblivSelect_Additive_Offline_Bench", OblivSelect_Additive_Offline_Bench);
     t.add("OblivSelect_Additive_Online_Bench", OblivSelect_Additive_Online_Bench);
+    t.add("MixedOblivSelect_Offline_Bench", MixedOblivSelect_Offline_Bench);
+    t.add("MixedOblivSelect_Online_Bench", MixedOblivSelect_Online_Bench);
     t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
     t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
 });

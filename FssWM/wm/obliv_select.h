@@ -223,7 +223,6 @@ public:
     /**
      * @brief Parameterized constructor for OblivSelectEvaluator.
      * @param params OblivSelectParameters for the OblivSelectEvaluator.
-     * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
      * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
      */
     OblivSelectEvaluator(const OblivSelectParameters        &params,

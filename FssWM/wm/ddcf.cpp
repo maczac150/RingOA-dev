@@ -3,7 +3,6 @@
 #include <cstring>
 
 #include "FssWM/fss/prg.h"
-#include "FssWM/sharing/binary_2p.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/to_string.h"
@@ -81,8 +80,8 @@ void DdcfKey::PrintKey(const bool detailed) const {
 #endif
 }
 
-DdcfKeyGenerator::DdcfKeyGenerator(const DdcfParameters &params, sharing::BinarySharing2P &bss)
-    : params_(params), gen_(params.GetParameters()), bss_(bss) {
+DdcfKeyGenerator::DdcfKeyGenerator(const DdcfParameters &params)
+    : params_(params), gen_(params.GetParameters()) {
 }
 
 std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t beta_1, uint64_t beta_2) const {
@@ -108,9 +107,6 @@ std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint6
     key_pair.second.dcf_key = std::move(dcf_keys.second);
 
     // Generate share of beta_2
-    // std::pair<uint64_t, uint64_t> beta_2_sh = bss_.Share(beta_2);
-    // key_pair.first.mask                     = beta_2_sh.first;
-    // key_pair.second.mask                    = beta_2_sh.second;
     key_pair.first.mask  = Mod(GlobalRng::Rand<uint64_t>(), e);
     key_pair.second.mask = Mod(beta_2 - key_pair.first.mask, e);
 
@@ -123,8 +119,8 @@ std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint6
     return key_pair;
 }
 
-DdcfEvaluator::DdcfEvaluator(const DdcfParameters &params, sharing::BinarySharing2P &bss)
-    : params_(params), eval_(params.GetParameters()), bss_(bss) {
+DdcfEvaluator::DdcfEvaluator(const DdcfParameters &params)
+    : params_(params), eval_(params.GetParameters()) {
 }
 
 uint64_t DdcfEvaluator::EvaluateAt(const DdcfKey &key, uint64_t x) const {

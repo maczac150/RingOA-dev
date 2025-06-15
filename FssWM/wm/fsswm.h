@@ -1,6 +1,7 @@
 #ifndef WM_FSSWM_H_
 #define WM_FSSWM_H_
 
+#include "mixed_obliv_select.h"
 #include "obliv_select.h"
 
 namespace fsswm {

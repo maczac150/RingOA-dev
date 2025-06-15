@@ -35,6 +35,19 @@ inline void SetLsbZero(block &x) {
     // Set the least significant bit to zero
     x.mData = _mm_andnot_si128(_mm_set_epi64x(0, 1), x.mData);
 }
+/**
+ * @brief Get the bit at a specific position in a block.
+ * @param block The block to be checked.
+ * @param bit_position The position of the bit to be checked (0-127).
+ * @return True if the bit is set, false otherwise.
+ */
+inline bool GetBit(block &block, uint64_t bit_position) {
+    if (bit_position < 64) {
+        return (block.get<uint64_t>()[0] >> bit_position) & 1;
+    } else {
+        return (block.get<uint64_t>()[1] >> (bit_position - 64)) & 1;
+    }
+}
 
 // Predefined constants
 static const block                zero_block         = MakeBlock(0, 0);

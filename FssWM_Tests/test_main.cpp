@@ -62,6 +62,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("OblivSelect_Offline_Test", OblivSelect_Offline_Test);
     t.add("OblivSelect_SingleBitMask_Online_Test", OblivSelect_SingleBitMask_Online_Test);
     t.add("OblivSelect_ShiftedAdditive_Online_Test", OblivSelect_ShiftedAdditive_Online_Test);
+    t.add("MixedOblivSelect_Offline_Test", MixedOblivSelect_Offline_Test);
+    t.add("MixedOblivSelect_Online_Test", MixedOblivSelect_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
     t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);

@@ -15,7 +15,7 @@ DpfKeyGenerator::DpfKeyGenerator(const DpfParameters &params)
       G_(prg::PseudoRandomGenerator::GetInstance()) {
 }
 
-std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t beta) const {
+std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(const uint64_t alpha, const uint64_t beta) const {
     // Validate the input values
     if (!ValidateInput(alpha, beta)) {
         Logger::FatalLog(LOC, "Invalid input values: alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
@@ -44,7 +44,43 @@ std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t
     return key_pair;
 }
 
-void DpfKeyGenerator::GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
+std::pair<DpfKey, DpfKey> DpfKeyGenerator::GenerateKeys(const uint64_t alpha, const uint64_t beta, block &final_seed_0, block &final_seed_1, bool &final_control_bit_1) const {
+    // Validate the input values
+    if (!ValidateInput(alpha, beta)) {
+        Logger::FatalLog(LOC, "Invalid input values: alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
+        std::exit(EXIT_FAILURE);
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    std::string gen_type = params_.GetEnableEarlyTermination() ? "optimized" : "naive";
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate DPF keys (" + gen_type + " approach)"));
+    Logger::DebugLog(LOC, "Alpha: " + ToString(alpha));
+    Logger::DebugLog(LOC, "Beta: " + ToString(beta));
+#endif
+
+    // Initialize the DPF keys
+    DpfKey                    key_0(0, params_);
+    DpfKey                    key_1(1, params_);
+    std::pair<DpfKey, DpfKey> key_pair = std::make_pair(std::move(key_0), std::move(key_1));
+
+    // Generate the DPF key
+    if (params_.GetEnableEarlyTermination()) {
+        GenerateKeysOptimized(alpha, beta, final_seed_0, final_seed_1, final_control_bit_1, key_pair);
+    } else {
+        GenerateKeysNaive(alpha, beta, final_seed_0, final_seed_1, final_control_bit_1, key_pair);
+    }
+
+    return key_pair;
+}
+
+void DpfKeyGenerator::GenerateKeysNaive(const uint64_t alpha, const uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
+    block final_seed_0, final_seed_1;
+    bool  final_control_bit_1;
+    GenerateKeysNaive(alpha, beta, final_seed_0, final_seed_1, final_control_bit_1, key_pair);
+}
+
+void DpfKeyGenerator::GenerateKeysNaive(const uint64_t alpha, const uint64_t beta, block &final_seed_0, block &final_seed_1, bool &final_control_bit_1,
+                                        std::pair<DpfKey, DpfKey> &key_pair) const {
     uint64_t n = params_.GetInputBitsize();
     uint64_t e = params_.GetOutputBitsize();
 
@@ -70,10 +106,11 @@ void DpfKeyGenerator::GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair
     }
 
     // Set the output
-    G_.Expand(seed_0, seed_0, true);
-    G_.Expand(seed_1, seed_1, true);
+    G_.Expand(seed_0, final_seed_0, true);
+    G_.Expand(seed_1, final_seed_1, true);
+    final_control_bit_1 = control_bit_1;
 
-    uint64_t result        = Mod(Sign(control_bit_1) * (beta - Convert(seed_0, e) + Convert(seed_1, e)), e);
+    uint64_t result        = Mod(Sign(final_control_bit_1) * (beta - Convert(final_seed_0, e) + Convert(final_seed_1, e)), e);
     block    output        = MakeBlock(0, result);
     key_pair.first.output  = output;
     key_pair.second.output = output;
@@ -85,7 +122,14 @@ void DpfKeyGenerator::GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair
 #endif
 }
 
-void DpfKeyGenerator::GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
+void DpfKeyGenerator::GenerateKeysOptimized(const uint64_t alpha, const uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const {
+    block final_seed_0, final_seed_1;
+    bool  final_control_bit_1;
+    GenerateKeysOptimized(alpha, beta, final_seed_0, final_seed_1, final_control_bit_1, key_pair);
+}
+
+void DpfKeyGenerator::GenerateKeysOptimized(const uint64_t alpha, const uint64_t beta, block &final_seed_0, block &final_seed_1,
+                                            bool &final_control_bit_1, std::pair<DpfKey, DpfKey> &key_pair) const {
     uint64_t   n    = params_.GetInputBitsize();
     uint64_t   nu   = this->params_.GetTerminateBitsize();
     OutputType mode = this->params_.GetOutputType();
@@ -110,12 +154,15 @@ void DpfKeyGenerator::GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::
         bool current_bit = (alpha & (1U << (n - i - 1))) != 0;
         GenerateNextSeed(i, current_bit, seed_0, control_bit_0, seed_1, control_bit_1, key_pair);
     }
+    final_seed_0        = seed_0;
+    final_seed_1        = seed_1;
+    final_control_bit_1 = control_bit_1;
 
     // Set the output
     if (mode == OutputType::kShiftedAdditive) {
-        ComputeAdditiveShiftedOutput(alpha, beta, seed_0, seed_1, control_bit_1, key_pair);
+        ComputeAdditiveShiftedOutput(alpha, beta, final_seed_0, final_seed_1, final_control_bit_1, key_pair);
     } else if (mode == OutputType::kSingleBitMask) {
-        ComputeSingleBitMaskOutput(alpha, seed_0, seed_1, key_pair);
+        ComputeSingleBitMaskOutput(alpha, final_seed_0, final_seed_1, key_pair);
     } else {
         Logger::FatalLog(LOC, "Invalid output mode: " + GetOutputTypeString(mode));
         std::exit(EXIT_FAILURE);
@@ -139,7 +186,6 @@ void DpfKeyGenerator::GenerateNextSeed(const uint64_t current_level, const bool 
                                        block &current_seed_0, bool &current_control_bit_0,
                                        block &current_seed_1, bool &current_control_bit_1,
                                        std::pair<DpfKey, DpfKey> &key_pair) const {
-
     std::array<block, 2> expanded_seed_0;           // expanded_seed_0[keep or lose]
     std::array<block, 2> expanded_seed_1;           // expanded_seed_1[keep or lose]
     std::array<bool, 2>  expanded_control_bit_0;    // expanded_control_bit_0[keep or lose]

@@ -45,6 +45,12 @@ void WaveletMatrix_Test() {
     if (count != 8)
         throw osuCrypto::UnitTestFail("Expected RankCF(3, 8) == 8");
 
+    // kth smallest element in the range [2, 8)
+    for (size_t k = 0; k <= 6; ++k) {
+        uint64_t kth_smallest = wm.kthSmallest(2, 8, k);
+        Logger::DebugLog(LOC, "kthSmallest(2, 8, " + ToString(k) + ") = " + ToString(kth_smallest));
+    }
+
     Logger::DebugLog(LOC, "WaveletMatrix_Test - Passed");
 }
 

@@ -36,7 +36,8 @@ public:
      * @param beta The beta value for the DPF key.
      * @return A pair of DpfKey for the DPF key.
      */
-    std::pair<DpfKey, DpfKey> GenerateKeys(uint64_t alpha, uint64_t beta) const;
+    std::pair<DpfKey, DpfKey> GenerateKeys(const uint64_t alpha, const uint64_t beta) const;
+    std::pair<DpfKey, DpfKey> GenerateKeys(const uint64_t alpha, const uint64_t beta, block &final_seed_0, block &final_seed_1, bool &final_control_bit_1) const;
 
     /**
      * @brief Generate a DPF key using the naive approach.
@@ -44,7 +45,9 @@ public:
      * @param beta The beta value for the DPF key.
      * @param key_pair The pair of DpfKey for the DPF key.
      */
-    void GenerateKeysNaive(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
+    void GenerateKeysNaive(const uint64_t alpha, const uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
+    void GenerateKeysNaive(const uint64_t alpha, const uint64_t beta, block &final_seed_0, block &final_seed_1,
+                           bool &final_control_bit_1, std::pair<DpfKey, DpfKey> &key_pair) const;
 
     /**
      * @brief Generate a DPF key using the early termination approach.
@@ -52,7 +55,9 @@ public:
      * @param beta The beta value for the DPF key.
      * @param key_pair The pair of DpfKey for the DPF key.
      */
-    void GenerateKeysOptimized(uint64_t alpha, uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
+    void GenerateKeysOptimized(const uint64_t alpha, const uint64_t beta, std::pair<DpfKey, DpfKey> &key_pair) const;
+    void GenerateKeysOptimized(const uint64_t alpha, const uint64_t beta, block &final_seed_0, block &final_seed_1,
+                               bool &final_control_bit_1, std::pair<DpfKey, DpfKey> &key_pair) const;
 
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */
@@ -89,11 +94,11 @@ private:
      * @param key_pair The pair of DpfKey for the DPF key.
      */
     void ComputeAdditiveShiftedOutput(uint64_t alpha, uint64_t beta,
-                           block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
-                           std::pair<DpfKey, DpfKey> &key_pair) const;
+                                      block &final_seed_0, block &final_seed_1, bool final_control_bit_1,
+                                      std::pair<DpfKey, DpfKey> &key_pair) const;
 
     void ComputeSingleBitMaskOutput(uint64_t alpha, block &final_seed_0, block &final_seed_1,
-                              std::pair<DpfKey, DpfKey> &key_pair) const;
+                                    std::pair<DpfKey, DpfKey> &key_pair) const;
 };
 
 }    // namespace dpf

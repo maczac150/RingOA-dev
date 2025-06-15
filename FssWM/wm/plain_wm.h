@@ -50,7 +50,7 @@ private:
  */
 class WaveletMatrix {
 public:
-    WaveletMatrix()                                     = default;
+    WaveletMatrix() = default;
 
     explicit WaveletMatrix(const std::string &data, const CharType type = CharType::DNA);
     explicit WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma);
@@ -66,6 +66,7 @@ public:
     void                         PrintRank1Tables() const;
 
     uint64_t RankCF(uint64_t c, size_t position) const;
+    uint64_t kthSmallest(size_t l, size_t r, size_t k) const;
 
 private:
     size_t                length_;

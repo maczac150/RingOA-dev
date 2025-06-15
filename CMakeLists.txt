@@ -70,6 +70,7 @@ if(NOT DEFINED LOG_LEVEL) # LOG_LEVELがユーザーによって指定されて�
         set(USE_FIXED_RANDOM_SEED 0)
     elseif(CMAKE_BUILD_TYPE MATCHES Debug)
         set(LOG_LEVEL 5) # DEBUG
+        add_compile_definitions(USE_FIXED_RANDOM_SEED)
     elseif(CMAKE_BUILD_TYPE MATCHES Profile)
         set(LOG_LEVEL 0) # NONE
     endif()

@@ -128,12 +128,12 @@ WaveletMatrix::WaveletMatrix(const std::string &data, const CharType type)
 
 WaveletMatrix::WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma)
     : length_(0), sigma_(sigma) {
+    data_ = data;
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma_));
     Logger::DebugLog(LOC, "Data: " + ToString(data_));
     Logger::DebugLog(LOC, "Length: " + ToString(data.size()));
 #endif
-    data_ = data;
     Build(data_);
 }
 
@@ -169,7 +169,7 @@ void WaveletMatrix::PrintRank0Tables() const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     const size_t stride = length_ + 1;
     for (size_t bit = 0; bit < sigma_; ++bit) {
-        size_t off = bit * stride;
+        size_t                    off = bit * stride;
         std::span<const uint64_t> tbl(&rank0_tables_[off], stride);
         Logger::DebugLog(
             LOC,
@@ -213,6 +213,57 @@ uint64_t WaveletMatrix::RankCF(uint64_t c, size_t position) const {
 #endif
     }
     return position;
+}
+
+uint64_t WaveletMatrix::kthSmallest(size_t l, size_t r, size_t k) const {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "kthSmallest(" + ToString(l) + ", " + ToString(r) + ", " + ToString(k) + ")");
+#endif
+
+    uint64_t     result = 0;
+    size_t       left   = l;
+    size_t       right  = r;
+    const size_t stride = length_ + 1;
+
+    // Traverse from most significant bit (sigma_-1) down to 0
+    for (size_t lvl = sigma_; lvl > 0; --lvl) {
+        size_t bit = lvl - 1;
+        size_t off = bit * stride;
+
+        // count zeros in [left, right)
+        size_t z_left     = rank0_tables_[off + left];
+        size_t z_right    = rank0_tables_[off + right];
+        size_t zero_count = z_right - z_left;
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Level " + ToString(lvl) + " (bit: " + ToString(bit) + ") - "
+                                                                                     "z_left: " +
+                                  ToString(z_left) + ", z_right: " + ToString(z_right) +
+                                  ", zero_count: " + ToString(zero_count));
+#endif
+
+        if (k < zero_count) {
+            // k-th lies in the 0-bucket
+            left  = z_left;
+            right = z_right;
+        } else {
+            // k-th lies in the 1-bucket
+            k -= zero_count;
+
+            // total number of zeros across the entire level
+            size_t total_zeros = rank0_tables_[off + length_ - 1];
+            // number of ones before left/right
+            size_t o_left  = (left - z_left);
+            size_t o_right = (right - z_right);
+
+            left  = total_zeros + o_left;
+            right = total_zeros + o_right;
+
+            // set this bit in the result
+            result |= (1ULL << bit);
+        }
+    }
+
+    return result;
 }
 
 void WaveletMatrix::Build(const std::vector<uint64_t> &data) {
