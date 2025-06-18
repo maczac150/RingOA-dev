@@ -261,6 +261,64 @@ void ReplicatedSharing3P::EvaluateMult(Channels &chls, const RepShareVec64 &x_ve
     chls.prev.recv(z_vec_sh.data[1]);
 }
 
+void ReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShare64 &x_sh, const RepShare64 &y_sh, const RepShare64 &c_sh, RepShare64 &z_sh) {
+    // ----------------------------------------------------
+    // 1) Compute y_sub_x = (y - x) mod bitsize
+    // ----------------------------------------------------
+    RepShare64 y_sub_x;
+    EvaluateSub(y_sh, x_sh, y_sub_x);
+
+    // ----------------------------------------------------
+    // 2) Compute c_mul_y_sub_x = c * (y - x) using Beaver triple
+    //    This is a secure multiplication: EvaluateMult()
+    // ----------------------------------------------------
+    RepShare64 c_mul_y_sub_x;
+    EvaluateMult(chls, c_sh, y_sub_x, c_mul_y_sub_x);
+
+    // ----------------------------------------------------
+    // 3) Finally, z = x + c_mul_y_sub_x
+    // ----------------------------------------------------
+    EvaluateAdd(x_sh, c_mul_y_sub_x, z_sh);
+}
+
+void ReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, const RepShare64 &c_sh, RepShareVec64 &z_vec_sh) {
+    if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
+        Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateSelect.");
+        return;
+    }
+
+    if (z_vec_sh.num_shares != x_vec_sh.num_shares) {
+        z_vec_sh.num_shares = x_vec_sh.num_shares;
+        z_vec_sh.data[0].resize(x_vec_sh.num_shares);
+        z_vec_sh.data[1].resize(x_vec_sh.num_shares);
+    }
+
+    const size_t n = x_vec_sh.num_shares;
+    // ----------------------------------------------------
+    // 1) Compute y_sub_x = (y - x) mod bitsize
+    // ----------------------------------------------------
+    RepShareVec64 y_sub_x(n);
+    EvaluateSub(y_vec_sh, x_vec_sh, y_sub_x);
+
+    // ----------------------------------------------------
+    // 2) Compute c_mul_y_sub_x = c * (y - x) using Beaver triple
+    //    This is a secure multiplication: EvaluateMult()
+    // ----------------------------------------------------
+    RepShareVec64 c_mul_y_sub_x(n);
+    for (uint64_t i = 0; i < n; ++i) {
+        uint64_t   t_sh = Mod(y_sub_x.data[0][i] * c_sh.data[0] + y_sub_x.data[1][i] * c_sh.data[0] + y_sub_x.data[0][i] * c_sh.data[1], bitsize_);
+        RepShare64 r_sh;
+        Rand(r_sh);
+        c_mul_y_sub_x.data[0][i] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+    }
+    chls.next.send(c_mul_y_sub_x.data[0]);
+    chls.prev.recv(c_mul_y_sub_x.data[1]);
+    // ----------------------------------------------------
+    // 3) Finally, z = x + c_mul_y_sub_x
+    // ----------------------------------------------------
+    EvaluateAdd(x_vec_sh, c_mul_y_sub_x, z_vec_sh);
+}
+
 void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, RepShare64 &z) {
     if (x_vec_sh.num_shares != y_vec_sh.num_shares) {
         Logger::ErrorLog(LOC, "Size mismatch: x_vec_sh.num_shares != y_vec_sh.num_shares in EvaluateInnerProduct.");
@@ -280,10 +338,10 @@ void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const RepShareVec
 
 void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
     Logger::DebugLog(LOC, "Offline Rand for ReplicatedSharing3P.");
-    block key_0 = GlobalRng::Rand<block>();
-    block key_1 = GlobalRng::Rand<block>();
-    block key_2 = GlobalRng::Rand<block>();
-    std::array<block, kThreeParties> keys = {key_0, key_1, key_2};
+    block                            key_0 = GlobalRng::Rand<block>();
+    block                            key_1 = GlobalRng::Rand<block>();
+    block                            key_2 = GlobalRng::Rand<block>();
+    std::array<block, kThreeParties> keys  = {key_0, key_1, key_2};
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     for (uint64_t i = 0; i < kThreeParties; ++i) {

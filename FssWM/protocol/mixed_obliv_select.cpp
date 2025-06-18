@@ -12,7 +12,7 @@
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
-namespace wm {
+namespace proto {
 
 void MixedOblivSelectParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[Obliv Select Parameters]" + GetParametersInfo());
@@ -211,7 +211,7 @@ MixedOblivSelectEvaluator::MixedOblivSelectEvaluator(
     : params_(params), eval_(params.GetParameters()), rss_(rss), ass_prev_(ass_prev), ass_next_(ass_next) {
 }
 
-void MixedOblivSelectEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) {
+void MixedOblivSelectEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) const {
     if (party_id == 0) {
         ass_prev_.OnlineSetUp(1, file_path + "btP2P0");
         ass_next_.OnlineSetUp(0, file_path + "btP0P1");
@@ -286,6 +286,86 @@ void MixedOblivSelectEvaluator::Evaluate(Channels                      &chls,
     sharing::RepShare64 r_sh;
     rss_.Rand(r_sh);
     result[0] = Mod(selected_sh + r_sh[0] - r_sh[1], d);
+    chls.next.send(result[0]);
+    chls.prev.recv(result[1]);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " result: " + ToString(result[0]) + ", " + ToString(result[1]));
+#endif
+}
+
+void MixedOblivSelectEvaluator::Evaluate_Parallel(Channels                      &chls,
+                                                  const MixedOblivSelectKey     &key1,
+                                                  const MixedOblivSelectKey     &key2,
+                                                  std::vector<block>            &uv_prev,
+                                                  std::vector<block>            &uv_next,
+                                                  const sharing::RepShareView64 &database,
+                                                  const sharing::RepShareVec64  &index,
+                                                  sharing::RepShareVec64        &result) const {
+
+    uint64_t party_id = chls.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
+
+    if (uv_prev.size() != (1UL << nu) || uv_next.size() != (1UL << nu)) {
+        Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv_prev.size()) + " != " + ToString(1UL << nu) +
+                                  " or " + ToString(uv_next.size()) + " != " + ToString(1UL << nu));
+    }
+    if (database.Size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database.Size()) + " != " + ToString(1UL << d));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+    Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
+    Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
+#endif
+
+    // Reconstruct p ^ r_i
+    // pr: [pr_prev1, pr_next1, pr_prev2, pr_next2]
+    std::array<uint64_t, 4> pr = ReconstructMaskedValue(chls, key1, key2, index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " pr_prev1: " + ToString(pr[0]) + ", pr_next1: " + ToString(pr[1]) +
+                              ", pr_prev2: " + ToString(pr[2]) + ", pr_next2: " + ToString(pr[3]));
+#endif
+
+    // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block
+    auto [dp_prev1, dp_next1] = EvaluateFullDomainThenDotProduct(
+        party_id, key1.key_from_prev, key1.key_from_next, uv_prev, uv_next, database, pr[0], pr[1]);
+    auto [dp_prev2, dp_next2] = EvaluateFullDomainThenDotProduct(
+        party_id, key2.key_from_prev, key2.key_from_next, uv_prev, uv_next, database, pr[2], pr[3]);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + "dp_prev1: " + ToString(dp_prev1) + ", dp_next1: " + ToString(dp_next1));
+    Logger::DebugLog(LOC, party_str + "dp_prev2: " + ToString(dp_prev2) + ", dp_next2: " + ToString(dp_next2));
+#endif
+
+    std::array<uint64_t, 2> ext_dp_prev, ext_dp_next;
+    if (party_id == 0) {
+        ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P0 <-> P2
+        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_next}, ext_dp_next);    // P0 <-> P1
+
+    } else if (party_id == 1) {
+        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_next}, ext_dp_next);    // P1 <-> P2
+        ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P1 <-> P0
+    } else {
+        ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P1 <-> P2
+        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_next}, ext_dp_next);    // P0 <-> P2
+    }
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + "ext_dp_prev1: " + ToString(ext_dp_prev[0]) + ", ext_dp_prev2: " + ToString(ext_dp_prev[1]) +
+                              ", ext_dp_next1: " + ToString(ext_dp_next[0]) + ", ext_dp_next2: " + ToString(ext_dp_next[1]));
+#endif
+
+    uint64_t            selected1_sh = Mod(dp_prev1 + dp_next1, d);
+    uint64_t            selected2_sh = Mod(dp_prev2 + dp_next2, d);
+    sharing::RepShare64 r1_sh, r2_sh;
+    rss_.Rand(r1_sh);
+    rss_.Rand(r2_sh);
+    result[0][0] = Mod(selected1_sh + r1_sh[0] + r1_sh[1], d);
+    result[0][1] = Mod(selected2_sh + r2_sh[0] + r2_sh[1], d);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -401,5 +481,83 @@ std::pair<uint64_t, uint64_t> MixedOblivSelectEvaluator::ReconstructMaskedValue(
     return std::make_pair(pr_prev, pr_next);
 }
 
-}    // namespace wm
+std::array<uint64_t, 4> MixedOblivSelectEvaluator::ReconstructMaskedValue(Channels                     &chls,
+                                                                          const MixedOblivSelectKey    &key1,
+                                                                          const MixedOblivSelectKey    &key2,
+                                                                          const sharing::RepShareVec64 &index) const {
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "ReconstructPR for Party " + ToString(chls.party_id));
+#endif
+
+    // Set replicated sharing of random value
+    uint64_t               d        = params_.GetDatabaseSize();
+    uint64_t               pr_prev1 = 0, pr_next1 = 0, pr_prev2 = 0, pr_next2 = 0;
+    sharing::RepShareVec64 r_0_sh(2), r_1_sh(2), r_2_sh(2);
+
+    // Reconstruct p - r_i
+    if (chls.party_id == 0) {
+        r_1_sh.Set(0, sharing::RepShare64(key1.rsh_from_next, 0));
+        r_2_sh.Set(0, sharing::RepShare64(0, key1.rsh_from_prev));
+        r_1_sh.Set(1, sharing::RepShare64(key2.rsh_from_next, 0));
+        r_2_sh.Set(1, sharing::RepShare64(0, key2.rsh_from_prev));
+        sharing::RepShareVec64 pr_20_sh(2), pr_01_sh(2);
+        std::vector<uint64_t>  pr_20(2), pr_01(2);
+        // p - r_1 between Party 0 and Party 2
+        // p - r_2 between Party 0 and Party 1
+        rss_.EvaluateSub(index, r_1_sh, pr_20_sh);
+        rss_.EvaluateSub(index, r_2_sh, pr_01_sh);
+        chls.prev.send(pr_20_sh[0]);
+        chls.next.send(pr_01_sh[1]);
+        chls.next.recv(pr_01);
+        chls.prev.recv(pr_20);
+        pr_prev1 = Mod(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], d);
+        pr_next1 = Mod(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], d);
+        pr_prev2 = Mod(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], d);
+        pr_next2 = Mod(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], d);
+
+    } else if (chls.party_id == 1) {
+        r_0_sh.Set(0, sharing::RepShare64(0, key1.rsh_from_prev));
+        r_2_sh.Set(0, sharing::RepShare64(key1.rsh_from_next, 0));
+        r_0_sh.Set(1, sharing::RepShare64(0, key2.rsh_from_prev));
+        r_2_sh.Set(1, sharing::RepShare64(key2.rsh_from_next, 0));
+        sharing::RepShareVec64 pr_12_sh(2), pr_01_sh(2);
+        std::vector<uint64_t>  pr_12(2), pr_01(2);
+        // p - r_0 between Party 1 and Party 2
+        // p - r_2 between Party 0 and Party 1
+        rss_.EvaluateSub(index, r_0_sh, pr_12_sh);
+        rss_.EvaluateSub(index, r_2_sh, pr_01_sh);
+        chls.next.send(pr_12_sh[1]);
+        chls.prev.send(pr_01_sh[0]);
+        chls.prev.recv(pr_01);
+        chls.next.recv(pr_12);
+        pr_prev1 = Mod(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], d);
+        pr_next1 = Mod(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], d);
+        pr_prev2 = Mod(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], d);
+        pr_next2 = Mod(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], d);
+
+    } else {
+        r_0_sh.Set(0, sharing::RepShare64(key1.rsh_from_next, 0));
+        r_1_sh.Set(0, sharing::RepShare64(0, key1.rsh_from_prev));
+        r_0_sh.Set(1, sharing::RepShare64(key2.rsh_from_next, 0));
+        r_1_sh.Set(1, sharing::RepShare64(0, key2.rsh_from_prev));
+        sharing::RepShareVec64 pr_12_sh(2), pr_20_sh(2);
+        std::vector<uint64_t>  pr_12(2), pr_20(2);
+        // p - r_0 between Party 1 and Party 2
+        // p - r_1 between Party 0 and Party 2
+        rss_.EvaluateSub(index, r_0_sh, pr_12_sh);
+        rss_.EvaluateSub(index, r_1_sh, pr_20_sh);
+        chls.prev.send(pr_12_sh[0]);
+        chls.next.send(pr_20_sh[1]);
+        chls.prev.recv(pr_12);
+        chls.next.recv(pr_20);
+        pr_prev1 = Mod(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], d);
+        pr_next1 = Mod(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], d);
+        pr_prev2 = Mod(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], d);
+        pr_next2 = Mod(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], d);
+    }
+    return std::array<uint64_t, 4>{pr_prev1, pr_next1, pr_prev2, pr_next2};
+}
+
+}    // namespace proto
 }    // namespace fsswm

@@ -1,5 +1,5 @@
-#ifndef WM_DDCF_H_
-#define WM_DDCF_H_
+#ifndef PROTOCOL_DDCF_H_
+#define PROTOCOL_DDCF_H_
 
 #include "FssWM/fss/dcf_eval.h"
 #include "FssWM/fss/dcf_gen.h"
@@ -14,7 +14,7 @@ class PseudoRandomGenerator;
 }    // namespace prg
 }    // namespace fss
 
-namespace wm {
+namespace proto {
 
 /**
  * @brief A class to hold params for the Distributed Comparison Function (DDCF).
@@ -232,7 +232,7 @@ private:
     fss::dcf::DcfEvaluator eval_;   /**< DCF evaluator for the DDCF key. */
 };
 
-}    // namespace wm
+}    // namespace proto
 }    // namespace fsswm
 
-#endif    // WM_DDCF_H_
+#endif    // PROTOCOL_DDCF_H_

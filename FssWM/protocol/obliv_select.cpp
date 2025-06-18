@@ -12,7 +12,7 @@
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
-namespace wm {
+namespace proto {
 
 void OblivSelectParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[Obliv Select Parameters]" + GetParametersInfo());
@@ -719,5 +719,5 @@ void OblivSelectEvaluator::EvaluateNextSeed(
     expanded_control_bits[fss::kRight] ^= control_mask_right;
 }
 
-}    // namespace wm
+}    // namespace proto
 }    // namespace fsswm

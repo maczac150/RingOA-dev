@@ -2,6 +2,9 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
+#include "FssWM/protocol/key_io.h"
+#include "FssWM/protocol/mixed_obliv_select.h"
+#include "FssWM/protocol/obliv_select.h"
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
@@ -11,14 +14,11 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/key_io.h"
-#include "FssWM/wm/mixed_obliv_select.h"
-#include "FssWM/wm/obliv_select.h"
 
 namespace {
 
 const std::string kCurrentPath = fsswm::GetCurrentDirectory();
-const std::string kTestOSPath  = kCurrentPath + "/data/test/wm/";
+const std::string kTestOSPath  = kCurrentPath + "/data/test/protocol/";
 
 }    // namespace
 
@@ -38,15 +38,15 @@ using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
 using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
 using fsswm::sharing::RepShareView64, fsswm::sharing::RepShareViewBlock;
 using fsswm::sharing::ShareIo;
-using fsswm::wm::KeyIo;
-using fsswm::wm::MixedOblivSelectEvaluator;
-using fsswm::wm::MixedOblivSelectKey;
-using fsswm::wm::MixedOblivSelectKeyGenerator;
-using fsswm::wm::MixedOblivSelectParameters;
-using fsswm::wm::OblivSelectEvaluator;
-using fsswm::wm::OblivSelectKey;
-using fsswm::wm::OblivSelectKeyGenerator;
-using fsswm::wm::OblivSelectParameters;
+using fsswm::proto::KeyIo;
+using fsswm::proto::MixedOblivSelectEvaluator;
+using fsswm::proto::MixedOblivSelectKey;
+using fsswm::proto::MixedOblivSelectKeyGenerator;
+using fsswm::proto::MixedOblivSelectParameters;
+using fsswm::proto::OblivSelectEvaluator;
+using fsswm::proto::OblivSelectKey;
+using fsswm::proto::OblivSelectKeyGenerator;
+using fsswm::proto::OblivSelectParameters;
 
 void OblivSelect_Offline_Test() {
     Logger::DebugLog(LOC, "OblivSelect_Offline_Test...");

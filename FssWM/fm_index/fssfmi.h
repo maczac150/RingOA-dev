@@ -5,6 +5,14 @@
 #include "zero_test.h"
 
 namespace fsswm {
+
+namespace sharing {
+
+class BinaryReplicatedSharing3P;
+class BinarySharing2P;
+
+}    // namespace sharing
+
 namespace fm_index {
 
 /**
@@ -24,12 +32,11 @@ public:
      * @param sigma The alphabet size for the FssFMIParameters.
      * @param mode The output type for the FssFMIParameters.
      */
-    FssFMIParameters(const uint64_t        database_bitsize,
-                     const uint64_t        query_size,
-                     const uint64_t        sigma = 3,
-                     const fss::OutputType mode  = fss::OutputType::kShiftedAdditive)
+    FssFMIParameters(const uint64_t database_bitsize,
+                     const uint64_t query_size,
+                     const uint64_t sigma = 3)
         : query_size_(query_size),
-          fsswm_params_(database_bitsize, sigma, mode),
+          fsswm_params_(database_bitsize, sigma),
           zt_params_(database_bitsize) {
     }
 
@@ -41,12 +48,11 @@ public:
      * @param mode The output type for the FssFMIParameters.
      */
 
-    void ReconfigureParameters(const uint64_t        database_bitsize,
-                               const uint64_t        query_size,
-                               const uint64_t        sigma = 3,
-                               const fss::OutputType mode  = fss::OutputType::kShiftedAdditive) {
+    void ReconfigureParameters(const uint64_t database_bitsize,
+                               const uint64_t query_size,
+                               const uint64_t sigma = 3) {
         query_size_ = query_size;
-        fsswm_params_.ReconfigureParameters(database_bitsize, sigma, mode);
+        fsswm_params_.ReconfigureParameters(database_bitsize, sigma);
         zt_params_.ReconfigureParameters(database_bitsize);
     }
 
@@ -209,21 +215,23 @@ public:
     /**
      * @brief Parameterized constructor for FssFMIKeyGenerator.
      * @param params FssWMParameters for the FssFMIKeyGenerator.
-     * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
-     * @param brss Binary replicated sharing for 3-party for the sharing.
+     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param rss Replicated sharing for 3-party for the sharing.
      */
     FssFMIKeyGenerator(
-        const FssFMIParameters             &params,
-        sharing::BinarySharing2P           &bss,
-        sharing::BinaryReplicatedSharing3P &brss);
+        const FssFMIParameters       &params,
+        sharing::AdditiveSharing2P   &ass,
+        sharing::BinarySharing2P     &bss,
+        sharing::ReplicatedSharing3P &rss);
+
+    void OfflineSetUp(const std::string &file_path);
 
     /**
      * @brief Generate shares for the database.
      * @param fm The FMIndex used to generate the shares.
      * @return std::array<std::vector<sharing::RepShareVec>, 3> The generated shares for the database.
      */
-    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseBlockShare(const wm::FMIndex &fm) const;
-    std::array<sharing::RepShareMat64, 3>    GenerateDatabaseU64Share(const wm::FMIndex &fm) const;
+    std::array<sharing::RepShareMat64, 3> GenerateDatabaseU64Share(const wm::FMIndex &fm) const;
 
     /**
      * @brief Generate shares for the query.
@@ -240,10 +248,10 @@ public:
     std::array<FssFMIKey, 3> GenerateKeys() const;
 
 private:
-    FssFMIParameters                    params_; /**< FssFMIParameters for the FssFMIKeyGenerator. */
-    wm::FssWMKeyGenerator               wm_gen_; /**< FssWMKeyGenerator for the FssFMIKeyGenerator. */
-    ZeroTestKeyGenerator                zt_gen_; /**< ZeroTestKeyGenerator for the FssFMIKeyGenerator. */
-    sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary replicated sharing for 3-party for the FssFMIEvaluator. */
+    FssFMIParameters              params_; /**< FssFMIParameters for the FssFMIKeyGenerator. */
+    wm::FssWMKeyGenerator         wm_gen_; /**< FssWMKeyGenerator for the FssFMIKeyGenerator. */
+    ZeroTestKeyGenerator          zt_gen_; /**< ZeroTestKeyGenerator for the FssFMIKeyGenerator. */
+    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssFMIEvaluator. */
 };
 
 /**
@@ -257,35 +265,34 @@ public:
     FssFMIEvaluator() = delete;
 
     FssFMIEvaluator(const FssFMIParameters             &params,
-                    sharing::BinaryReplicatedSharing3P &brss);
+                    sharing::ReplicatedSharing3P       &rss,
+                    sharing::BinaryReplicatedSharing3P &brss,
+                    sharing::AdditiveSharing2P         &ass_prev,
+                    sharing::AdditiveSharing2P         &ass_next);
 
-    void EvaluateLPM_SingleBitMask(Channels                        &chls,
-                                   const FssFMIKey                 &key,
-                                   const sharing::RepShareMatBlock &wm_tables,
-                                   const sharing::RepShareMat64    &query,
-                                   sharing::RepShareVec64          &result) const;
+    void OnlineSetUp(const uint64_t party_id, const std::string &file_path);
 
-    void EvaluateLPM_ShiftedAdditive(Channels                     &chls,
-                                     const FssFMIKey              &key,
-                                     std::vector<block>           &uv_prev,
-                                     std::vector<block>           &uv_next,
-                                     const sharing::RepShareMat64 &wm_tables,
-                                     const sharing::RepShareMat64 &query,
-                                     sharing::RepShareVec64       &result) const;
+    void EvaluateLPM(Channels                     &chls,
+                     const FssFMIKey              &key,
+                     std::vector<block>           &uv_prev,
+                     std::vector<block>           &uv_next,
+                     const sharing::RepShareMat64 &wm_tables,
+                     const sharing::RepShareMat64 &query,
+                     sharing::RepShareVec64       &result) const;
 
-    void EvaluateLPM_ShiftedAdditive_Parallel(Channels                     &chls,
-                                              const FssFMIKey              &key,
-                                              std::vector<block>           &uv_prev,
-                                              std::vector<block>           &uv_next,
-                                              const sharing::RepShareMat64 &wm_tables,
-                                              const sharing::RepShareMat64 &query,
-                                              sharing::RepShareVec64       &result) const;
+    void EvaluateLPM_Parallel(Channels                     &chls,
+                              const FssFMIKey              &key,
+                              std::vector<block>           &uv_prev,
+                              std::vector<block>           &uv_next,
+                              const sharing::RepShareMat64 &wm_tables,
+                              const sharing::RepShareMat64 &query,
+                              sharing::RepShareVec64       &result) const;
 
 private:
-    FssFMIParameters                    params_;  /**< FssFMIParameters for the FssFMIEvaluator. */
-    wm::FssWMEvaluator                  wm_eval_; /**< FssWMEvaluator for the FssFMIEvaluator. */
-    ZeroTestEvaluator                   zt_eval_; /**< ZeroTestEvaluator for the FssFMIEvaluator. */
-    sharing::BinaryReplicatedSharing3P &brss_;    /**< Binary replicated sharing for 3-party for the FssFMIEvaluator. */
+    FssFMIParameters              params_;  /**< FssFMIParameters for the FssFMIEvaluator. */
+    wm::FssWMEvaluator            wm_eval_; /**< FssWMEvaluator for the FssFMIEvaluator. */
+    ZeroTestEvaluator             zt_eval_; /**< ZeroTestEvaluator for the FssFMIEvaluator. */
+    sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the FssFMIEvaluator. */
 };
 
 }    // namespace fm_index

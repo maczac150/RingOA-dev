@@ -1,5 +1,5 @@
-#ifndef WM_KEY_IO_H_
-#define WM_KEY_IO_H_
+#ifndef PROTOCOL_KEY_IO_H_
+#define PROTOCOL_KEY_IO_H_
 
 #include <string>
 
@@ -8,7 +8,7 @@
 #include "FssWM/utils/logger.h"
 
 namespace fsswm {
-namespace wm {
+namespace proto {
 
 // Set key type
 enum class KeyType
@@ -77,7 +77,7 @@ public:
     }
 };
 
-}    // namespace wm
+}    // namespace proto
 }    // namespace fsswm
 
-#endif    // WM_KEY_IO_H_
+#endif    // PROTOCOL_KEY_IO_H_

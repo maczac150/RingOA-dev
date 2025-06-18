@@ -5,6 +5,7 @@
 #include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/fm_index/fssfmi.h"
+#include "FssWM/protocol/key_io.h"
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
@@ -14,7 +15,6 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/key_io.h"
 #include "FssWM/wm/plain_wm.h"
 
 namespace {
@@ -37,8 +37,8 @@ std::string GenerateRandomString(size_t length, const std::string &charset = "AT
 
 // std::vector<uint64_t> text_bitsizes = fsswm::CreateSequence(10, 27);
 // std::vector<uint64_t> text_bitsizes     = {16, 18, 20, 22, 24, 26};
-std::vector<uint64_t> text_bitsizes     = {24};
-std::vector<uint64_t> query_sizes       = {16};
+std::vector<uint64_t> text_bitsizes = {24};
+std::vector<uint64_t> query_sizes   = {16};
 
 constexpr uint64_t kRepeatDefault = 10;
 
@@ -57,6 +57,7 @@ using fsswm::fm_index::FssFMIEvaluator;
 using fsswm::fm_index::FssFMIKey;
 using fsswm::fm_index::FssFMIKeyGenerator;
 using fsswm::fm_index::FssFMIParameters;
+using fsswm::proto::KeyIo;
 using fsswm::sharing::AdditiveSharing2P;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
@@ -66,7 +67,6 @@ using fsswm::sharing::RepShareMat64, fsswm::sharing::RepShareMatBlock;
 using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
 using fsswm::sharing::ShareIo;
 using fsswm::wm::FMIndex;
-using fsswm::wm::KeyIo;
 
 void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "FssFMI_Offline_Bench...");
@@ -74,16 +74,17 @@ void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
 
     for (auto text_bitsize : text_bitsizes) {
         for (auto query_size : query_sizes) {
-            FssFMIParameters          params(text_bitsize, query_size, 3);
-            uint64_t                  d  = params.GetDatabaseBitSize();
-            uint64_t                  ds = params.GetDatabaseSize();
-            uint64_t                  qs = params.GetQuerySize();
-            BinarySharing2P           bss(d);
-            BinaryReplicatedSharing3P brss(d);
-            FssFMIKeyGenerator        gen(params, bss, brss);
-            FileIo                    file_io;
-            ShareIo                   sh_io;
-            KeyIo                     key_io;
+            FssFMIParameters    params(text_bitsize, query_size, 3);
+            uint64_t            d  = params.GetDatabaseBitSize();
+            uint64_t            ds = params.GetDatabaseSize();
+            uint64_t            qs = params.GetQuerySize();
+            AdditiveSharing2P   ass(d);
+            BinarySharing2P     bss(d);
+            ReplicatedSharing3P rss(d);
+            FssFMIKeyGenerator  gen(params, ass, bss, rss);
+            FileIo              file_io;
+            ShareIo             sh_io;
+            KeyIo               key_io;
 
             TimerManager timer_mgr;
             int32_t      timer_keygen = timer_mgr.CreateNewTimer("FssFMI KeyGen");
@@ -107,33 +108,33 @@ void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
                 timer_mgr.SelectTimer(timer_off);
                 timer_mgr.Start();
                 // Offline setup
-                brss.OfflineSetUp(kBenchFssFMIPath + "prf");
+                rss.OfflineSetUp(kBenchFssFMIPath + "prf");
                 timer_mgr.Stop("OfflineSetUp(" + ToString(i) + ") d=" + ToString(d) + " qs=" + ToString(qs));
             }
             timer_mgr.PrintAllResults("Gen d=" + ToString(d) + " qs=" + ToString(qs), fsswm::MICROSECONDS, true);
 
-            // // Generate the database and index
-            // int32_t timer_data = timer_mgr.CreateNewTimer("FssFMI DataGen");
-            // timer_mgr.SelectTimer(timer_data);
-            // timer_mgr.Start();
-            // std::string database = GenerateRandomString(ds - 2);
-            // std::string query    = GenerateRandomString(qs);
-            // timer_mgr.Mark("DataGen d=" + ToString(d) + " qs=" + ToString(qs));
+            // Generate the database and index
+            int32_t timer_data = timer_mgr.CreateNewTimer("FssFMI DataGen");
+            timer_mgr.SelectTimer(timer_data);
+            timer_mgr.Start();
+            std::string database = GenerateRandomString(ds - 2);
+            std::string query    = GenerateRandomString(qs);
+            timer_mgr.Mark("DataGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // // Generate the database and index
-            // FMIndex fm(database);
-            // timer_mgr.Mark("FMIndex d=" + ToString(d) + " qs=" + ToString(qs));
+            // Generate the database and index
+            FMIndex fm(database);
+            timer_mgr.Mark("FMIndex d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // std::array<RepShareMat64, 3> db_sh    = gen.GenerateDatabaseU64Share(fm);
-            // std::array<RepShareMat64, 3> query_sh = gen.GenerateQueryShare(fm, query);
-            // timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
+            std::array<RepShareMat64, 3> db_sh    = gen.GenerateDatabaseU64Share(fm);
+            std::array<RepShareMat64, 3> query_sh = gen.GenerateQueryShare(fm, query);
+            timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
-            //     sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
-            //     sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
-            // }
-            // timer_mgr.Mark("ShareSave d=" + ToString(d) + " qs=" + ToString(qs));
-            // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), fsswm::MILLISECONDS, true);
+            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+                sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
+                sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
+            }
+            timer_mgr.Mark("ShareSave d=" + ToString(d) + " qs=" + ToString(qs));
+            timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), fsswm::MILLISECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FssFMI_Offline_Bench - Finished");
@@ -167,8 +168,10 @@ void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     timer_mgr.SelectTimer(timer_setup);
                     timer_mgr.Start();
                     // Setup
+                    ReplicatedSharing3P       rss(d);
                     BinaryReplicatedSharing3P brss(d);
-                    FssFMIEvaluator           eval(params, brss);
+                    AdditiveSharing2P         ass_prev(d), ass_next(d);
+                    FssFMIEvaluator           eval(params, rss, brss, ass_prev, ass_next);
                     Channels                  chls(party_id_inner, chl_prev, chl_next);
                     std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
                     // Load keys
@@ -190,7 +193,7 @@ void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                         // Evaluate
                         timer_mgr.Start();
                         RepShareVec64 result_sh(qs);
-                        eval.EvaluateLPM_ShiftedAdditive_Parallel(chls, key, uv_prev, uv_next, db_sh, query_sh, result_sh);
+                        eval.EvaluateLPM_Parallel(chls, key, uv_prev, uv_next, db_sh, query_sh, result_sh);
                         timer_mgr.Stop("Eval(" + ToString(i) + ") d=" + ToString(d) + " qs=" + ToString(qs));
                         if (i < 2)
                             Logger::InfoLog(LOC, "Total data sent: " + ToString(chls.GetStats()) + "bytes");

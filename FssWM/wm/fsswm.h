@@ -1,15 +1,14 @@
 #ifndef WM_FSSWM_H_
 #define WM_FSSWM_H_
 
-#include "mixed_obliv_select.h"
-#include "obliv_select.h"
+#include "FssWM/protocol/mixed_obliv_select.h"
 
 namespace fsswm {
 
 namespace sharing {
 
-class BinaryReplicatedSharing3P;
-class BinarySharing2P;
+class ReplicatedSharing3P;
+class AdditiveSharing2P;
 
 }    // namespace sharing
 
@@ -33,13 +32,12 @@ public:
      * @param sigma The alphabet size for the FssWMParameters.
      * @param mode The output type for the FssWMParameters.
      */
-    FssWMParameters(const uint64_t        database_bitsize,
-                    const uint64_t        sigma = 3,
-                    const fss::OutputType mode  = fss::OutputType::kShiftedAdditive)
+    FssWMParameters(const uint64_t database_bitsize,
+                    const uint64_t sigma = 3)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
           sigma_(sigma),
-          os_params_(database_bitsize, mode) {
+          os_params_(database_bitsize) {
     }
 
     /**
@@ -47,13 +45,12 @@ public:
      * @param database_bitsize The database size for the FssWMParameters.
      * @param query_size The query size for the FssWMParameters.
      * @param sigma The alphabet size for the FssWMParameters.
-     * @param mode The output type for the FssWMParameters.
      */
-    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3, const fss::OutputType mode = fss::OutputType::kShiftedAdditive) {
+    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3) {
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
         sigma_            = sigma;
-        os_params_.ReconfigureParameters(database_bitsize, mode);
+        os_params_.ReconfigureParameters(database_bitsize);
     }
 
     /**
@@ -84,7 +81,7 @@ public:
      * @brief Get the OblivSelectParameters for the FssWMParameters.
      * @return const OblivSelectParameters& The OblivSelectParameters for the FssWMParameters.
      */
-    const OblivSelectParameters GetOSParameters() const {
+    const proto::MixedOblivSelectParameters GetOSParameters() const {
         return os_params_;
     }
 
@@ -104,18 +101,18 @@ public:
     void PrintParameters() const;
 
 private:
-    uint64_t              database_bitsize_; /**< The database bit size for the FssWMParameters. */
-    uint64_t              database_size_;    /**< The database size for the FssWMParameters. */
-    uint64_t              sigma_;            /**< The alphabet size for the FssWMParameters. */
-    OblivSelectParameters os_params_;        /**< The OblivSelectParameters for the FssWMParameters. */
+    uint64_t                   database_bitsize_; /**< The database bit size for the FssWMParameters. */
+    uint64_t                   database_size_;    /**< The database size for the FssWMParameters. */
+    uint64_t                   sigma_;            /**< The alphabet size for the FssWMParameters. */
+    proto::MixedOblivSelectParameters os_params_;        /**< The MixedOblivSelectParameters for the FssWMParameters. */
 };
 
 /**
  * @brief A struct to hold the FssWM key.
  */
 struct FssWMKey {
-    uint64_t                    num_os_keys;
-    std::vector<OblivSelectKey> os_keys;
+    uint64_t                         num_os_keys;
+    std::vector<proto::MixedOblivSelectKey> os_keys;
 
     /**
      * @brief Default constructor for FssWMKey is deleted.
@@ -209,21 +206,24 @@ public:
     /**
      * @brief Parameterized constructor for FssWMKeyGenerator.
      * @param params FssWMParameters for the FssWMKeyGenerator.
-     * @param bss Binary sharing for 2-party for the OblivSelectKeyGenerator.
-     * @param brss Binary replicated sharing for 3-party for the sharing.
+     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param rss Replicated sharing for 3-party for the sharing.
      */
     FssWMKeyGenerator(
-        const FssWMParameters              &params,
-        sharing::BinarySharing2P           &bss,
-        sharing::BinaryReplicatedSharing3P &brss);
+        const FssWMParameters        &params,
+        sharing::AdditiveSharing2P   &ass,
+        sharing::ReplicatedSharing3P &rss);
+
+    const proto::MixedOblivSelectKeyGenerator &GetOblivSelectKeyGenerator() const {
+        return os_gen_;
+    }
 
     /**
      * @brief Generate replicated shares for the database.
      * @param fm The FMIndex used to generate the shares.
      * @return std::array<std::pair<sharing::RepShareMat64, sharing::RepShareMat64>, 3> The replicated shares for the database.
      */
-    std::array<sharing::RepShareMatBlock, 3> GenerateDatabaseBlockShare(const FMIndex &fm) const;
-    std::array<sharing::RepShareMat64, 3>    GenerateDatabaseU64Share(const FMIndex &fm) const;
+    std::array<sharing::RepShareMat64, 3> GenerateDatabaseU64Share(const FMIndex &fm) const;
 
     /**
      * @brief Generate keys for the FssWM.
@@ -232,9 +232,9 @@ public:
     std::array<FssWMKey, 3> GenerateKeys() const;
 
 private:
-    FssWMParameters                     params_; /**< FssWMParameters for the FssWMKeyGenerator. */
-    OblivSelectKeyGenerator             os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
-    sharing::BinaryReplicatedSharing3P &brss_;   /**< Binary sharing for 3-party for the FssWMKeyGenerator. */
+    FssWMParameters               params_; /**< FssWMParameters for the FssWMKeyGenerator. */
+    proto::MixedOblivSelectKeyGenerator  os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
+    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssWMKeyGenerator. */
 };
 
 /**
@@ -250,41 +250,42 @@ public:
     /**
      * @brief Parameterized constructor for FssWMEvaluator.
      * @param params FssWMParameters for the FssWMEvaluator.
-     * @param brss Binary replicated sharing for 3-party for the OblivSelectEvaluator.
+     * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
+     * @param ass_prev Additive sharing for 2-party (previous) for the OblivSelectEvaluator.
+     * @param ass_next Additive sharing for 2-party (next) for the OblivSelectEvaluator.
      */
-    FssWMEvaluator(const FssWMParameters              &params,
-                   sharing::BinaryReplicatedSharing3P &brss);
+    FssWMEvaluator(const FssWMParameters        &params,
+                   sharing::ReplicatedSharing3P &rss,
+                   sharing::AdditiveSharing2P   &ass_prev,
+                   sharing::AdditiveSharing2P   &ass_next);
 
-    void EvaluateRankCF_SingleBitMask(Channels                        &chls,
-                                      const FssWMKey                  &key,
-                                      const sharing::RepShareMatBlock &wm_tables,
-                                      const sharing::RepShareView64   &char_sh,
-                                      sharing::RepShare64             &position_sh,
-                                      sharing::RepShare64             &result) const;
+    const proto::MixedOblivSelectEvaluator &GetOblivSelectEvaluator() const {
+        return os_eval_;
+    }
 
-    void EvaluateRankCF_ShiftedAdditive(Channels                      &chls,
-                                        const FssWMKey                &key,
-                                        std::vector<block>            &uv_prev,
-                                        std::vector<block>            &uv_next,
-                                        const sharing::RepShareMat64  &wm_tables,
-                                        const sharing::RepShareView64 &char_sh,
-                                        sharing::RepShare64           &position_sh,
-                                        sharing::RepShare64           &result) const;
+    void EvaluateRankCF(Channels                      &chls,
+                        const FssWMKey                &key,
+                        std::vector<block>            &uv_prev,
+                        std::vector<block>            &uv_next,
+                        const sharing::RepShareMat64  &wm_tables,
+                        const sharing::RepShareView64 &char_sh,
+                        sharing::RepShare64           &position_sh,
+                        sharing::RepShare64           &result) const;
 
-    void EvaluateRankCF_ShiftedAdditive_Parallel(Channels                      &chls,
-                                                 const FssWMKey                &key1,
-                                                 const FssWMKey                &key2,
-                                                 std::vector<block>            &uv_prev,
-                                                 std::vector<block>            &uv_next,
-                                                 const sharing::RepShareMat64  &wm_tables,
-                                                 const sharing::RepShareView64 &char_sh,
-                                                 sharing::RepShareVec64        &position_sh,
-                                                 sharing::RepShareVec64        &result) const;
+    void EvaluateRankCF_Parallel(Channels                      &chls,
+                                 const FssWMKey                &key1,
+                                 const FssWMKey                &key2,
+                                 std::vector<block>            &uv_prev,
+                                 std::vector<block>            &uv_next,
+                                 const sharing::RepShareMat64  &wm_tables,
+                                 const sharing::RepShareView64 &char_sh,
+                                 sharing::RepShareVec64        &position_sh,
+                                 sharing::RepShareVec64        &result) const;
 
 private:
-    FssWMParameters                     params_;  /**< FssWMParameters for the FssWMEvaluator. */
-    OblivSelectEvaluator                os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
-    sharing::BinaryReplicatedSharing3P &brss_;    /**< Binary replicated sharing for 3-party for the OblivSelectEvaluator. */
+    FssWMParameters               params_;  /**< FssWMParameters for the FssWMEvaluator. */
+    proto::MixedOblivSelectEvaluator     os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
+    sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
 };
 
 }    // namespace wm

@@ -67,6 +67,7 @@ def Setup(install, prefix, par):
         "./test/utils",
         "./test/ss",
         "./test/ss3",
+        "./test/protocol",
         "./test/wm",
         "./test/fmi",
         "./bench/fmi",

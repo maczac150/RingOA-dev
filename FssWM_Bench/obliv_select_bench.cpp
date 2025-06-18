@@ -2,6 +2,9 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
+#include "FssWM/protocol/key_io.h"
+#include "FssWM/protocol/mixed_obliv_select.h"
+#include "FssWM/protocol/obliv_select.h"
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
@@ -11,9 +14,6 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/timer.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/key_io.h"
-#include "FssWM/wm/mixed_obliv_select.h"
-#include "FssWM/wm/obliv_select.h"
 
 namespace {
 
@@ -41,6 +41,15 @@ using fsswm::fss::dpf::DpfEvaluator;
 using fsswm::fss::dpf::DpfKey;
 using fsswm::fss::dpf::DpfKeyGenerator;
 using fsswm::fss::dpf::DpfParameters;
+using fsswm::proto::KeyIo;
+using fsswm::proto::MixedOblivSelectEvaluator;
+using fsswm::proto::MixedOblivSelectKey;
+using fsswm::proto::MixedOblivSelectKeyGenerator;
+using fsswm::proto::MixedOblivSelectParameters;
+using fsswm::proto::OblivSelectEvaluator;
+using fsswm::proto::OblivSelectKey;
+using fsswm::proto::OblivSelectKeyGenerator;
+using fsswm::proto::OblivSelectParameters;
 using fsswm::sharing::AdditiveSharing2P;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
@@ -49,15 +58,6 @@ using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
 using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
 using fsswm::sharing::RepShareView64, fsswm::sharing::RepShareViewBlock;
 using fsswm::sharing::ShareIo;
-using fsswm::wm::KeyIo;
-using fsswm::wm::MixedOblivSelectEvaluator;
-using fsswm::wm::MixedOblivSelectKey;
-using fsswm::wm::MixedOblivSelectKeyGenerator;
-using fsswm::wm::MixedOblivSelectParameters;
-using fsswm::wm::OblivSelectEvaluator;
-using fsswm::wm::OblivSelectKey;
-using fsswm::wm::OblivSelectKeyGenerator;
-using fsswm::wm::OblivSelectParameters;
 
 void OblivSelect_ComputeDotProductBlockSIMD_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_ComputeDotProductBlockSIMD_Bench...");

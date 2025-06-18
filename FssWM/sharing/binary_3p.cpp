@@ -426,7 +426,7 @@ void BinaryReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShareVec
     EvaluateXor(x_vec_sh, y_vec_sh, xy_sh);
     RepShareVec64 c_and_xy_sh(n);
 
-    for (uint64_t i = 0; i < xy_sh.num_shares; ++i) {
+    for (uint64_t i = 0; i < n; ++i) {
         uint64_t   t_sh = (xy_sh.data[0][i] & c_sh.data[0]) ^ (xy_sh.data[1][i] & c_sh.data[0]) ^ (xy_sh.data[0][i] & c_sh.data[1]);
         RepShare64 r_sh;
         Rand(r_sh);

@@ -42,6 +42,9 @@ public:
     void EvaluateMult(Channels &chls, const RepShare64 &x_sh, const RepShare64 &y_sh, RepShare64 &z_sh);
     void EvaluateMult(Channels &chls, const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, RepShareVec64 &z_vec_sh);
 
+    void EvaluateSelect(Channels &chls, const RepShare64 &x_sh, const RepShare64 &y_sh, const RepShare64 &c_sh, RepShare64 &z_sh);
+    void EvaluateSelect(Channels &chls, const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, const RepShare64 &c_sh, RepShareVec64 &z_vec_sh);
+
     void EvaluateInnerProduct(Channels &chls, const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, RepShare64 &z);
 
 private:

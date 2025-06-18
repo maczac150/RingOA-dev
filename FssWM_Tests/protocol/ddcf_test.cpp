@@ -8,7 +8,7 @@
 #include "FssWM/utils/timer.h"
 #include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/ddcf.h"
+#include "FssWM/protocol/ddcf.h"
 
 namespace {
 
@@ -38,10 +38,10 @@ using fsswm::TimerManager;
 using fsswm::ToString, fsswm::Format;
 using fsswm::fss::EvalType, fsswm::fss::OutputType;
 using fsswm::sharing::BinarySharing2P;
-using fsswm::wm::DdcfEvaluator;
-using fsswm::wm::DdcfKey;
-using fsswm::wm::DdcfKeyGenerator;
-using fsswm::wm::DdcfParameters;
+using fsswm::proto::DdcfEvaluator;
+using fsswm::proto::DdcfKey;
+using fsswm::proto::DdcfKeyGenerator;
+using fsswm::proto::DdcfParameters;
 
 void Ddcf_EvalAt_Test() {
     Logger::DebugLog(LOC, "Ddcf_EvalAt_Test...");

@@ -9,7 +9,7 @@
 #include "FssWM/utils/utils.h"
 
 namespace fsswm {
-namespace wm {
+namespace proto {
 
 void DdcfParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[DDCF Parameters] " + GetParametersInfo());
@@ -146,5 +146,5 @@ uint64_t DdcfEvaluator::EvaluateAt(const DdcfKey &key, uint64_t x) const {
     return output;
 }
 
-}    // namespace wm
+}    // namespace proto
 }    // namespace fsswm

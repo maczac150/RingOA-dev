@@ -741,9 +741,9 @@ void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector
         current_idx++;
     }
 
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+#if LOG_LEVEL >= LOG_LEVEL_TRACE
     for (uint64_t i = 0; i < (outputs.size() > 16 ? 16 : outputs.size()); ++i) {
-        Logger::DebugLog(LOC, "Output seed (" + ToString(i) + "): " + Format(outputs[i]));
+        Logger::TraceLog(LOC, "Output seed (" + ToString(i) + "): " + Format(outputs[i]));
     }
 #endif
 }

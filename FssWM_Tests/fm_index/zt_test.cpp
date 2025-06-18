@@ -3,6 +3,7 @@
 #include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/fm_index/zero_test.h"
+#include "FssWM/protocol/key_io.h"
 #include "FssWM/sharing/binary_2p.h"
 #include "FssWM/sharing/binary_3p.h"
 #include "FssWM/sharing/share_io.h"
@@ -10,7 +11,6 @@
 #include "FssWM/utils/network.h"
 #include "FssWM/utils/to_string.h"
 #include "FssWM/utils/utils.h"
-#include "FssWM/wm/key_io.h"
 
 namespace {
 
@@ -31,11 +31,11 @@ using fsswm::fm_index::ZeroTestEvaluator;
 using fsswm::fm_index::ZeroTestKey;
 using fsswm::fm_index::ZeroTestKeyGenerator;
 using fsswm::fm_index::ZeroTestParameters;
+using fsswm::proto::KeyIo;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
 using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64;
 using fsswm::sharing::ShareIo;
-using fsswm::wm::KeyIo;
 
 void ZeroTest_Binary_Offline_Test() {
     Logger::DebugLog(LOC, "ZeroTest_Binary_Offline_Test...");

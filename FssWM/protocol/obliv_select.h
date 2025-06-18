@@ -1,5 +1,5 @@
-#ifndef WM_OBLIV_SELECT_H_
-#define WM_OBLIV_SELECT_H_
+#ifndef PROTOCOL_OBLIV_SELECT_H_
+#define PROTOCOL_OBLIV_SELECT_H_
 
 #include "FssWM/fss/dpf_eval.h"
 #include "FssWM/fss/dpf_gen.h"
@@ -25,7 +25,7 @@ class PseudoRandomGenerator;
 }    // namespace prg
 }    // namespace fss
 
-namespace wm {
+namespace proto {
 
 /**
  * @brief A class to hold params for the Oblivious Selection.
@@ -284,7 +284,7 @@ private:
                           const fss::dpf::DpfKey &key) const;
 };
 
-}    // namespace wm
+}    // namespace proto
 }    // namespace fsswm
 
-#endif    // WM_OBLIV_SELECT_H_
+#endif    // PROTOCOL_OBLIV_SELECT_H_

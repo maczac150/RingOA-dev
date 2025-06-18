@@ -9,6 +9,7 @@ project(FssWM)
 add_subdirectory(utils)
 add_subdirectory(sharing)
 add_subdirectory(fss)
+add_subdirectory(protocol)
 add_subdirectory(wm)
 add_subdirectory(fm_index)
 
@@ -20,6 +21,7 @@ target_link_libraries(FssWM INTERFACE
     utils
     sharing
     fss
+    protocol
     wm
     fm_index
 )
@@ -30,6 +32,7 @@ target_include_directories(FssWM INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/sharing
     ${CMAKE_CURRENT_SOURCE_DIR}/fss
+    ${CMAKE_CURRENT_SOURCE_DIR}/protocol
     ${CMAKE_CURRENT_SOURCE_DIR}/wm
     ${CMAKE_CURRENT_SOURCE_DIR}/fm_index
 )

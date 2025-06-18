@@ -6,8 +6,7 @@
 namespace test_fsswm {
 
 void FssWM_Offline_Test();
-void FssWM_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd);
-void FssWM_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd);
+void FssWM_Online_Test(const osuCrypto::CLP &cmd);
 
 }    // namespace test_fsswm
 

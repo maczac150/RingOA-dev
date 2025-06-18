@@ -1,5 +1,5 @@
-#ifndef WM_MIXED_OBLIV_SELECT_H_
-#define WM_MIXED_OBLIV_SELECT_H_
+#ifndef PROTOCOL_MIXED_OBLIV_SELECT_H_
+#define PROTOCOL_MIXED_OBLIV_SELECT_H_
 
 #include "FssWM/fss/dpf_eval.h"
 #include "FssWM/fss/dpf_gen.h"
@@ -17,7 +17,7 @@ class AdditiveSharing2P;
 
 }    // namespace sharing
 
-namespace wm {
+namespace proto {
 
 /**
  * @brief A class to hold params for the Oblivious Selection.
@@ -230,7 +230,7 @@ public:
                               sharing::AdditiveSharing2P       &ass_prev,
                               sharing::AdditiveSharing2P       &ass_next);
 
-    void OnlineSetUp(const uint64_t party_id, const std::string &file_path);
+    void OnlineSetUp(const uint64_t party_id, const std::string &file_path) const;
 
     void Evaluate(Channels                      &chls,
                   const MixedOblivSelectKey     &key,
@@ -240,14 +240,14 @@ public:
                   const sharing::RepShare64     &index,
                   sharing::RepShare64           &result) const;
 
-    // void Evaluate_Parallel(Channels                      &chls,
-    //                        const MixedOblivSelectKey     &key1,
-    //                        const MixedOblivSelectKey     &key2,
-    //                        std::vector<block>            &uv_prev,
-    //                        std::vector<block>            &uv_next,
-    //                        const sharing::RepShareView64 &database,
-    //                        const sharing::RepShareVec64  &index,
-    //                        sharing::RepShareVec64        &result) const;
+    void Evaluate_Parallel(Channels                      &chls,
+                           const MixedOblivSelectKey     &key1,
+                           const MixedOblivSelectKey     &key2,
+                           std::vector<block>            &uv_prev,
+                           std::vector<block>            &uv_next,
+                           const sharing::RepShareView64 &database,
+                           const sharing::RepShareVec64  &index,
+                           sharing::RepShareVec64        &result) const;
 
     std::pair<uint64_t, uint64_t> EvaluateFullDomainThenDotProduct(
         const uint64_t                 party_id,
@@ -272,13 +272,14 @@ private:
         const MixedOblivSelectKey &key,
         const sharing::RepShare64 &index) const;
 
-    // std::array<uint64_t, 4> ReconstructMaskedValue(Channels                     &chls,
-    //                                       const MixedOblivSelectKey    &key1,
-    //                                       const MixedOblivSelectKey    &key2,
-    //                                       const sharing::RepShareVec64 &index) const;
+    std::array<uint64_t, 4> ReconstructMaskedValue(
+        Channels                     &chls,
+        const MixedOblivSelectKey    &key1,
+        const MixedOblivSelectKey    &key2,
+        const sharing::RepShareVec64 &index) const;
 };
 
-}    // namespace wm
+}    // namespace proto
 }    // namespace fsswm
 
-#endif    // WM_MIXED_OBLIV_SELECT_H_
+#endif    // PROTOCOL_MIXED_OBLIV_SELECT_H_

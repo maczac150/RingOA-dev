@@ -10,6 +10,8 @@
 #include "FssWM_Tests/fss/dcf_test.h"
 #include "FssWM_Tests/fss/dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
+#include "FssWM_Tests/protocol/ddcf_test.h"
+#include "FssWM_Tests/protocol/obliv_select_test.h"
 #include "FssWM_Tests/sharing/additive_2p_test.h"
 #include "FssWM_Tests/sharing/additive_3p_test.h"
 #include "FssWM_Tests/sharing/binary_2p_test.h"
@@ -18,9 +20,7 @@
 #include "FssWM_Tests/utils/network_test.h"
 #include "FssWM_Tests/utils/timer_test.h"
 #include "FssWM_Tests/utils/utils_test.h"
-#include "FssWM_Tests/wm/ddcf_test.h"
 #include "FssWM_Tests/wm/fsswm_test.h"
-#include "FssWM_Tests/wm/obliv_select_test.h"
 #include "FssWM_Tests/wm/wm_test.h"
 
 namespace test_fsswm {
@@ -64,18 +64,16 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("OblivSelect_ShiftedAdditive_Online_Test", OblivSelect_ShiftedAdditive_Online_Test);
     t.add("MixedOblivSelect_Offline_Test", MixedOblivSelect_Offline_Test);
     t.add("MixedOblivSelect_Online_Test", MixedOblivSelect_Online_Test);
-    t.add("WaveletMatrix_Test", WaveletMatrix_Test);
-    t.add("FMIndex_Test", FMIndex_Test);
-    t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
-    t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
-    t.add("FssWM_Offline_Test", FssWM_Offline_Test);
-    t.add("FssWM_SingleBitMask_Online_Test", FssWM_SingleBitMask_Online_Test);
-    t.add("FssWM_ShiftedAdditive_Online_Test", FssWM_ShiftedAdditive_Online_Test);
     t.add("Ddcf_EvalAt_Test", Ddcf_EvalAt_Test);
     t.add("Ddcf_Fde_Test", Ddcf_Fde_Test);
+    t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
+    t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
+    t.add("WaveletMatrix_Test", WaveletMatrix_Test);
+    t.add("FMIndex_Test", FMIndex_Test);
+    t.add("FssWM_Offline_Test", FssWM_Offline_Test);
+    t.add("FssWM_Online_Test", FssWM_Online_Test);
     t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);
-    t.add("FssFMI_SingleBitMask_Online_Test", FssFMI_SingleBitMask_Online_Test);
-    t.add("FssFMI_ShiftedAdditive_Online_Test", FssFMI_ShiftedAdditive_Online_Test);
+    t.add("FssFMI_Online_Test", FssFMI_Online_Test);
 });
 
 }    // namespace test_fsswm
