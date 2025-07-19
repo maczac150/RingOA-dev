@@ -1,7 +1,7 @@
 #ifndef WM_FSSWM_H_
 #define WM_FSSWM_H_
 
-#include "FssWM/protocol/mixed_obliv_select.h"
+#include "FssWM/protocol/ringoa.h"
 
 namespace fsswm {
 
@@ -81,7 +81,7 @@ public:
      * @brief Get the OblivSelectParameters for the FssWMParameters.
      * @return const OblivSelectParameters& The OblivSelectParameters for the FssWMParameters.
      */
-    const proto::MixedOblivSelectParameters GetOSParameters() const {
+    const proto::RingOaParameters GetOSParameters() const {
         return os_params_;
     }
 
@@ -101,18 +101,18 @@ public:
     void PrintParameters() const;
 
 private:
-    uint64_t                   database_bitsize_; /**< The database bit size for the FssWMParameters. */
-    uint64_t                   database_size_;    /**< The database size for the FssWMParameters. */
-    uint64_t                   sigma_;            /**< The alphabet size for the FssWMParameters. */
-    proto::MixedOblivSelectParameters os_params_;        /**< The MixedOblivSelectParameters for the FssWMParameters. */
+    uint64_t                database_bitsize_; /**< The database bit size for the FssWMParameters. */
+    uint64_t                database_size_;    /**< The database size for the FssWMParameters. */
+    uint64_t                sigma_;            /**< The alphabet size for the FssWMParameters. */
+    proto::RingOaParameters os_params_;        /**< The RingOaParameters for the FssWMParameters. */
 };
 
 /**
  * @brief A struct to hold the FssWM key.
  */
 struct FssWMKey {
-    uint64_t                         num_os_keys;
-    std::vector<proto::MixedOblivSelectKey> os_keys;
+    uint64_t                      num_os_keys;
+    std::vector<proto::RingOaKey> os_keys;
 
     /**
      * @brief Default constructor for FssWMKey is deleted.
@@ -214,7 +214,7 @@ public:
         sharing::AdditiveSharing2P   &ass,
         sharing::ReplicatedSharing3P &rss);
 
-    const proto::MixedOblivSelectKeyGenerator &GetOblivSelectKeyGenerator() const {
+    const proto::RingOaKeyGenerator &GetOblivSelectKeyGenerator() const {
         return os_gen_;
     }
 
@@ -233,7 +233,7 @@ public:
 
 private:
     FssWMParameters               params_; /**< FssWMParameters for the FssWMKeyGenerator. */
-    proto::MixedOblivSelectKeyGenerator  os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
+    proto::RingOaKeyGenerator     os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
     sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssWMKeyGenerator. */
 };
 
@@ -259,7 +259,7 @@ public:
                    sharing::AdditiveSharing2P   &ass_prev,
                    sharing::AdditiveSharing2P   &ass_next);
 
-    const proto::MixedOblivSelectEvaluator &GetOblivSelectEvaluator() const {
+    const proto::RingOaEvaluator &GetOblivSelectEvaluator() const {
         return os_eval_;
     }
 
@@ -284,7 +284,7 @@ public:
 
 private:
     FssWMParameters               params_;  /**< FssWMParameters for the FssWMEvaluator. */
-    proto::MixedOblivSelectEvaluator     os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
+    proto::RingOaEvaluator        os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
     sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
 };
 

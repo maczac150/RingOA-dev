@@ -5,8 +5,12 @@
 # Add library
 add_library(protocol
     ddcf.cpp
+    equality.cpp
+    integer_comparison.cpp
+    zero_test.cpp
     obliv_select.cpp
-    mixed_obliv_select.cpp
+    ringoa.cpp
+    shared_ot.cpp
 )
 
 # Include directories

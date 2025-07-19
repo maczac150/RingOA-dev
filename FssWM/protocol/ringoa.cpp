@@ -1,4 +1,4 @@
-#include "mixed_obliv_select.h"
+#include "ringoa.h"
 
 #include <cstring>
 
@@ -14,11 +14,11 @@
 namespace fsswm {
 namespace proto {
 
-void MixedOblivSelectParameters::PrintParameters() const {
+void RingOaParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[Obliv Select Parameters]" + GetParametersInfo());
 }
 
-MixedOblivSelectKey::MixedOblivSelectKey(const uint64_t id, const MixedOblivSelectParameters &params)
+RingOaKey::RingOaKey(const uint64_t id, const RingOaParameters &params)
     : party_id(id),
       key_from_prev(0, params.GetParameters()),
       key_from_next(1, params.GetParameters()),
@@ -28,15 +28,15 @@ MixedOblivSelectKey::MixedOblivSelectKey(const uint64_t id, const MixedOblivSele
       serialized_size_(CalculateSerializedSize()) {
 }
 
-size_t MixedOblivSelectKey::CalculateSerializedSize() const {
+size_t RingOaKey::CalculateSerializedSize() const {
     return sizeof(party_id) + key_from_prev.GetSerializedSize() + key_from_next.GetSerializedSize() +
            sizeof(rsh_from_prev) + sizeof(rsh_from_next) +
            sizeof(wsh_from_prev) + sizeof(wsh_from_next);
 }
 
-void MixedOblivSelectKey::Serialize(std::vector<uint8_t> &buffer) const {
+void RingOaKey::Serialize(std::vector<uint8_t> &buffer) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Serializing MixedOblivSelectKey");
+    Logger::DebugLog(LOC, "Serializing RingOaKey");
 #endif
     // Serialize the party ID
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&party_id), reinterpret_cast<const uint8_t *>(&party_id) + sizeof(party_id));
@@ -62,9 +62,9 @@ void MixedOblivSelectKey::Serialize(std::vector<uint8_t> &buffer) const {
     }
 }
 
-void MixedOblivSelectKey::Deserialize(const std::vector<uint8_t> &buffer) {
+void RingOaKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Deserializing MixedOblivSelectKey");
+    Logger::DebugLog(LOC, "Deserializing RingOaKey");
 #endif
     size_t offset = 0;
 
@@ -90,17 +90,17 @@ void MixedOblivSelectKey::Deserialize(const std::vector<uint8_t> &buffer) {
     std::memcpy(&wsh_from_next, buffer.data() + offset, sizeof(wsh_from_next));
 }
 
-void MixedOblivSelectKey::PrintKey(const bool detailed) const {
+void RingOaKey::PrintKey(const bool detailed) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     if (detailed) {
-        Logger::DebugLog(LOC, Logger::StrWithSep("MixedOblivSelect Key [Party " + ToString(party_id) + "]"));
+        Logger::DebugLog(LOC, Logger::StrWithSep("RingOa Key [Party " + ToString(party_id) + "]"));
         key_from_prev.PrintKey(true);
         key_from_next.PrintKey(true);
         Logger::DebugLog(LOC, "(rsh_from_prev, rsh_from_next): (" + ToString(rsh_from_prev) + ", " + ToString(rsh_from_next) + ")");
         Logger::DebugLog(LOC, "(wsh_from_prev, wsh_from_next): (" + ToString(wsh_from_prev) + ", " + ToString(wsh_from_next) + ")");
         Logger::DebugLog(LOC, kDash);
     } else {
-        Logger::DebugLog(LOC, "MixedOblivSelect Key [Party " + ToString(party_id) + "]");
+        Logger::DebugLog(LOC, "RingOa Key [Party " + ToString(party_id) + "]");
         key_from_prev.PrintKey(false);
         key_from_next.PrintKey(false);
         Logger::DebugLog(LOC, "(rsh_from_prev, rsh_from_next): (" + ToString(rsh_from_prev) + ", " + ToString(rsh_from_next) + ")");
@@ -109,31 +109,31 @@ void MixedOblivSelectKey::PrintKey(const bool detailed) const {
 #endif
 }
 
-void MixedOblivSelectKeyGenerator::OfflineSetUp(const uint64_t num_selection, const std::string &file_path) const {
+void RingOaKeyGenerator::OfflineSetUp(const uint64_t num_selection, const std::string &file_path) const {
     ass_.OfflineSetUp(num_selection, file_path + "btP0P1");
     ass_.OfflineSetUp(num_selection, file_path + "btP1P2");
     ass_.OfflineSetUp(num_selection, file_path + "btP2P0");
 }
 
-MixedOblivSelectKeyGenerator::MixedOblivSelectKeyGenerator(
-    const MixedOblivSelectParameters &params,
-    sharing::AdditiveSharing2P       &ass)
+RingOaKeyGenerator::RingOaKeyGenerator(
+    const RingOaParameters     &params,
+    sharing::AdditiveSharing2P &ass)
     : params_(params),
       gen_(params.GetParameters()), ass_(ass) {
 }
 
-std::array<MixedOblivSelectKey, 3> MixedOblivSelectKeyGenerator::GenerateKeys() const {
+std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
     // Initialize the keys
-    std::array<MixedOblivSelectKey, 3> keys = {
-        MixedOblivSelectKey(0, params_),
-        MixedOblivSelectKey(1, params_),
-        MixedOblivSelectKey(2, params_),
+    std::array<RingOaKey, 3> keys = {
+        RingOaKey(0, params_),
+        RingOaKey(1, params_),
+        RingOaKey(2, params_),
     };
     uint64_t d             = params_.GetDatabaseSize();
     uint64_t remaining_bit = params_.GetParameters().GetInputBitsize() - params_.GetParameters().GetTerminateBitsize();
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate MixedOblivSelect Keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate RingOa Keys"));
 #endif
 
     std::array<uint64_t, 3>                                    rands;
@@ -203,15 +203,15 @@ std::array<MixedOblivSelectKey, 3> MixedOblivSelectKeyGenerator::GenerateKeys() 
     return keys;
 }
 
-MixedOblivSelectEvaluator::MixedOblivSelectEvaluator(
-    const MixedOblivSelectParameters &params,
-    sharing::ReplicatedSharing3P     &rss,
-    sharing::AdditiveSharing2P       &ass_prev,
-    sharing::AdditiveSharing2P       &ass_next)
+RingOaEvaluator::RingOaEvaluator(
+    const RingOaParameters       &params,
+    sharing::ReplicatedSharing3P &rss,
+    sharing::AdditiveSharing2P   &ass_prev,
+    sharing::AdditiveSharing2P   &ass_next)
     : params_(params), eval_(params.GetParameters()), rss_(rss), ass_prev_(ass_prev), ass_next_(ass_next) {
 }
 
-void MixedOblivSelectEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) const {
+void RingOaEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) const {
     if (party_id == 0) {
         ass_prev_.OnlineSetUp(1, file_path + "btP2P0");
         ass_next_.OnlineSetUp(0, file_path + "btP0P1");
@@ -224,13 +224,13 @@ void MixedOblivSelectEvaluator::OnlineSetUp(const uint64_t party_id, const std::
     }
 }
 
-void MixedOblivSelectEvaluator::Evaluate(Channels                      &chls,
-                                         const MixedOblivSelectKey     &key,
-                                         std::vector<block>            &uv_prev,
-                                         std::vector<block>            &uv_next,
-                                         const sharing::RepShareView64 &database,
-                                         const sharing::RepShare64     &index,
-                                         sharing::RepShare64           &result) const {
+void RingOaEvaluator::Evaluate(Channels                      &chls,
+                               const RingOaKey               &key,
+                               std::vector<block>            &uv_prev,
+                               std::vector<block>            &uv_next,
+                               const sharing::RepShareView64 &database,
+                               const sharing::RepShare64     &index,
+                               sharing::RepShare64           &result) const {
 
     uint64_t party_id = chls.party_id;
     uint64_t d        = params_.GetDatabaseSize();
@@ -247,14 +247,14 @@ void MixedOblivSelectEvaluator::Evaluate(Channels                      &chls,
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate MixedOblivSelect key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate RingOa key"));
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     std::string party_str = "[P" + ToString(party_id) + "] ";
     Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
     Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
 #endif
 
-    // Reconstruct p ^ r_i
+    // Reconstruct p - r_i
     auto [pr_prev, pr_next] = ReconstructMaskedValue(chls, key, index);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + " pr_prev: " + ToString(pr_prev) + ", pr_next: " + ToString(pr_next));
@@ -293,14 +293,14 @@ void MixedOblivSelectEvaluator::Evaluate(Channels                      &chls,
 #endif
 }
 
-void MixedOblivSelectEvaluator::Evaluate_Parallel(Channels                      &chls,
-                                                  const MixedOblivSelectKey     &key1,
-                                                  const MixedOblivSelectKey     &key2,
-                                                  std::vector<block>            &uv_prev,
-                                                  std::vector<block>            &uv_next,
-                                                  const sharing::RepShareView64 &database,
-                                                  const sharing::RepShareVec64  &index,
-                                                  sharing::RepShareVec64        &result) const {
+void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
+                                        const RingOaKey               &key1,
+                                        const RingOaKey               &key2,
+                                        std::vector<block>            &uv_prev,
+                                        std::vector<block>            &uv_next,
+                                        const sharing::RepShareView64 &database,
+                                        const sharing::RepShareVec64  &index,
+                                        sharing::RepShareVec64        &result) const {
 
     uint64_t party_id = chls.party_id;
     uint64_t d        = params_.GetDatabaseSize();
@@ -373,7 +373,7 @@ void MixedOblivSelectEvaluator::Evaluate_Parallel(Channels                      
 #endif
 }
 
-std::pair<uint64_t, uint64_t> MixedOblivSelectEvaluator::EvaluateFullDomainThenDotProduct(
+std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
     const uint64_t                 party_id,
     const fss::dpf::DpfKey        &key_from_prev,
     const fss::dpf::DpfKey        &key_from_next,
@@ -417,9 +417,9 @@ std::pair<uint64_t, uint64_t> MixedOblivSelectEvaluator::EvaluateFullDomainThenD
     return std::make_pair(dp_prev, dp_next);
 }
 
-std::pair<uint64_t, uint64_t> MixedOblivSelectEvaluator::ReconstructMaskedValue(Channels                  &chls,
-                                                                                const MixedOblivSelectKey &key,
-                                                                                const sharing::RepShare64 &index) const {
+std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels                  &chls,
+                                                                      const RingOaKey           &key,
+                                                                      const sharing::RepShare64 &index) const {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "ReconstructMaskedValue for Party " + ToString(chls.party_id));
@@ -481,10 +481,10 @@ std::pair<uint64_t, uint64_t> MixedOblivSelectEvaluator::ReconstructMaskedValue(
     return std::make_pair(pr_prev, pr_next);
 }
 
-std::array<uint64_t, 4> MixedOblivSelectEvaluator::ReconstructMaskedValue(Channels                     &chls,
-                                                                          const MixedOblivSelectKey    &key1,
-                                                                          const MixedOblivSelectKey    &key2,
-                                                                          const sharing::RepShareVec64 &index) const {
+std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels                     &chls,
+                                                                const RingOaKey              &key1,
+                                                                const RingOaKey              &key2,
+                                                                const sharing::RepShareVec64 &index) const {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "ReconstructPR for Party " + ToString(chls.party_id));

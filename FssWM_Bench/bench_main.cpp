@@ -7,6 +7,7 @@
 #include "FssWM/utils/rng.h"
 #include "FssWM_Bench/dpf_bench.h"
 #include "FssWM_Bench/fssfmi_bench.h"
+#include "FssWM_Bench/obliv_access_bench.h"
 #include "FssWM_Bench/obliv_select_bench.h"
 
 namespace bench_fsswm {
@@ -18,14 +19,16 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Pir_ComputeDotProductBlockSIMD_Bench", Dpf_Pir_ComputeDotProductBlockSIMD_Bench);
     t.add("Dpf_Pir_ComputeDotProductUint64Bitwise_Bench", Dpf_Pir_ComputeDotProductUint64Bitwise_Bench);
     t.add("Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench", Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench);
-    t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
-    t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
-    t.add("OblivSelect_Binary_Offline_Bench", OblivSelect_Binary_Offline_Bench);
-    t.add("OblivSelect_Binary_Online_Bench", OblivSelect_Binary_Online_Bench);
-    t.add("OblivSelect_Additive_Offline_Bench", OblivSelect_Additive_Offline_Bench);
-    t.add("OblivSelect_Additive_Online_Bench", OblivSelect_Additive_Online_Bench);
-    t.add("MixedOblivSelect_Offline_Bench", MixedOblivSelect_Offline_Bench);
-    t.add("MixedOblivSelect_Online_Bench", MixedOblivSelect_Online_Bench);
+    // t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
+    // t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
+    // t.add("OblivSelect_Binary_Offline_Bench", OblivSelect_Binary_Offline_Bench);
+    // t.add("OblivSelect_Binary_Online_Bench", OblivSelect_Binary_Online_Bench);
+    // t.add("OblivSelect_Additive_Offline_Bench", OblivSelect_Additive_Offline_Bench);
+    // t.add("OblivSelect_Additive_Online_Bench", OblivSelect_Additive_Online_Bench);
+    t.add("SharedOt_Offline_Bench", SharedOt_Offline_Bench);
+    t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
+    t.add("RingOa_Offline_Bench", RingOa_Offline_Bench);
+    t.add("RingOa_Online_Bench", RingOa_Online_Bench);
     t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
     t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
 });

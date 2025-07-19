@@ -42,7 +42,7 @@ public:
      * @param d The input bitsize.
      */
     explicit OblivSelectParameters(const uint64_t d, const fss::OutputType mode = fss::OutputType::kShiftedAdditive)
-        : params_(d, 1, fss::EvalType::kIterSingleBatch, mode) {
+        : params_(d, 1, fss::kOptimizedEvalType, mode) {
     }
 
     /**
@@ -50,7 +50,7 @@ public:
      * @param d The input bitsize.
      */
     void ReconfigureParameters(const uint64_t d, const fss::OutputType mode = fss::OutputType::kShiftedAdditive) {
-        params_.ReconfigureParameters(d, 1, fss::EvalType::kIterSingleBatch, mode);
+        params_.ReconfigureParameters(d, 1, fss::kOptimizedEvalType, mode);
     }
 
     /**

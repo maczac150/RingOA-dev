@@ -11,8 +11,6 @@ void OblivSelect_Binary_Offline_Bench(const osuCrypto::CLP &cmd);
 void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd);
 void OblivSelect_Additive_Offline_Bench(const osuCrypto::CLP &cmd);
 void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd);
-void MixedOblivSelect_Offline_Bench(const osuCrypto::CLP &cmd);
-void MixedOblivSelect_Online_Bench(const osuCrypto::CLP &cmd);
 
 }    // namespace bench_fsswm
 

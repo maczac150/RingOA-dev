@@ -65,7 +65,7 @@ void Dpf_Fde_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    // Logger::ExportLogList("./data/logs/dpf_bench");
+    Logger::ExportLogList("./data/logs/dpf_bench");
 }
 
 void Dpf_Fde_Convert_Bench() {

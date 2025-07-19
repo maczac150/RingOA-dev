@@ -18,7 +18,10 @@ set(TEST_SOURCES
     sharing/binary_2p_test.cpp
     sharing/additive_3p_test.cpp
     sharing/binary_3p_test.cpp
-    protocol/obliv_select_test.cpp
+    protocol/equality_test.cpp
+    protocol/integer_comparison_test.cpp
+    protocol/zt_test.cpp
+    protocol/obliv_access_test.cpp
     protocol/ddcf_test.cpp
     wm/wm_test.cpp
     wm/fsswm_test.cpp

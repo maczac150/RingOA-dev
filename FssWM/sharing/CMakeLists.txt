@@ -6,7 +6,6 @@
 add_library(sharing STATIC
     additive_2p.cpp
     binary_2p.cpp
-    rep_share.cpp
     additive_3p.cpp
     binary_3p.cpp
 )

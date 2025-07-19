@@ -2,7 +2,6 @@
 
 #include <cstring>
 
-#include "FssWM/fss/prg.h"
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM/utils/to_string.h"
@@ -33,7 +32,7 @@ void DdcfKey::Serialize(std::vector<uint8_t> &buffer) const {
     Logger::DebugLog(LOC, "Serializing DDCF key");
 #endif
 
-    // Serialize the DCF key
+    // Serialize the DDCF key
     std::vector<uint8_t> key_buffer;
     dcf_key.Serialize(key_buffer);
     buffer.insert(buffer.end(), key_buffer.begin(), key_buffer.end());
@@ -54,7 +53,7 @@ void DdcfKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #endif
     size_t offset = 0;
 
-    // Deserialize the DCF key
+    // Deserialize the DDCF key
     size_t key_size = dcf_key.GetSerializedSize();
     dcf_key.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.begin() + offset + key_size));
     offset += key_size;
@@ -87,7 +86,7 @@ DdcfKeyGenerator::DdcfKeyGenerator(const DdcfParameters &params)
 std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t beta_1, uint64_t beta_2) const {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate DCF keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate DDCF keys"));
     Logger::DebugLog(LOC, "Alpha: " + ToString(alpha));
     Logger::DebugLog(LOC, "Beta 1: " + ToString(beta_1));
     Logger::DebugLog(LOC, "Beta 2: " + ToString(beta_2));
@@ -102,7 +101,7 @@ std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint6
     uint64_t                                      beta     = Mod(beta_1 - beta_2, e);
     std::pair<fss::dcf::DcfKey, fss::dcf::DcfKey> dcf_keys = gen_.GenerateKeys(alpha, beta);
 
-    // Set DCF keys for each party
+    // Set DDCF keys for each party
     key_pair.first.dcf_key  = std::move(dcf_keys.first);
     key_pair.second.dcf_key = std::move(dcf_keys.second);
 

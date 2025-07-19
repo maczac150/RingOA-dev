@@ -40,7 +40,7 @@ std::string GenerateRandomString(size_t length, const std::string &charset = "AT
 std::vector<uint64_t> text_bitsizes = {24};
 std::vector<uint64_t> query_sizes   = {16};
 
-constexpr uint64_t kRepeatDefault = 10;
+constexpr uint64_t kIterDefault = 10;
 
 }    // namespace
 
@@ -70,7 +70,7 @@ using fsswm::wm::FMIndex;
 
 void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "FssFMI_Offline_Bench...");
-    uint64_t repeat = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
+    uint64_t iter = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
 
     for (auto text_bitsize : text_bitsizes) {
         for (auto query_size : query_sizes) {
@@ -94,7 +94,7 @@ void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             std::string db_path    = kBenchFssFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
             std::string query_path = kBenchFssFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
-            for (uint64_t i = 0; i < repeat; ++i) {
+            for (uint64_t i = 0; i < iter; ++i) {
                 timer_mgr.SelectTimer(timer_keygen);
                 timer_mgr.Start();
                 // Generate keys
@@ -144,7 +144,7 @@ void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
 void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "FssFMI_Online_Bench...");
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
-    uint64_t    repeat   = cmd.isSet("repeat") ? cmd.get<uint64_t>("repeat") : kRepeatDefault;
+    uint64_t    iter   = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
     // Factory to create a per-party task
@@ -189,7 +189,7 @@ void FssFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     timer_mgr.Stop("SetUp d=" + ToString(d) + " qs=" + ToString(qs));
 
                     timer_mgr.SelectTimer(timer_eval);
-                    for (uint64_t i = 0; i < repeat; ++i) {
+                    for (uint64_t i = 0; i < iter; ++i) {
                         // Evaluate
                         timer_mgr.Start();
                         RepShareVec64 result_sh(qs);

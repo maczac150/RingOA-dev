@@ -9,6 +9,7 @@ project(FssWM_Bench)
 set(BENCH_SOURCES
     dpf_bench.cpp
     obliv_select_bench.cpp
+    obliv_access_bench.cpp
     fssfmi_bench.cpp
     bench_main.cpp
 )

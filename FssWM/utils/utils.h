@@ -50,6 +50,25 @@ inline int log2floor(uint64_t x) noexcept {
 }
 
 /**
+ * @brief Gets the least significant bit (LSB) of a given value.
+ * @param value The input value.
+ * @return The LSB (0 or 1).
+ */
+inline uint64_t GetLSB(const uint64_t value) noexcept {
+    return value & 1ULL;
+}
+
+/**
+ * @brief Gets the most significant bit (MSB) of a given n-bit value.
+ * @param value The input value.
+ * @param n The bit width (MSB is at position n - 1).
+ * @return The MSB (0 or 1).
+ */
+inline uint64_t GetMSB(const uint64_t value, const uint64_t n) noexcept {
+    return (value >> (n - 1)) & 1ULL;
+}
+
+/**
  * @brief Gets the lower 'n' bits of a given value.
  * @param value The value from which the lower bits are obtained.
  * @param n The number of lower bits to be retrieved.
@@ -60,6 +79,26 @@ inline uint64_t GetLowerNBits(const uint64_t value, const uint64_t n) noexcept {
         return value;
     }
     return value & ((1ULL << n) - 1UL);
+}
+
+/**
+ * @brief Converts an unsigned n-bit value to its signed equivalent using sign extension.
+ * @param value The unsigned input value (lower n bits are significant).
+ * @param n The bit width of the value (1 <= n <= 64).
+ * @return The signed interpretation of the n-bit value.
+ */
+inline int64_t UnsignedToSignedNBits(uint64_t value, uint64_t n) noexcept {
+    // Extract only the lower n bits
+    value &= (1ULL << n) - 1;
+
+    // If MSB is 1, do sign extension
+    if (value >> (n - 1)) {
+        // Negative value: extend the sign bit
+        return static_cast<int64_t>(value | (~0ULL << n));
+    } else {
+        // Positive value: no change needed
+        return static_cast<int64_t>(value);
+    }
 }
 
 /**

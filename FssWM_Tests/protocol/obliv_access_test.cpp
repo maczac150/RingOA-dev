@@ -1,10 +1,11 @@
-#include "obliv_select_test.h"
+#include "obliv_access_test.h"
 
 #include <cryptoTools/Common/TestCollection.h>
 
 #include "FssWM/protocol/key_io.h"
-#include "FssWM/protocol/mixed_obliv_select.h"
 #include "FssWM/protocol/obliv_select.h"
+#include "FssWM/protocol/ringoa.h"
+#include "FssWM/protocol/shared_ot.h"
 #include "FssWM/sharing/additive_2p.h"
 #include "FssWM/sharing/additive_3p.h"
 #include "FssWM/sharing/binary_2p.h"
@@ -30,6 +31,19 @@ using fsswm::Logger;
 using fsswm::Mod;
 using fsswm::ThreePartyNetworkManager;
 using fsswm::ToString, fsswm::Format;
+using fsswm::proto::KeyIo;
+using fsswm::proto::OblivSelectEvaluator;
+using fsswm::proto::OblivSelectKey;
+using fsswm::proto::OblivSelectKeyGenerator;
+using fsswm::proto::OblivSelectParameters;
+using fsswm::proto::RingOaEvaluator;
+using fsswm::proto::RingOaKey;
+using fsswm::proto::RingOaKeyGenerator;
+using fsswm::proto::RingOaParameters;
+using fsswm::proto::SharedOtEvaluator;
+using fsswm::proto::SharedOtKey;
+using fsswm::proto::SharedOtKeyGenerator;
+using fsswm::proto::SharedOtParameters;
 using fsswm::sharing::AdditiveSharing2P;
 using fsswm::sharing::BinaryReplicatedSharing3P;
 using fsswm::sharing::BinarySharing2P;
@@ -38,15 +52,6 @@ using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
 using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
 using fsswm::sharing::RepShareView64, fsswm::sharing::RepShareViewBlock;
 using fsswm::sharing::ShareIo;
-using fsswm::proto::KeyIo;
-using fsswm::proto::MixedOblivSelectEvaluator;
-using fsswm::proto::MixedOblivSelectKey;
-using fsswm::proto::MixedOblivSelectKeyGenerator;
-using fsswm::proto::MixedOblivSelectParameters;
-using fsswm::proto::OblivSelectEvaluator;
-using fsswm::proto::OblivSelectKey;
-using fsswm::proto::OblivSelectKeyGenerator;
-using fsswm::proto::OblivSelectParameters;
 
 void OblivSelect_Offline_Test() {
     Logger::DebugLog(LOC, "OblivSelect_Offline_Test...");
@@ -307,29 +312,29 @@ void OblivSelect_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "OblivSelect_ShiftedAdditive_Online_Test - Passed");
 }
 
-void MixedOblivSelect_Offline_Test() {
-    Logger::DebugLog(LOC, "MixedOblivSelect_Offline_Test...");
-    std::vector<MixedOblivSelectParameters> params_list = {
-        MixedOblivSelectParameters(10),
-        // MixedOblivSelectParameters(15),
-        // MixedOblivSelectParameters(20),
+void SharedOt_Offline_Test() {
+    Logger::DebugLog(LOC, "SharedOt_Offline_Test...");
+    std::vector<SharedOtParameters> params_list = {
+        SharedOtParameters(10),
+        // SharedOtParameters(15),
+        // SharedOtParameters(20),
     };
 
     for (const auto &params : params_list) {
         params.PrintParameters();
-        uint64_t                     d = params.GetParameters().GetInputBitsize();
-        AdditiveSharing2P            ass(d);
-        ReplicatedSharing3P          rss(d);
-        MixedOblivSelectKeyGenerator gen(params, ass);
-        FileIo                       file_io;
-        ShareIo                      sh_io;
-        KeyIo                        key_io;
+        uint64_t             d = params.GetParameters().GetInputBitsize();
+        AdditiveSharing2P    ass(d);
+        ReplicatedSharing3P  rss(d);
+        SharedOtKeyGenerator gen(params, ass);
+        FileIo               file_io;
+        ShareIo              sh_io;
+        KeyIo                key_io;
 
         // Generate keys
-        std::array<MixedOblivSelectKey, 3> keys = gen.GenerateKeys();
+        std::array<SharedOtKey, 3> keys = gen.GenerateKeys();
 
         // Save keys
-        std::string key_path = kTestOSPath + "mixoskey_d" + ToString(d);
+        std::string key_path = kTestOSPath + "sharedotkey_d" + ToString(d);
         key_io.SaveKey(key_path + "_0", keys[0]);
         key_io.SaveKey(key_path + "_1", keys[1]);
         key_io.SaveKey(key_path + "_2", keys[2]);
@@ -347,7 +352,7 @@ void MixedOblivSelect_Offline_Test() {
         }
 
         // Save data
-        std::string db_path = kTestOSPath + "mixdb_d" + ToString(d);
+        std::string db_path = kTestOSPath + "sharedotdb_d" + ToString(d);
 
         file_io.WriteBinary(db_path, database);
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
@@ -361,7 +366,150 @@ void MixedOblivSelect_Offline_Test() {
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " index share: " + index_sh[p].ToString());
         }
-        std::string idx_path = kTestOSPath + "mixidx_d" + ToString(d);
+        std::string idx_path = kTestOSPath + "sharedotidx_d" + ToString(d);
+        file_io.WriteBinary(idx_path, index);
+        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
+        }
+
+        // Offline setup
+        rss.OfflineSetUp(kTestOSPath + "prf");
+    }
+    Logger::DebugLog(LOC, "SharedOt_Offline_Test - Passed");
+}
+
+void SharedOt_Online_Test(const osuCrypto::CLP &cmd) {
+    Logger::DebugLog(LOC, "SharedOt_Additive_Online_Test...");
+    std::vector<SharedOtParameters> params_list = {
+        SharedOtParameters(10),
+        // SharedOtParameters(15),
+        // SharedOtParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint64_t d = params.GetParameters().GetInputBitsize();
+        FileIo   file_io;
+        ShareIo  sh_io;
+
+        uint64_t              result{0};
+        std::string           key_path = kTestOSPath + "sharedotkey_d" + ToString(d);
+        std::string           db_path  = kTestOSPath + "sharedotdb_d" + ToString(d);
+        std::string           idx_path = kTestOSPath + "sharedotidx_d" + ToString(d);
+        std::vector<uint64_t> database;
+        uint64_t              index;
+        file_io.ReadBinary(db_path, database);
+        file_io.ReadBinary(idx_path, index);
+
+        // Define the task for each party
+        auto MakeTask = [&](int party_id) {
+            return [=, &result](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
+                ReplicatedSharing3P rss(d);
+                SharedOtEvaluator   eval(params, rss);
+                Channels            chls(party_id, chl_prev, chl_next);
+
+                // Load keys
+                SharedOtKey key(party_id, params);
+                KeyIo       key_io;
+                key_io.LoadKey(key_path + "_" + ToString(party_id), key);
+
+                // Load data
+                RepShareVec64 database_sh;
+                RepShare64    index_sh;
+                sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
+                sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
+
+                std::vector<uint64_t> uv_prev(1U << d), uv_next(1U << d);
+
+                // Setup the PRF keys
+                rss.OnlineSetUp(party_id, kTestOSPath + "prf");
+
+                // Evaluate
+                RepShare64 result_sh;
+                eval.Evaluate(chls, key, uv_prev, uv_next, RepShareView64(database_sh), index_sh, result_sh);
+
+                // Open the result
+                uint64_t local_res1 = 0;
+                rss.Open(chls, result_sh, local_res1);
+                result = local_res1;
+            };
+        };
+
+        // Create tasks for each party
+        auto task_p0 = MakeTask(0);
+        auto task_p1 = MakeTask(1);
+        auto task_p2 = MakeTask(2);
+
+        ThreePartyNetworkManager net_mgr;
+        // Configure network based on party ID and wait for completion
+        int party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
+        net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
+        net_mgr.WaitForCompletion();
+
+        Logger::DebugLog(LOC, "Result: " + ToString(result));
+
+        if (result != database[index])
+            throw osuCrypto::UnitTestFail("SharedOt_Online_Test failed: result = " + ToString(result) +
+                                          ", expected = " + ToString(database[index]));
+    }
+    Logger::DebugLog(LOC, "SharedOt_Online_Test - Passed");
+}
+
+void RingOa_Offline_Test() {
+    Logger::DebugLog(LOC, "RingOa_Offline_Test...");
+    std::vector<RingOaParameters> params_list = {
+        RingOaParameters(10),
+        // RingOaParameters(15),
+        // RingOaParameters(20),
+    };
+
+    for (const auto &params : params_list) {
+        params.PrintParameters();
+        uint64_t            d = params.GetParameters().GetInputBitsize();
+        AdditiveSharing2P   ass(d);
+        ReplicatedSharing3P rss(d);
+        RingOaKeyGenerator  gen(params, ass);
+        FileIo              file_io;
+        ShareIo             sh_io;
+        KeyIo               key_io;
+
+        // Generate keys
+        std::array<RingOaKey, 3> keys = gen.GenerateKeys();
+
+        // Save keys
+        std::string key_path = kTestOSPath + "ringoakey_d" + ToString(d);
+        key_io.SaveKey(key_path + "_0", keys[0]);
+        key_io.SaveKey(key_path + "_1", keys[1]);
+        key_io.SaveKey(key_path + "_2", keys[2]);
+
+        // Generate the database and index
+        std::vector<uint64_t> database(1U << d);
+        for (size_t i = 0; i < database.size(); ++i) {
+            database[i] = i;
+        }
+        Logger::DebugLog(LOC, "Database: " + ToString(database));
+
+        std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
+        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " db: " + database_sh[p].ToString());
+        }
+
+        // Save data
+        std::string db_path = kTestOSPath + "ringoadb_d" + ToString(d);
+
+        file_io.WriteBinary(db_path, database);
+        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
+        }
+
+        // Generate a random index
+        uint64_t index = ass.GenerateRandomValue();
+        Logger::DebugLog(LOC, "Index: " + ToString(index));
+        std::array<RepShare64, 3> index_sh = rss.ShareLocal(index);
+        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            Logger::DebugLog(LOC, "Party " + ToString(p) + " index share: " + index_sh[p].ToString());
+        }
+        std::string idx_path = kTestOSPath + "ringoaidx_d" + ToString(d);
         file_io.WriteBinary(idx_path, index);
         for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
@@ -371,15 +519,15 @@ void MixedOblivSelect_Offline_Test() {
         gen.OfflineSetUp(1, kTestOSPath);
         rss.OfflineSetUp(kTestOSPath + "prf");
     }
-    Logger::DebugLog(LOC, "MixedOblivSelect_Offline_Test - Passed");
+    Logger::DebugLog(LOC, "RingOa_Offline_Test - Passed");
 }
 
-void MixedOblivSelect_Online_Test(const osuCrypto::CLP &cmd) {
-    Logger::DebugLog(LOC, "MixedOblivSelect_Additive_Online_Test...");
-    std::vector<MixedOblivSelectParameters> params_list = {
-        MixedOblivSelectParameters(10),
-        // MixedOblivSelectParameters(15),
-        // MixedOblivSelectParameters(20),
+void RingOa_Online_Test(const osuCrypto::CLP &cmd) {
+    Logger::DebugLog(LOC, "RingOa_Additive_Online_Test...");
+    std::vector<RingOaParameters> params_list = {
+        RingOaParameters(10),
+        // RingOaParameters(15),
+        // RingOaParameters(20),
     };
 
     for (const auto &params : params_list) {
@@ -390,9 +538,9 @@ void MixedOblivSelect_Online_Test(const osuCrypto::CLP &cmd) {
         ShareIo  sh_io;
 
         uint64_t              result{0};
-        std::string           key_path = kTestOSPath + "mixoskey_d" + ToString(d);
-        std::string           db_path  = kTestOSPath + "mixdb_d" + ToString(d);
-        std::string           idx_path = kTestOSPath + "mixidx_d" + ToString(d);
+        std::string           key_path = kTestOSPath + "ringoakey_d" + ToString(d);
+        std::string           db_path  = kTestOSPath + "ringoadb_d" + ToString(d);
+        std::string           idx_path = kTestOSPath + "ringoaidx_d" + ToString(d);
         std::vector<uint64_t> database;
         uint64_t              index;
         file_io.ReadBinary(db_path, database);
@@ -401,15 +549,15 @@ void MixedOblivSelect_Online_Test(const osuCrypto::CLP &cmd) {
         // Define the task for each party
         auto MakeTask = [&](int party_id) {
             return [=, &result](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
-                ReplicatedSharing3P       rss(d);
-                AdditiveSharing2P         ass_prev(d);
-                AdditiveSharing2P         ass_next(d);
-                MixedOblivSelectEvaluator eval(params, rss, ass_prev, ass_next);
-                Channels                  chls(party_id, chl_prev, chl_next);
+                ReplicatedSharing3P rss(d);
+                AdditiveSharing2P   ass_prev(d);
+                AdditiveSharing2P   ass_next(d);
+                RingOaEvaluator     eval(params, rss, ass_prev, ass_next);
+                Channels            chls(party_id, chl_prev, chl_next);
 
                 // Load keys
-                MixedOblivSelectKey key(party_id, params);
-                KeyIo               key_io;
+                RingOaKey key(party_id, params);
+                KeyIo     key_io;
                 key_io.LoadKey(key_path + "_" + ToString(party_id), key);
 
                 // Load data
@@ -449,10 +597,10 @@ void MixedOblivSelect_Online_Test(const osuCrypto::CLP &cmd) {
         Logger::DebugLog(LOC, "Result: " + ToString(result));
 
         if (result != database[index])
-            throw osuCrypto::UnitTestFail("MixedOblivSelect_Online_Test failed: result = " + ToString(result) +
+            throw osuCrypto::UnitTestFail("RingOa_Online_Test failed: result = " + ToString(result) +
                                           ", expected = " + ToString(database[index]));
     }
-    Logger::DebugLog(LOC, "MixedOblivSelect_Online_Test - Passed");
+    Logger::DebugLog(LOC, "RingOa_Online_Test - Passed");
 }
 
 }    // namespace test_fsswm

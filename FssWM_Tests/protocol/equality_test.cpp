@@ -1,0 +1,182 @@
+#include "equality_test.h"
+
+#include <cryptoTools/Common/TestCollection.h>
+
+#include "FssWM/protocol/equality.h"
+#include "FssWM/protocol/key_io.h"
+#include "FssWM/sharing/additive_2p.h"
+#include "FssWM/utils/file_io.h"
+#include "FssWM/utils/logger.h"
+#include "FssWM/utils/network.h"
+#include "FssWM/utils/rng.h"
+#include "FssWM/utils/timer.h"
+#include "FssWM/utils/to_string.h"
+#include "FssWM/utils/utils.h"
+
+namespace {
+
+const std::string kCurrentPath = fsswm::GetCurrentDirectory();
+const std::string kTestEqPath  = kCurrentPath + "/data/test/protocol/";
+
+}    // namespace
+
+namespace test_fsswm {
+
+using fsswm::block;
+using fsswm::FileIo;
+using fsswm::FormatType;
+using fsswm::GlobalRng;
+using fsswm::Logger;
+using fsswm::Mod;
+using fsswm::ToString, fsswm::Format;
+using fsswm::TwoPartyNetworkManager;
+using fsswm::proto::EqualityEvaluator;
+using fsswm::proto::EqualityKey;
+using fsswm::proto::EqualityKeyGenerator;
+using fsswm::proto::EqualityParameters;
+using fsswm::proto::KeyIo;
+using fsswm::sharing::AdditiveSharing2P;
+
+void Equality_Offline_Test() {
+    Logger::DebugLog(LOC, "Equality_Offline_Test...");
+    std::vector<EqualityParameters> params_list = {
+        EqualityParameters(5, 5),
+        EqualityParameters(5, 1),
+        EqualityParameters(10, 10),
+        EqualityParameters(10, 1),
+    };
+
+    for (const EqualityParameters &params : params_list) {
+        params.PrintParameters();
+        uint64_t             n = params.GetParameters().GetInputBitsize();
+        uint64_t             e = params.GetParameters().GetOutputBitsize();
+        AdditiveSharing2P    ss_in(n);
+        AdditiveSharing2P    ss_out(e);
+        EqualityKeyGenerator gen(params, ss_in, ss_out);
+        KeyIo                key_io;
+        FileIo               file_io;
+
+        // Generate keys
+        std::pair<EqualityKey, EqualityKey> keys = gen.GenerateKeys();
+
+        // Save keys
+        std::string key_path = kTestEqPath + "eqkey_n" + ToString(n) + "_e" + ToString(e);
+        key_io.SaveKey(key_path + "_0", keys.first);
+        key_io.SaveKey(key_path + "_1", keys.second);
+
+        // Generate input
+        uint64_t                      x1    = 1;
+        uint64_t                      x2    = 5;
+        uint64_t                      x3    = x2;
+        std::pair<uint64_t, uint64_t> x1_sh = ss_in.Share(x1);
+        std::pair<uint64_t, uint64_t> x2_sh = ss_in.Share(x2);
+        std::pair<uint64_t, uint64_t> x3_sh = ss_in.Share(x3);
+        Logger::DebugLog(LOC, "x1: " + ToString(x1) + ", x2: " + ToString(x2) + ", x3: " + ToString(x3));
+        Logger::DebugLog(LOC, "x1_sh: " + ToString(x1_sh.first) + ", " + ToString(x1_sh.second));
+        Logger::DebugLog(LOC, "x2_sh: " + ToString(x2_sh.first) + ", " + ToString(x2_sh.second));
+        Logger::DebugLog(LOC, "x3_sh: " + ToString(x3_sh.first) + ", " + ToString(x3_sh.second));
+
+        // Save input
+        std::string x1_path = kTestEqPath + "x1_n" + ToString(n) + "_e" + ToString(e);
+        std::string x2_path = kTestEqPath + "x2_n" + ToString(n) + "_e" + ToString(e);
+        std::string x3_path = kTestEqPath + "x3_n" + ToString(n) + "_e" + ToString(e);
+        file_io.WriteBinary(x1_path + "_0", x1_sh.first);
+        file_io.WriteBinary(x1_path + "_1", x1_sh.second);
+        file_io.WriteBinary(x2_path + "_0", x2_sh.first);
+        file_io.WriteBinary(x2_path + "_1", x2_sh.second);
+        file_io.WriteBinary(x3_path + "_0", x3_sh.first);
+        file_io.WriteBinary(x3_path + "_1", x3_sh.second);
+    }
+    Logger::DebugLog(LOC, "Equality_Offline_Test - Passed");
+}
+
+void Equality_Online_Test() {
+    Logger::DebugLog(LOC, "Equality_Online_Test...");
+    std::vector<EqualityParameters> params_list = {
+        EqualityParameters(5, 5),
+        EqualityParameters(5, 1),
+        EqualityParameters(10, 10),
+        EqualityParameters(10, 1),
+    };
+
+    for (const EqualityParameters &params : params_list) {
+        // params.PrintEqualityParameters();
+        uint64_t          n = params.GetParameters().GetInputBitsize();
+        uint64_t          e = params.GetParameters().GetOutputBitsize();
+        AdditiveSharing2P ss_in(n);
+        AdditiveSharing2P ss_out(e);
+        EqualityEvaluator eval(params, ss_in, ss_out);
+        KeyIo             key_io;
+        FileIo            file_io;
+
+        // Start network communication
+        TwoPartyNetworkManager net_mgr("Equality_Online_Test");
+
+        std::string key_path = kTestEqPath + "eqkey_n" + ToString(n) + "_e" + ToString(e);
+        std::string x1_path  = kTestEqPath + "x1_n" + ToString(n) + "_e" + ToString(e);
+        std::string x2_path  = kTestEqPath + "x2_n" + ToString(n) + "_e" + ToString(e);
+        std::string x3_path  = kTestEqPath + "x3_n" + ToString(n) + "_e" + ToString(e);
+
+        uint64_t x1_0, x1_1;
+        uint64_t x2_0, x2_1;
+        uint64_t x3_0, x3_1;
+        uint64_t y1, y1_0, y1_1;
+        uint64_t y2, y2_0, y2_1;
+
+        // Server task
+        auto server_task = [&](oc::Channel &chl) {
+            // Load keys
+            EqualityKey key_0(0, params);
+            key_io.LoadKey(key_path + "_0", key_0);
+
+            // Load input
+            file_io.ReadBinary(x1_path + "_0", x1_0);
+            file_io.ReadBinary(x2_path + "_0", x2_0);
+            file_io.ReadBinary(x3_path + "_0", x3_0);
+
+            // Evaluate
+            y1_0 = eval.EvaluateSharedInput(chl, key_0, x1_0, x2_0);
+            y2_0 = eval.EvaluateSharedInput(chl, key_0, x2_0, x3_0);
+
+            // Send output
+            ss_out.Reconst(0, chl, y1_0, y1_1, y1);
+            ss_out.Reconst(0, chl, y2_0, y2_1, y2);
+            Logger::DebugLog(LOC, "[P0] y1: " + ToString(y1));
+            Logger::DebugLog(LOC, "[P0] y2: " + ToString(y2));
+        };
+
+        // Client task
+        auto client_task = [&](oc::Channel &chl) {
+            // Load keys
+            EqualityKey key_1(1, params);
+            key_io.LoadKey(key_path + "_1", key_1);
+
+            // Load input
+            file_io.ReadBinary(x1_path + "_1", x1_1);
+            file_io.ReadBinary(x2_path + "_1", x2_1);
+            file_io.ReadBinary(x3_path + "_1", x3_1);
+
+            // Evaluate
+            y1_1 = eval.EvaluateSharedInput(chl, key_1, x1_1, x2_1);
+            y2_1 = eval.EvaluateSharedInput(chl, key_1, x2_1, x3_1);
+
+            // Send output
+            ss_out.Reconst(1, chl, y1_0, y1_1, y1);
+            ss_out.Reconst(1, chl, y2_0, y2_1, y2);
+            Logger::DebugLog(LOC, "[P1] y1: " + ToString(y1));
+            Logger::DebugLog(LOC, "[P1] y2: " + ToString(y2));
+        };
+
+        net_mgr.AutoConfigure(-1, server_task, client_task);
+        net_mgr.WaitForCompletion();
+
+        if (y1 != 0)
+            throw oc::UnitTestFail("y1 is not equal to 0");
+
+        if (y2 != 1)
+            throw oc::UnitTestFail("y2 is not equal to 1");
+    }
+    Logger::DebugLog(LOC, "Equality_Online_Test - Passed");
+}
+
+}    // namespace test_fsswm

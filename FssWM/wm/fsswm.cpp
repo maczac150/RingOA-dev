@@ -23,7 +23,7 @@ FssWMKey::FssWMKey(const uint64_t id, const FssWMParameters &params)
       params_(params) {
     os_keys.reserve(num_os_keys);
     for (uint64_t i = 0; i < num_os_keys; ++i) {
-        os_keys.emplace_back(proto::MixedOblivSelectKey(id, params.GetOSParameters()));
+        os_keys.emplace_back(proto::RingOaKey(id, params.GetOSParameters()));
     }
     serialized_size_ = CalculateSerializedSize();
 }
@@ -115,7 +115,7 @@ std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
 
     for (uint64_t i = 0; i < keys[0].num_os_keys; ++i) {
         // Generate the OblivSelect keys
-        std::array<proto::MixedOblivSelectKey, 3> os_key = os_gen_.GenerateKeys();
+        std::array<proto::RingOaKey, 3> os_key = os_gen_.GenerateKeys();
 
         // Set the OblivSelect keys
         keys[0].os_keys[i] = std::move(os_key[0]);

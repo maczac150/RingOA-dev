@@ -11,7 +11,10 @@
 #include "FssWM_Tests/fss/dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
 #include "FssWM_Tests/protocol/ddcf_test.h"
-#include "FssWM_Tests/protocol/obliv_select_test.h"
+#include "FssWM_Tests/protocol/equality_test.h"
+#include "FssWM_Tests/protocol/integer_comparison_test.h"
+#include "FssWM_Tests/protocol/obliv_access_test.h"
+#include "FssWM_Tests/protocol/zt_test.h"
 #include "FssWM_Tests/sharing/additive_2p_test.h"
 #include "FssWM_Tests/sharing/additive_3p_test.h"
 #include "FssWM_Tests/sharing/binary_2p_test.h"
@@ -59,13 +62,21 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Binary3P_EvaluateXor_Online_Test", Binary3P_EvaluateXor_Online_Test);
     t.add("Binary3P_EvaluateAnd_Online_Test", Binary3P_EvaluateAnd_Online_Test);
     t.add("Binary3P_EvaluateSelect_Online_Test", Binary3P_EvaluateSelect_Online_Test);
+    t.add("Ddcf_EvalAt_Test", Ddcf_EvalAt_Test);
+    t.add("Ddcf_Fde_Test", Ddcf_Fde_Test);
+    t.add("ZeroTest_Offline_Test", ZeroTest_Offline_Test);
+    t.add("ZeroTest_Online_Test", ZeroTest_Online_Test);
+    t.add("Equality_Offline_Test", Equality_Offline_Test);
+    t.add("Equality_Online_Test", Equality_Online_Test);
+    t.add("IntegerComparison_Offline_Test", IntegerComparison_Offline_Test);
+    t.add("IntegerComparison_Online_Test", IntegerComparison_Online_Test);
     t.add("OblivSelect_Offline_Test", OblivSelect_Offline_Test);
     t.add("OblivSelect_SingleBitMask_Online_Test", OblivSelect_SingleBitMask_Online_Test);
     t.add("OblivSelect_ShiftedAdditive_Online_Test", OblivSelect_ShiftedAdditive_Online_Test);
-    t.add("MixedOblivSelect_Offline_Test", MixedOblivSelect_Offline_Test);
-    t.add("MixedOblivSelect_Online_Test", MixedOblivSelect_Online_Test);
-    t.add("Ddcf_EvalAt_Test", Ddcf_EvalAt_Test);
-    t.add("Ddcf_Fde_Test", Ddcf_Fde_Test);
+    t.add("SharedOt_Offline_Test", SharedOt_Offline_Test);
+    t.add("SharedOt_Online_Test", SharedOt_Online_Test);
+    t.add("RingOa_Offline_Test", RingOa_Offline_Test);
+    t.add("RingOa_Online_Test", RingOa_Online_Test);
     t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
     t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
