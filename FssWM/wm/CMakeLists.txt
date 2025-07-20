@@ -5,6 +5,7 @@
 # Add library
 add_library(wm
     plain_wm.cpp
+    sotwm.cpp
     fsswm.cpp
 )
 

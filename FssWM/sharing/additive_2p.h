@@ -67,6 +67,7 @@ public:
     uint64_t GetCurrentTripleIndex() const;
     uint64_t GetNumTriples() const;
     uint64_t GetRemainingTripleCount() const;
+    void     ResetTripleIndex();
 
 private:
     const uint64_t bitsize_;      /**< The size of the bits used for secret sharing operations. */

@@ -1,4 +1,4 @@
-#include "fssfmi.h"
+#include "sotfmi.h"
 
 #include <cstring>
 
@@ -14,11 +14,11 @@
 namespace fsswm {
 namespace fm_index {
 
-void FssFMIParameters::PrintParameters() const {
-    Logger::DebugLog(LOC, "[FssFMI Parameters]" + GetParametersInfo());
+void SotFMIParameters::PrintParameters() const {
+    Logger::DebugLog(LOC, "[SotFMI Parameters]" + GetParametersInfo());
 }
 
-FssFMIKey::FssFMIKey(const uint64_t id, const FssFMIParameters &params)
+SotFMIKey::SotFMIKey(const uint64_t id, const SotFMIParameters &params)
     : num_wm_keys(params.GetQuerySize()),
       num_zt_keys(params.GetQuerySize()),
       params_(params) {
@@ -26,17 +26,17 @@ FssFMIKey::FssFMIKey(const uint64_t id, const FssFMIParameters &params)
     wm_g_keys.reserve(num_wm_keys);
     zt_keys.reserve(num_zt_keys);
     for (uint64_t i = 0; i < num_wm_keys; ++i) {
-        wm_f_keys.emplace_back(wm::FssWMKey(id, params.GetFssWMParameters()));
-        wm_g_keys.emplace_back(wm::FssWMKey(id, params.GetFssWMParameters()));
+        wm_f_keys.emplace_back(wm::SotWMKey(id, params.GetSotWMParameters()));
+        wm_g_keys.emplace_back(wm::SotWMKey(id, params.GetSotWMParameters()));
     }
     for (uint64_t i = 0; i < num_zt_keys; ++i) {
         zt_keys.emplace_back(proto::ZeroTestKey(id, params.GetZeroTestParameters()));
     }
 }
 
-void FssFMIKey::Serialize(std::vector<uint8_t> &buffer) const {
+void SotFMIKey::Serialize(std::vector<uint8_t> &buffer) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Serializing FssFMIKey");
+    Logger::DebugLog(LOC, "Serializing SotFMIKey");
 #endif
 
     // Serialize the number of WM keys
@@ -66,9 +66,9 @@ void FssFMIKey::Serialize(std::vector<uint8_t> &buffer) const {
     }
 }
 
-void FssFMIKey::Deserialize(const std::vector<uint8_t> &buffer) {
+void SotFMIKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Deserializing FssFMIKey");
+    Logger::DebugLog(LOC, "Deserializing SotFMIKey");
 #endif
     size_t offset = 0;
 
@@ -101,8 +101,8 @@ void FssFMIKey::Deserialize(const std::vector<uint8_t> &buffer) {
     }
 }
 
-void FssFMIKey::PrintKey(const bool detailed) const {
-    Logger::DebugLog(LOC, Logger::StrWithSep("FssFMI Key"));
+void SotFMIKey::PrintKey(const bool detailed) const {
+    Logger::DebugLog(LOC, Logger::StrWithSep("SotFMI Key"));
     for (const auto &wm_key : wm_f_keys) {
         wm_key.PrintKey(detailed);
     }
@@ -114,25 +114,21 @@ void FssFMIKey::PrintKey(const bool detailed) const {
     }
 }
 
-FssFMIKeyGenerator::FssFMIKeyGenerator(
-    const FssFMIParameters       &params,
+SotFMIKeyGenerator::SotFMIKeyGenerator(
+    const SotFMIParameters       &params,
     sharing::AdditiveSharing2P   &ass,
     sharing::ReplicatedSharing3P &rss)
     : params_(params),
-      wm_gen_(params.GetFssWMParameters(), ass, rss),
+      wm_gen_(params.GetSotWMParameters(), ass, rss),
       zt_gen_(params.GetZeroTestParameters(), ass, ass),
       rss_(rss) {
 }
 
-void FssFMIKeyGenerator::OfflineSetUp(const std::string &file_path) {
-    wm_gen_.GetRingOaKeyGenerator().OfflineSetUp(params_.GetSigma() * params_.GetQuerySize() * 2, file_path);
-}
-
-std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateDatabaseU64Share(const wm::FMIndex &fm) const {
+std::array<sharing::RepShareMat64, 3> SotFMIKeyGenerator::GenerateDatabaseU64Share(const wm::FMIndex &fm) const {
     return wm_gen_.GenerateDatabaseU64Share(fm);
 }
 
-std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateQueryU64Share(const wm::FMIndex &fm, std::string &query) const {
+std::array<sharing::RepShareMat64, 3> SotFMIKeyGenerator::GenerateQueryU64Share(const wm::FMIndex &fm, std::string &query) const {
     std::vector<uint64_t> query_bv = fm.ConvertToBitMatrix(query);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Query bitvec: " + ToStringMatrix(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma()));
@@ -140,23 +136,23 @@ std::array<sharing::RepShareMat64, 3> FssFMIKeyGenerator::GenerateQueryU64Share(
     return rss_.ShareLocal(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma());
 }
 
-std::array<FssFMIKey, 3> FssFMIKeyGenerator::GenerateKeys() const {
+std::array<SotFMIKey, 3> SotFMIKeyGenerator::GenerateKeys() const {
     // Initialize keys
-    std::array<FssFMIKey, 3> keys = {
-        FssFMIKey(0, params_),
-        FssFMIKey(1, params_),
-        FssFMIKey(2, params_)};
+    std::array<SotFMIKey, 3> keys = {
+        SotFMIKey(0, params_),
+        SotFMIKey(1, params_),
+        SotFMIKey(2, params_)};
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate FssWM keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate SotWM keys"));
 #endif
 
     for (uint64_t i = 0; i < keys[0].num_wm_keys; ++i) {
-        // Generate the FssWMKey keys
-        std::array<wm::FssWMKey, 3> wm_f_key = wm_gen_.GenerateKeys();
-        std::array<wm::FssWMKey, 3> wm_g_key = wm_gen_.GenerateKeys();
+        // Generate the SotWMKey keys
+        std::array<wm::SotWMKey, 3> wm_f_key = wm_gen_.GenerateKeys();
+        std::array<wm::SotWMKey, 3> wm_g_key = wm_gen_.GenerateKeys();
 
-        // Set the FssWMKey keys
+        // Set the SotWMKey keys
         keys[0].wm_f_keys[i] = std::move(wm_f_key[0]);
         keys[1].wm_f_keys[i] = std::move(wm_f_key[1]);
         keys[2].wm_f_keys[i] = std::move(wm_f_key[2]);
@@ -175,7 +171,7 @@ std::array<FssFMIKey, 3> FssFMIKeyGenerator::GenerateKeys() const {
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "FssWM keys generated");
+    Logger::DebugLog(LOC, "SotWM keys generated");
     keys[0].PrintKey();
     keys[1].PrintKey();
     keys[2].PrintKey();
@@ -185,24 +181,19 @@ std::array<FssFMIKey, 3> FssFMIKeyGenerator::GenerateKeys() const {
     return keys;
 }
 
-FssFMIEvaluator::FssFMIEvaluator(const FssFMIParameters       &params,
+SotFMIEvaluator::SotFMIEvaluator(const SotFMIParameters       &params,
                                  sharing::ReplicatedSharing3P &rss,
-                                 sharing::AdditiveSharing2P   &ass_prev,
-                                 sharing::AdditiveSharing2P   &ass_next)
+                                 sharing::AdditiveSharing2P   &ass)
     : params_(params),
-      wm_eval_(params.GetFssWMParameters(), rss, ass_prev, ass_next),
-      zt_eval_(params.GetZeroTestParameters(), ass_prev, ass_next),
-      rss_(rss), ass_prev_(ass_prev), ass_next_(ass_next) {
+      wm_eval_(params.GetSotWMParameters(), rss),
+      zt_eval_(params.GetZeroTestParameters(), ass, ass),
+      rss_(rss), ass_(ass) {
 }
 
-void FssFMIEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) {
-    wm_eval_.GetRingOaEvaluator().OnlineSetUp(party_id, file_path);
-}
-
-void FssFMIEvaluator::EvaluateLPM(Channels                     &chls,
-                                  const FssFMIKey              &key,
-                                  std::vector<block>           &uv_prev,
-                                  std::vector<block>           &uv_next,
+void SotFMIEvaluator::EvaluateLPM(Channels                     &chls,
+                                  const SotFMIKey              &key,
+                                  std::vector<uint64_t>        &uv_prev,
+                                  std::vector<uint64_t>        &uv_next,
                                   const sharing::RepShareMat64 &wm_tables,
                                   const sharing::RepShareMat64 &query,
                                   sharing::RepShareVec64       &result) const {
@@ -214,7 +205,7 @@ void FssFMIEvaluator::EvaluateLPM(Channels                     &chls,
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssFMI key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SotFMI key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Query size: " + ToString(qs));
@@ -264,30 +255,30 @@ void FssFMIEvaluator::EvaluateLPM(Channels                     &chls,
         for (uint64_t i = 0; i < qs; ++i) {
             uint64_t interval_0 = Mod(interval_sh.data[0][i] + interval_sh.data[1][i] + r_sh.data[1], d);
             uint64_t masked_interval_0;
-            ass_next_.EvaluateAdd(interval_0, key.zt_keys[i].shr_in, masked_interval_0);
+            ass_.EvaluateAdd(interval_0, key.zt_keys[i].shr_in, masked_interval_0);
             masked_intervals_0[i] = masked_interval_0;
         }
-        ass_next_.Reconst(0, chls.next, masked_intervals_0, masked_intervals_1, masked_intervals);
+        ass_.Reconst(0, chls.next, masked_intervals_0, masked_intervals_1, masked_intervals);
         for (uint64_t i = 0; i < qs; ++i) {
             zt_0[i] = zt_eval_.EvaluateMaskedInput(key.zt_keys[i], masked_intervals[i]);
         }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        ass_next_.Reconst(0, chls.next, zt_0, zt_1, recon_zt);
+        ass_.Reconst(0, chls.next, zt_0, zt_1, recon_zt);
         Logger::DebugLog(LOC, party_str + "Reconstructed ZT: " + ToString(recon_zt));
 #endif
     } else if (party_id == 2) {
         for (uint64_t i = 0; i < qs; ++i) {
             uint64_t interval_1 = Mod(interval_sh.data[0][i] - r_sh.data[0], d);
             uint64_t masked_interval_1;
-            ass_prev_.EvaluateAdd(interval_1, key.zt_keys[i].shr_in, masked_interval_1);
+            ass_.EvaluateAdd(interval_1, key.zt_keys[i].shr_in, masked_interval_1);
             masked_intervals_1[i] = masked_interval_1;
         }
-        ass_prev_.Reconst(1, chls.prev, masked_intervals_0, masked_intervals_1, masked_intervals);
+        ass_.Reconst(1, chls.prev, masked_intervals_0, masked_intervals_1, masked_intervals);
         for (uint64_t i = 0; i < qs; ++i) {
             zt_1[i] = zt_eval_.EvaluateMaskedInput(key.zt_keys[i], masked_intervals[i]);
         }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        ass_prev_.Reconst(1, chls.prev, zt_0, zt_1, recon_zt);
+        ass_.Reconst(1, chls.prev, zt_0, zt_1, recon_zt);
         Logger::DebugLog(LOC, party_str + "Reconstructed ZT: " + ToString(recon_zt));
 #endif
     }
@@ -313,10 +304,10 @@ void FssFMIEvaluator::EvaluateLPM(Channels                     &chls,
     chls.prev.recv(result[1]);
 }
 
-void FssFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
-                                           const FssFMIKey              &key,
-                                           std::vector<block>           &uv_prev,
-                                           std::vector<block>           &uv_next,
+void SotFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
+                                           const SotFMIKey              &key,
+                                           std::vector<uint64_t>        &uv_prev,
+                                           std::vector<uint64_t>        &uv_next,
                                            const sharing::RepShareMat64 &wm_tables,
                                            const sharing::RepShareMat64 &query,
                                            sharing::RepShareVec64       &result) const {
@@ -328,7 +319,7 @@ void FssFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssFMI key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SotFMI key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Query size: " + ToString(qs));
@@ -377,30 +368,30 @@ void FssFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
         for (uint64_t i = 0; i < qs; ++i) {
             uint64_t interval_0 = Mod(interval_sh.data[0][i] + interval_sh.data[1][i] + r_sh.data[1], d);
             uint64_t masked_interval_0;
-            ass_next_.EvaluateAdd(interval_0, key.zt_keys[i].shr_in, masked_interval_0);
+            ass_.EvaluateAdd(interval_0, key.zt_keys[i].shr_in, masked_interval_0);
             masked_intervals_0[i] = masked_interval_0;
         }
-        ass_next_.Reconst(0, chls.next, masked_intervals_0, masked_intervals_1, masked_intervals);
+        ass_.Reconst(0, chls.next, masked_intervals_0, masked_intervals_1, masked_intervals);
         for (uint64_t i = 0; i < qs; ++i) {
             zt_0[i] = zt_eval_.EvaluateMaskedInput(key.zt_keys[i], masked_intervals[i]);
         }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        ass_next_.Reconst(0, chls.next, zt_0, zt_1, recon_zt);
+        ass_.Reconst(0, chls.next, zt_0, zt_1, recon_zt);
         Logger::DebugLog(LOC, party_str + "Reconstructed ZT: " + ToString(recon_zt));
 #endif
     } else if (party_id == 2) {
         for (uint64_t i = 0; i < qs; ++i) {
             uint64_t interval_1 = Mod(interval_sh.data[0][i] - r_sh.data[0], d);
             uint64_t masked_interval_1;
-            ass_prev_.EvaluateAdd(interval_1, key.zt_keys[i].shr_in, masked_interval_1);
+            ass_.EvaluateAdd(interval_1, key.zt_keys[i].shr_in, masked_interval_1);
             masked_intervals_1[i] = masked_interval_1;
         }
-        ass_prev_.Reconst(1, chls.prev, masked_intervals_0, masked_intervals_1, masked_intervals);
+        ass_.Reconst(1, chls.prev, masked_intervals_0, masked_intervals_1, masked_intervals);
         for (uint64_t i = 0; i < qs; ++i) {
             zt_1[i] = zt_eval_.EvaluateMaskedInput(key.zt_keys[i], masked_intervals[i]);
         }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        ass_prev_.Reconst(1, chls.prev, zt_0, zt_1, recon_zt);
+        ass_.Reconst(1, chls.prev, zt_0, zt_1, recon_zt);
         Logger::DebugLog(LOC, party_str + "Reconstructed ZT: " + ToString(recon_zt));
 #endif
     }

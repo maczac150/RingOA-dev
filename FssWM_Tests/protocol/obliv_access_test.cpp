@@ -516,7 +516,7 @@ void RingOa_Offline_Test() {
         }
 
         // Offline setup
-        gen.OfflineSetUp(1, kTestOSPath);
+        gen.OfflineSetUp(3, kTestOSPath);
         rss.OfflineSetUp(kTestOSPath + "prf");
     }
     Logger::DebugLog(LOC, "RingOa_Offline_Test - Passed");
@@ -576,10 +576,19 @@ void RingOa_Online_Test(const osuCrypto::CLP &cmd) {
                 RepShare64 result_sh;
                 eval.Evaluate(chls, key, uv_prev, uv_next, RepShareView64(database_sh), index_sh, result_sh);
 
+                RepShareVec64 index_vec_sh(2), result_vec_sh(2);
+                index_vec_sh.Set(0, index_sh);
+                index_vec_sh.Set(1, index_sh);
+                eval.Evaluate_Parallel(chls, key, key, uv_prev, uv_next, RepShareView64(database_sh), index_vec_sh, result_vec_sh);
+
                 // Open the result
-                uint64_t local_res1 = 0;
-                rss.Open(chls, result_sh, local_res1);
-                result = local_res1;
+                uint64_t local_res = 0;
+                std::vector<uint64_t> local_res_vec(2);
+
+                rss.Open(chls, result_sh, local_res);
+                rss.Open(chls, result_vec_sh, local_res_vec);
+                Logger::DebugLog(LOC, "result_vec_sh: " + ToString(local_res_vec));
+                result = local_res;
             };
         };
 

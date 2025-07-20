@@ -6,7 +6,6 @@
 #include "FssWM/utils/logger.h"
 #include "FssWM/utils/rng.h"
 #include "FssWM_Tests/fm_index/fssfmi_test.h"
-#include "FssWM_Tests/fm_index/zt_test.h"
 #include "FssWM_Tests/fss/dcf_test.h"
 #include "FssWM_Tests/fss/dpf_test.h"
 #include "FssWM_Tests/fss/prg_test.h"
@@ -77,12 +76,12 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("SharedOt_Online_Test", SharedOt_Online_Test);
     t.add("RingOa_Offline_Test", RingOa_Offline_Test);
     t.add("RingOa_Online_Test", RingOa_Online_Test);
-    t.add("ZeroTest_Binary_Offline_Test", ZeroTest_Binary_Offline_Test);
-    t.add("ZeroTest_Binary_Online_Test", ZeroTest_Binary_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
     t.add("FssWM_Offline_Test", FssWM_Offline_Test);
     t.add("FssWM_Online_Test", FssWM_Online_Test);
+    t.add("SotFMI_Offline_Test", SotFMI_Offline_Test);
+    t.add("SotFMI_Online_Test", SotFMI_Online_Test);
     t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);
     t.add("FssFMI_Online_Test", FssFMI_Online_Test);
 });

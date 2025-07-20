@@ -1,18 +1,10 @@
 #ifndef FM_INDEX_FSSFMI_H_
 #define FM_INDEX_FSSFMI_H_
 
+#include "FssWM/protocol/zero_test.h"
 #include "FssWM/wm/fsswm.h"
-#include "zero_test.h"
 
 namespace fsswm {
-
-namespace sharing {
-
-class BinaryReplicatedSharing3P;
-class BinarySharing2P;
-
-}    // namespace sharing
-
 namespace fm_index {
 
 /**
@@ -37,7 +29,7 @@ public:
                      const uint64_t sigma = 3)
         : query_size_(query_size),
           fsswm_params_(database_bitsize, sigma),
-          zt_params_(database_bitsize) {
+          zt_params_(database_bitsize, database_bitsize) {
     }
 
     /**
@@ -53,7 +45,7 @@ public:
                                const uint64_t sigma = 3) {
         query_size_ = query_size;
         fsswm_params_.ReconfigureParameters(database_bitsize, sigma);
-        zt_params_.ReconfigureParameters(database_bitsize);
+        zt_params_.ReconfigureParameters(database_bitsize, database_bitsize);
     }
 
     /**
@@ -100,7 +92,7 @@ public:
      * @brief Get the ZeroTestParameters for the FssFMIParameters.
      * @return const ZeroTestParameters& The ZeroTestParameters for the FssFMIParameters.
      */
-    const ZeroTestParameters GetZeroTestParameters() const {
+    const proto::ZeroTestParameters GetZeroTestParameters() const {
         return zt_params_;
     }
 
@@ -120,20 +112,20 @@ public:
     void PrintParameters() const;
 
 private:
-    uint64_t            query_size_;   /**< The query size for the FssFMIParameters. */
-    wm::FssWMParameters fsswm_params_; /**< The FssWMParameters for the FssFMIParameters. */
-    ZeroTestParameters  zt_params_;    /**< The ZeroTestParameters for the FssFMIParameters. */
+    uint64_t                  query_size_;   /**< The query size for the FssFMIParameters. */
+    wm::FssWMParameters       fsswm_params_; /**< The FssWMParameters for the FssFMIParameters. */
+    proto::ZeroTestParameters zt_params_;    /**< The ZeroTestParameters for the FssFMIParameters. */
 };
 
 /**
  * @brief A struct to hold the keys for the FssFMI.
  */
 struct FssFMIKey {
-    uint64_t                  num_wm_keys;
-    uint64_t                  num_zt_keys;
-    std::vector<wm::FssWMKey> wm_f_keys;
-    std::vector<wm::FssWMKey> wm_g_keys;
-    std::vector<ZeroTestKey>  zt_keys;
+    uint64_t                        num_wm_keys;
+    uint64_t                        num_zt_keys;
+    std::vector<wm::FssWMKey>       wm_f_keys;
+    std::vector<wm::FssWMKey>       wm_g_keys;
+    std::vector<proto::ZeroTestKey> zt_keys;
 
     /**
      * @brief Default constructor for FssFMIKey is deleted.
@@ -215,13 +207,12 @@ public:
     /**
      * @brief Parameterized constructor for FssFMIKeyGenerator.
      * @param params FssWMParameters for the FssFMIKeyGenerator.
-     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param ass Additive sharing for 2-party for the RingOaKeyGenerator.
      * @param rss Replicated sharing for 3-party for the sharing.
      */
     FssFMIKeyGenerator(
         const FssFMIParameters       &params,
         sharing::AdditiveSharing2P   &ass,
-        sharing::BinarySharing2P     &bss,
         sharing::ReplicatedSharing3P &rss);
 
     void OfflineSetUp(const std::string &file_path);
@@ -239,7 +230,7 @@ public:
      * @param query The query to generate shares for.
      * @return std::array<sharing::RepShareVec, 3> The generated shares for the query.
      */
-    std::array<sharing::RepShareMat64, 3> GenerateQueryShare(const wm::FMIndex &fm, std::string &query) const;
+    std::array<sharing::RepShareMat64, 3> GenerateQueryU64Share(const wm::FMIndex &fm, std::string &query) const;
 
     /**
      * @brief Generate keys for the FssFMI.
@@ -250,7 +241,7 @@ public:
 private:
     FssFMIParameters              params_; /**< FssFMIParameters for the FssFMIKeyGenerator. */
     wm::FssWMKeyGenerator         wm_gen_; /**< FssWMKeyGenerator for the FssFMIKeyGenerator. */
-    ZeroTestKeyGenerator          zt_gen_; /**< ZeroTestKeyGenerator for the FssFMIKeyGenerator. */
+    proto::ZeroTestKeyGenerator   zt_gen_; /**< ZeroTestKeyGenerator for the FssFMIKeyGenerator. */
     sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssFMIEvaluator. */
 };
 
@@ -264,11 +255,17 @@ public:
      */
     FssFMIEvaluator() = delete;
 
-    FssFMIEvaluator(const FssFMIParameters             &params,
-                    sharing::ReplicatedSharing3P       &rss,
-                    sharing::BinaryReplicatedSharing3P &brss,
-                    sharing::AdditiveSharing2P         &ass_prev,
-                    sharing::AdditiveSharing2P         &ass_next);
+    /**
+     * @brief Parameterized constructor for FssFMIEvaluator.
+     * @param params FssFMIParameters for the FssFMIEvaluator.
+     * @param rss Replicated sharing for 3-party for the FssFMIEvaluator.
+     * @param ass_prev Additive sharing for 2-party for the FssFMIEvaluator.
+     * @param ass_next Additive sharing for 2-party for the FssFMIEvaluator.
+     */
+    FssFMIEvaluator(const FssFMIParameters       &params,
+                    sharing::ReplicatedSharing3P &rss,
+                    sharing::AdditiveSharing2P   &ass_prev,
+                    sharing::AdditiveSharing2P   &ass_next);
 
     void OnlineSetUp(const uint64_t party_id, const std::string &file_path);
 
@@ -289,10 +286,12 @@ public:
                               sharing::RepShareVec64       &result) const;
 
 private:
-    FssFMIParameters              params_;  /**< FssFMIParameters for the FssFMIEvaluator. */
-    wm::FssWMEvaluator            wm_eval_; /**< FssWMEvaluator for the FssFMIEvaluator. */
-    ZeroTestEvaluator             zt_eval_; /**< ZeroTestEvaluator for the FssFMIEvaluator. */
-    sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the FssFMIEvaluator. */
+    FssFMIParameters              params_;   /**< FssFMIParameters for the FssFMIEvaluator. */
+    wm::FssWMEvaluator            wm_eval_;  /**< FssWMEvaluator for the FssFMIEvaluator. */
+    proto::ZeroTestEvaluator      zt_eval_;  /**< ZeroTestEvaluator for the FssFMIEvaluator. */
+    sharing::ReplicatedSharing3P &rss_;      /**< Replicated sharing for 3-party for the FssFMIEvaluator. */
+    sharing::AdditiveSharing2P   &ass_prev_; /**< Additive sharing for 2-party for the previous party. */
+    sharing::AdditiveSharing2P   &ass_next_; /**< Additive sharing for 2-party for the next party. */
 };
 
 }    // namespace fm_index

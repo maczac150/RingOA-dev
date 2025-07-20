@@ -437,6 +437,10 @@ uint64_t AdditiveSharing2P::GetRemainingTripleCount() const {
     return triples_.num_triples - triple_index_;
 }
 
+void AdditiveSharing2P::ResetTripleIndex() {
+    triple_index_ = 0;
+}
+
 // ----------------------------------------------------
 // Internal functions
 // ----------------------------------------------------

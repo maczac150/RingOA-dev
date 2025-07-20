@@ -5,6 +5,8 @@
 
 namespace test_fsswm {
 
+void SotFMI_Offline_Test();
+void SotFMI_Online_Test(const osuCrypto::CLP &cmd);
 void FssFMI_Offline_Test();
 void FssFMI_Online_Test(const osuCrypto::CLP &cmd);
 

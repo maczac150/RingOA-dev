@@ -317,14 +317,14 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OblivSelect key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate RingOa key"));
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     std::string party_str = "[P" + ToString(party_id) + "] ";
     Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
     Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
 #endif
 
-    // Reconstruct p ^ r_i
+    // Reconstruct p - r_i
     // pr: [pr_prev1, pr_next1, pr_prev2, pr_next2]
     std::array<uint64_t, 4> pr = ReconstructMaskedValue(chls, key1, key2, index);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -345,27 +345,26 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
     std::array<uint64_t, 2> ext_dp_prev, ext_dp_next;
     if (party_id == 0) {
         ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P0 <-> P2
-        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_next}, ext_dp_next);    // P0 <-> P1
-
+        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_prev}, ext_dp_next);    // P0 <-> P1
     } else if (party_id == 1) {
-        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_next}, ext_dp_next);    // P1 <-> P2
+        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_prev}, ext_dp_next);    // P1 <-> P2
         ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P1 <-> P0
     } else {
         ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P1 <-> P2
-        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_next}, ext_dp_next);    // P0 <-> P2
+        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_prev}, ext_dp_next);    // P0 <-> P2
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + "ext_dp_prev1: " + ToString(ext_dp_prev[0]) + ", ext_dp_prev2: " + ToString(ext_dp_prev[1]) +
                               ", ext_dp_next1: " + ToString(ext_dp_next[0]) + ", ext_dp_next2: " + ToString(ext_dp_next[1]));
 #endif
 
-    uint64_t            selected1_sh = Mod(dp_prev1 + dp_next1, d);
-    uint64_t            selected2_sh = Mod(dp_prev2 + dp_next2, d);
+    uint64_t            selected1_sh = Mod(ext_dp_prev[0] + ext_dp_next[0], d);
+    uint64_t            selected2_sh = Mod(ext_dp_prev[1] + ext_dp_next[1], d);
     sharing::RepShare64 r1_sh, r2_sh;
     rss_.Rand(r1_sh);
     rss_.Rand(r2_sh);
-    result[0][0] = Mod(selected1_sh + r1_sh[0] + r1_sh[1], d);
-    result[0][1] = Mod(selected2_sh + r2_sh[0] + r2_sh[1], d);
+    result[0][0] = Mod(selected1_sh + r1_sh[0] - r1_sh[1], d);
+    result[0][1] = Mod(selected2_sh + r2_sh[0] - r2_sh[1], d);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

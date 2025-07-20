@@ -183,7 +183,7 @@ void SharedOtEvaluator::Evaluate(Channels                      &chls,
     Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
 #endif
 
-    // Reconstruct p ^ r_i
+    // Reconstruct p - r_i
     auto [pr_prev, pr_next] = ReconstructMaskedValue(chls, key, index);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + " pr_prev: " + ToString(pr_prev) + ", pr_next: " + ToString(pr_next));
@@ -237,7 +237,7 @@ void SharedOtEvaluator::Evaluate_Parallel(Channels                      &chls,
     Logger::DebugLog(LOC, party_str + " db: " + database.ToString());
 #endif
 
-    // Reconstruct p ^ r_i
+    // Reconstruct p - r_i
     // pr: [pr_prev1, pr_next1, pr_prev2, pr_next2]
     std::array<uint64_t, 4> pr = ReconstructMaskedValue(chls, key1, key2, index);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

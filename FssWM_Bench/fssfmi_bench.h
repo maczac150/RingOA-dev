@@ -5,6 +5,8 @@
 
 namespace bench_fsswm {
 
+void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd);
+void SotFMI_Online_Bench(const osuCrypto::CLP &cmd);
 void FssFMI_Offline_Bench(const osuCrypto::CLP &cmd);
 void FssFMI_Online_Bench(const osuCrypto::CLP &cmd);
 

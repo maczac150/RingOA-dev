@@ -37,7 +37,7 @@ public:
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
           sigma_(sigma),
-          os_params_(database_bitsize) {
+          oa_params_(database_bitsize) {
     }
 
     /**
@@ -50,7 +50,7 @@ public:
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
         sigma_            = sigma;
-        os_params_.ReconfigureParameters(database_bitsize);
+        oa_params_.ReconfigureParameters(database_bitsize);
     }
 
     /**
@@ -78,11 +78,11 @@ public:
     }
 
     /**
-     * @brief Get the OblivSelectParameters for the FssWMParameters.
-     * @return const OblivSelectParameters& The OblivSelectParameters for the FssWMParameters.
+     * @brief Get the RingOaParameters for the FssWMParameters.
+     * @return const RingOaParameters& The RingOaParameters for the FssWMParameters.
      */
-    const proto::RingOaParameters GetOSParameters() const {
-        return os_params_;
+    const proto::RingOaParameters GetOaParameters() const {
+        return oa_params_;
     }
 
     /**
@@ -91,7 +91,7 @@ public:
      */
     std::string GetParametersInfo() const {
         std::ostringstream oss;
-        oss << "DB size: " << database_bitsize_ << ", Sigma: " << sigma_ << ", OS params: " << os_params_.GetParametersInfo();
+        oss << "DB size: " << database_bitsize_ << ", Sigma: " << sigma_ << ", RingOA params: " << oa_params_.GetParametersInfo();
         return oss.str();
     }
 
@@ -104,15 +104,15 @@ private:
     uint64_t                database_bitsize_; /**< The database bit size for the FssWMParameters. */
     uint64_t                database_size_;    /**< The database size for the FssWMParameters. */
     uint64_t                sigma_;            /**< The alphabet size for the FssWMParameters. */
-    proto::RingOaParameters os_params_;        /**< The RingOaParameters for the FssWMParameters. */
+    proto::RingOaParameters oa_params_;        /**< The RingOaParameters for the FssWMParameters. */
 };
 
 /**
  * @brief A struct to hold the FssWM key.
  */
 struct FssWMKey {
-    uint64_t                      num_os_keys;
-    std::vector<proto::RingOaKey> os_keys;
+    uint64_t                      num_oa_keys;
+    std::vector<proto::RingOaKey> oa_keys;
 
     /**
      * @brief Default constructor for FssWMKey is deleted.
@@ -149,7 +149,7 @@ struct FssWMKey {
      * @return bool True if the FssWMKey are equal, false otherwise.
      */
     bool operator==(const FssWMKey &rhs) const {
-        return (num_os_keys == rhs.num_os_keys) && (os_keys == rhs.os_keys);
+        return (num_oa_keys == rhs.num_oa_keys) && (oa_keys == rhs.oa_keys);
     }
 
     bool operator!=(const FssWMKey &rhs) const {
@@ -206,7 +206,7 @@ public:
     /**
      * @brief Parameterized constructor for FssWMKeyGenerator.
      * @param params FssWMParameters for the FssWMKeyGenerator.
-     * @param ass Additive sharing for 2-party for the OblivSelectKeyGenerator.
+     * @param ass Additive sharing for 2-party for the RingOaKeyGenerator.
      * @param rss Replicated sharing for 3-party for the sharing.
      */
     FssWMKeyGenerator(
@@ -214,8 +214,8 @@ public:
         sharing::AdditiveSharing2P   &ass,
         sharing::ReplicatedSharing3P &rss);
 
-    const proto::RingOaKeyGenerator &GetOblivSelectKeyGenerator() const {
-        return os_gen_;
+    const proto::RingOaKeyGenerator &GetRingOaKeyGenerator() const {
+        return oa_gen_;
     }
 
     /**
@@ -233,7 +233,7 @@ public:
 
 private:
     FssWMParameters               params_; /**< FssWMParameters for the FssWMKeyGenerator. */
-    proto::RingOaKeyGenerator     os_gen_; /**< OblivSelectKeyGenerator for the FssWMKeyGenerator. */
+    proto::RingOaKeyGenerator     oa_gen_; /**< RingOaKeyGenerator for the FssWMKeyGenerator. */
     sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the FssWMKeyGenerator. */
 };
 
@@ -250,17 +250,17 @@ public:
     /**
      * @brief Parameterized constructor for FssWMEvaluator.
      * @param params FssWMParameters for the FssWMEvaluator.
-     * @param rss Replicated sharing for 3-party for the OblivSelectEvaluator.
-     * @param ass_prev Additive sharing for 2-party (previous) for the OblivSelectEvaluator.
-     * @param ass_next Additive sharing for 2-party (next) for the OblivSelectEvaluator.
+     * @param rss Replicated sharing for 3-party for the RingOaEvaluator.
+     * @param ass_prev Additive sharing for 2-party (previous) for the RingOaEvaluator.
+     * @param ass_next Additive sharing for 2-party (next) for the RingOaEvaluator.
      */
     FssWMEvaluator(const FssWMParameters        &params,
                    sharing::ReplicatedSharing3P &rss,
                    sharing::AdditiveSharing2P   &ass_prev,
                    sharing::AdditiveSharing2P   &ass_next);
 
-    const proto::RingOaEvaluator &GetOblivSelectEvaluator() const {
-        return os_eval_;
+    const proto::RingOaEvaluator &GetRingOaEvaluator() const {
+        return oa_eval_;
     }
 
     void EvaluateRankCF(Channels                      &chls,
@@ -284,11 +284,11 @@ public:
 
 private:
     FssWMParameters               params_;  /**< FssWMParameters for the FssWMEvaluator. */
-    proto::RingOaEvaluator        os_eval_; /**< OblivSelectEvaluator for the FssWMEvaluator. */
-    sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the OblivSelectEvaluator. */
+    proto::RingOaEvaluator        oa_eval_; /**< RingOaEvaluator for the FssWMEvaluator. */
+    sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the RingOaEvaluator. */
 };
 
 }    // namespace wm
 }    // namespace fsswm
 
-#endif
+#endif    // WM_FSSWM_H_

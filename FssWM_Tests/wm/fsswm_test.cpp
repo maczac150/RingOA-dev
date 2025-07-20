@@ -121,7 +121,7 @@ void FssWM_Offline_Test() {
         }
 
         // Offline setup
-        gen.GetOblivSelectKeyGenerator().OfflineSetUp(params.GetSigma(), kTestFssWMPath);
+        gen.GetRingOaKeyGenerator().OfflineSetUp(params.GetSigma(), kTestFssWMPath);
         rss.OfflineSetUp(kTestFssWMPath + "prf");
     }
     Logger::DebugLog(LOC, "FssWM_Offline_Test - Passed");
@@ -138,7 +138,7 @@ void FssWM_Online_Test(const osuCrypto::CLP &cmd) {
     for (const auto &params : params_list) {
         params.PrintParameters();
         uint64_t d  = params.GetDatabaseBitSize();
-        uint64_t nu = params.GetOSParameters().GetParameters().GetTerminateBitsize();
+        uint64_t nu = params.GetOaParameters().GetParameters().GetTerminateBitsize();
 
         FileIo file_io;
 
@@ -180,7 +180,7 @@ void FssWM_Online_Test(const osuCrypto::CLP &cmd) {
                 sh_io.LoadShare(position_path + "_" + ToString(party_id), position_sh);
 
                 // Perform the PRF setup step
-                eval.GetOblivSelectEvaluator().OnlineSetUp(party_id, kTestFssWMPath);
+                eval.GetRingOaEvaluator().OnlineSetUp(party_id, kTestFssWMPath);
                 rss.OnlineSetUp(party_id, kTestFssWMPath + "prf");
 
                 // Evaluate the rank operation

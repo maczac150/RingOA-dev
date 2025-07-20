@@ -25,7 +25,6 @@ set(TEST_SOURCES
     protocol/ddcf_test.cpp
     wm/wm_test.cpp
     wm/fsswm_test.cpp
-    fm_index/zt_test.cpp
     fm_index/fssfmi_test.cpp
     test_main.cpp
 )

@@ -29,6 +29,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
     t.add("RingOa_Offline_Bench", RingOa_Offline_Bench);
     t.add("RingOa_Online_Bench", RingOa_Online_Bench);
+    t.add("SotFMI_Offline_Bench", SotFMI_Offline_Bench);
+    t.add("SotFMI_Online_Bench", SotFMI_Online_Bench);
     t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
     t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
 });
