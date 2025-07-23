@@ -2,16 +2,16 @@
 
 #include <cstring>
 
-#include "FssWM/fss/prg.h"
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/sharing/binary_3p.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/fss/prg.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/sharing/binary_3p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace proto {
 
 void OblivSelectParameters::PrintParameters() const {
@@ -720,4 +720,4 @@ void OblivSelectEvaluator::EvaluateNextSeed(
 }
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa

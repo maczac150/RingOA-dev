@@ -2,16 +2,16 @@
 
 #include <cstring>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/sharing/binary_3p.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
-#include "FssWM/wm/plain_wm.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/sharing/binary_3p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
+#include "RingOA/wm/plain_wm.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fm_index {
 
 void SotFMIParameters::PrintParameters() const {
@@ -418,4 +418,4 @@ void SotFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
 }
 
 }    // namespace fm_index
-}    // namespace fsswm
+}    // namespace ringoa

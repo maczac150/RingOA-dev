@@ -9,7 +9,7 @@ class Channel;
 
 }    // namespace osuCrypto
 
-namespace fsswm {
+namespace ringoa {
 
 namespace sharing {
 
@@ -250,6 +250,6 @@ private:
 };
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // PROTOCOL_INTEGER_COMPARISON_H_

@@ -211,4 +211,4 @@ def main(projectName):
 
 
 if __name__ == "__main__":
-    main("FssWM")
+    main("RingOA")

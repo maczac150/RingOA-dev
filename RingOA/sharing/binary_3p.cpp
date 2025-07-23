@@ -2,13 +2,13 @@
 
 #include <cryptoTools/Crypto/PRNG.h>
 
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 BinaryReplicatedSharing3P::BinaryReplicatedSharing3P(const uint64_t bitsize)
@@ -517,4 +517,4 @@ void BinaryReplicatedSharing3P::RefillBuffer() {
 }
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa

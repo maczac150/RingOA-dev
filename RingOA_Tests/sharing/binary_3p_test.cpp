@@ -2,31 +2,31 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/sharing/binary_3p.h"
-#include "FssWM/sharing/share_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/sharing/binary_3p.h"
+#include "RingOA/sharing/share_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath    = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath    = ringoa::GetCurrentDirectory();
 const std::string kTestBinaryPath = kCurrentPath + "/data/test/ss3/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::Format, fsswm::FormatMatrix;
-using fsswm::Logger;
-using fsswm::ThreePartyNetworkManager, fsswm::Channels;
-using fsswm::ToString, fsswm::ToStringMatrix;
-using fsswm::sharing::BinaryReplicatedSharing3P;
-using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareMat64;
-using fsswm::sharing::RepShareBlock, fsswm::sharing::RepShareVecBlock, fsswm::sharing::RepShareMatBlock;
-using fsswm::sharing::ShareIo;
+using ringoa::block;
+using ringoa::Format, ringoa::FormatMatrix;
+using ringoa::Logger;
+using ringoa::ThreePartyNetworkManager, ringoa::Channels;
+using ringoa::ToString, ringoa::ToStringMatrix;
+using ringoa::sharing::BinaryReplicatedSharing3P;
+using ringoa::sharing::RepShare64, ringoa::sharing::RepShareVec64, ringoa::sharing::RepShareMat64;
+using ringoa::sharing::RepShareBlock, ringoa::sharing::RepShareVecBlock, ringoa::sharing::RepShareMatBlock;
+using ringoa::sharing::ShareIo;
 
 const std::vector<uint64_t> kBitsizes = {
     5,
@@ -50,14 +50,14 @@ void Binary3P_Offline_Test() {
         uint64_t              rows = 2, cols = 3;
         std::vector<uint64_t> x_flat     = {1, 2, 3, 4, 5, 6};    // 2 rows, 3 columns
         std::vector<uint64_t> y_flat     = {3, 4, 5, 6, 7, 8};    // 2 rows, 3 columns
-        block                 x_blk      = fsswm::MakeBlock(0, 0b1010);
-        block                 y_blk      = fsswm::MakeBlock(0, 0b0101);
-        std::vector<block>    x_vec_blk  = {fsswm::MakeBlock(0, 0b0001), fsswm::MakeBlock(0, 0b0010), fsswm::MakeBlock(0, 0b0011)};
-        std::vector<block>    y_vec_blk  = {fsswm::MakeBlock(0, 0b0100), fsswm::MakeBlock(0, 0b0101), fsswm::MakeBlock(0, 0b0110)};
-        std::vector<block>    x_flat_blk = {fsswm::MakeBlock(0, 0b0001), fsswm::MakeBlock(0, 0b0010), fsswm::MakeBlock(0, 0b0011),
-                                            fsswm::MakeBlock(0, 0b0100), fsswm::MakeBlock(0, 0b0101), fsswm::MakeBlock(0, 0b0110)};
-        std::vector<block>    y_flat_blk = {fsswm::MakeBlock(0, 0b0111), fsswm::MakeBlock(0, 0b1000), fsswm::MakeBlock(0, 0b1001),
-                                            fsswm::MakeBlock(0, 0b1010), fsswm::MakeBlock(0, 0b1011), fsswm::MakeBlock(0, 0b1100)};
+        block                 x_blk      = ringoa::MakeBlock(0, 0b1010);
+        block                 y_blk      = ringoa::MakeBlock(0, 0b0101);
+        std::vector<block>    x_vec_blk  = {ringoa::MakeBlock(0, 0b0001), ringoa::MakeBlock(0, 0b0010), ringoa::MakeBlock(0, 0b0011)};
+        std::vector<block>    y_vec_blk  = {ringoa::MakeBlock(0, 0b0100), ringoa::MakeBlock(0, 0b0101), ringoa::MakeBlock(0, 0b0110)};
+        std::vector<block>    x_flat_blk = {ringoa::MakeBlock(0, 0b0001), ringoa::MakeBlock(0, 0b0010), ringoa::MakeBlock(0, 0b0011),
+                                            ringoa::MakeBlock(0, 0b0100), ringoa::MakeBlock(0, 0b0101), ringoa::MakeBlock(0, 0b0110)};
+        std::vector<block>    y_flat_blk = {ringoa::MakeBlock(0, 0b0111), ringoa::MakeBlock(0, 0b1000), ringoa::MakeBlock(0, 0b1001),
+                                            ringoa::MakeBlock(0, 0b1010), ringoa::MakeBlock(0, 0b1011), ringoa::MakeBlock(0, 0b1100)};
 
         std::array<RepShare64, 3>       x_sh          = rss.ShareLocal(x);
         std::array<RepShare64, 3>       y_sh          = rss.ShareLocal(y);
@@ -73,7 +73,7 @@ void Binary3P_Offline_Test() {
         std::array<RepShareMatBlock, 3> x_flat_blk_sh = rss.ShareLocal(x_flat_blk, rows, cols);
         std::array<RepShareMatBlock, 3> y_flat_blk_sh = rss.ShareLocal(y_flat_blk, rows, cols);
 
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_sh: " + x_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " y_sh: " + y_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_vec_sh: " + x_vec_sh[p].ToString());
@@ -91,7 +91,7 @@ void Binary3P_Offline_Test() {
         const std::string x_path = kTestBinaryPath + "x_n" + ToString(bitsize);
         const std::string y_path = kTestBinaryPath + "y_n" + ToString(bitsize);
         const std::string c_path = kTestBinaryPath + "c_n" + ToString(bitsize);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(x_path + "_" + ToString(p), x_sh[p]);
             sh_io.SaveShare(y_path + "_" + ToString(p), y_sh[p]);
             sh_io.SaveShare(c_path + "_" + ToString(p), c_sh[p]);
@@ -199,20 +199,20 @@ void Binary3P_Open_Online_Test() {
         if (open_x_flat != std::vector<uint64_t>({1, 2, 3, 4, 5, 6}))
             throw osuCrypto::UnitTestFail("Open protocol failed: open_x_flat mismatch");
 
-        if (open_x_blk != fsswm::MakeBlock(0, 0b1010))
+        if (open_x_blk != ringoa::MakeBlock(0, 0b1010))
             throw osuCrypto::UnitTestFail("Open protocol failed: open_x_blk mismatch");
 
-        if (open_x_vec_blk != std::vector<block>({fsswm::MakeBlock(0, 0b0001),
-                                                  fsswm::MakeBlock(0, 0b0010),
-                                                  fsswm::MakeBlock(0, 0b0011)}))
+        if (open_x_vec_blk != std::vector<block>({ringoa::MakeBlock(0, 0b0001),
+                                                  ringoa::MakeBlock(0, 0b0010),
+                                                  ringoa::MakeBlock(0, 0b0011)}))
             throw osuCrypto::UnitTestFail("Open protocol failed: open_x_vec_blk mismatch");
 
-        if (open_x_flat_blk != std::vector<block>({fsswm::MakeBlock(0, 0b0001),
-                                                   fsswm::MakeBlock(0, 0b0010),
-                                                   fsswm::MakeBlock(0, 0b0011),
-                                                   fsswm::MakeBlock(0, 0b0100),
-                                                   fsswm::MakeBlock(0, 0b0101),
-                                                   fsswm::MakeBlock(0, 0b0110)}))
+        if (open_x_flat_blk != std::vector<block>({ringoa::MakeBlock(0, 0b0001),
+                                                   ringoa::MakeBlock(0, 0b0010),
+                                                   ringoa::MakeBlock(0, 0b0011),
+                                                   ringoa::MakeBlock(0, 0b0100),
+                                                   ringoa::MakeBlock(0, 0b0101),
+                                                   ringoa::MakeBlock(0, 0b0110)}))
             throw osuCrypto::UnitTestFail("Open protocol failed: open_x_flat_blk mismatch");
     }
 
@@ -452,4 +452,4 @@ void Binary3P_EvaluateSelect_Online_Test() {
     Logger::DebugLog(LOC, "Binary3P_EvaluateSelect_Online_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

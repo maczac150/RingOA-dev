@@ -2,14 +2,14 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/fss/dcf_eval.h"
-#include "FssWM/fss/dcf_gen.h"
-#include "FssWM/fss/dcf_key.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/fss/dcf_eval.h"
+#include "RingOA/fss/dcf_gen.h"
+#include "RingOA/fss/dcf_key.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
@@ -20,7 +20,7 @@ bool DcfFullDomainCheck(const uint64_t alpha, const uint64_t beta, const std::ve
             check &= true;
         } else {
             check &= false;
-            fsswm::Logger::DebugLog(LOC, "FDE check failed at x=" + fsswm::ToString(i) + " -> Result: " + fsswm::ToString(res[i]));
+            ringoa::Logger::DebugLog(LOC, "FDE check failed at x=" + ringoa::ToString(i) + " -> Result: " + ringoa::ToString(res[i]));
         }
     }
     return check;
@@ -28,20 +28,20 @@ bool DcfFullDomainCheck(const uint64_t alpha, const uint64_t beta, const std::ve
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::FormatType;
-using fsswm::GlobalRng;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::TimerManager;
-using fsswm::ToString, fsswm::Format;
-using fsswm::fss::EvalType, fsswm::fss::OutputType;
-using fsswm::fss::dcf::DcfEvaluator;
-using fsswm::fss::dcf::DcfKey;
-using fsswm::fss::dcf::DcfKeyGenerator;
-using fsswm::fss::dcf::DcfParameters;
+using ringoa::block;
+using ringoa::FormatType;
+using ringoa::GlobalRng;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::TimerManager;
+using ringoa::ToString, ringoa::Format;
+using ringoa::fss::EvalType, ringoa::fss::OutputType;
+using ringoa::fss::dcf::DcfEvaluator;
+using ringoa::fss::dcf::DcfKey;
+using ringoa::fss::dcf::DcfKeyGenerator;
+using ringoa::fss::dcf::DcfParameters;
 
 void Dcf_EvalAt_Test() {
     Logger::DebugLog(LOC, "Dcf_EvalAt_Test...");
@@ -125,4 +125,4 @@ void Dcf_Fde_Test() {
     Logger::DebugLog(LOC, "Dcf_Fde_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

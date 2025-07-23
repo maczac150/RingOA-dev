@@ -1,12 +1,12 @@
 #ifndef PROTOCOL_RINGOA_H_
 #define PROTOCOL_RINGOA_H_
 
-#include "FssWM/fss/dpf_eval.h"
-#include "FssWM/fss/dpf_gen.h"
-#include "FssWM/fss/dpf_key.h"
-#include "FssWM/sharing/share_types.h"
+#include "RingOA/fss/dpf_eval.h"
+#include "RingOA/fss/dpf_gen.h"
+#include "RingOA/fss/dpf_key.h"
+#include "RingOA/sharing/share_types.h"
 
-namespace fsswm {
+namespace ringoa {
 
 class Channels;
 
@@ -281,6 +281,6 @@ private:
 };
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // PROTOCOL_RINGOA_H_

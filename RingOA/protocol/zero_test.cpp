@@ -2,13 +2,13 @@
 
 #include <cstring>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace proto {
 
 void ZeroTestParameters::PrintParameters() const {
@@ -178,4 +178,4 @@ uint64_t ZeroTestEvaluator::EvaluateMaskedInput(const ZeroTestKey &key, const ui
 }
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa

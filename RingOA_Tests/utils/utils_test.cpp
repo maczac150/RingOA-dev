@@ -2,22 +2,22 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath    = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath    = ringoa::GetCurrentDirectory();
 const std::string kTestFileIoPath = kCurrentPath + "/data/test/utils/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::Format, fsswm::FormatMatrix;
-using fsswm::Logger;
-using fsswm::ToString, fsswm::ToStringMatrix;
+using ringoa::Format, ringoa::FormatMatrix;
+using ringoa::Logger;
+using ringoa::ToString, ringoa::ToStringMatrix;
 
 void Utils_Test() {
     Logger::InfoLog(LOC, "Utils_Test...");
@@ -64,44 +64,44 @@ void Utils_Test() {
 
     // block tests
     {
-        fsswm::block blk(0x1234567890abcdef, 0xfedcba0987654321);
+        ringoa::block blk(0x1234567890abcdef, 0xfedcba0987654321);
         Logger::DebugLog(LOC, "Block Hex: " + Format(blk));
-        Logger::DebugLog(LOC, "Block Bin: " + Format(blk, fsswm::FormatType::kBin));
+        Logger::DebugLog(LOC, "Block Bin: " + Format(blk, ringoa::FormatType::kBin));
     }
 
     // span-based block tests
     {
-        std::vector<fsswm::block> blocks = {
-            fsswm::block(0x1234567890abcdef, 0xfedcba0987654321),
-            fsswm::block(0x1122334455667788, 0x8877665544332211)};
-        Logger::DebugLog(LOC, "Blocks Hex: " + Format(std::span<const fsswm::block>(blocks), fsswm::FormatType::kHex));
-        Logger::DebugLog(LOC, "Blocks Bin: " + Format(std::span<const fsswm::block>(blocks), fsswm::FormatType::kBin));
+        std::vector<ringoa::block> blocks = {
+            ringoa::block(0x1234567890abcdef, 0xfedcba0987654321),
+            ringoa::block(0x1122334455667788, 0x8877665544332211)};
+        Logger::DebugLog(LOC, "Blocks Hex: " + Format(std::span<const ringoa::block>(blocks), ringoa::FormatType::kHex));
+        Logger::DebugLog(LOC, "Blocks Bin: " + Format(std::span<const ringoa::block>(blocks), ringoa::FormatType::kBin));
     }
 
     // contiguous_range block tests
     {
-        std::vector<fsswm::block> blocks = {
-            fsswm::block(0x1234567890abcdef, 0xfedcba0987654321),
-            fsswm::block(0x1122334455667788, 0x8877665544332211)};
+        std::vector<ringoa::block> blocks = {
+            ringoa::block(0x1234567890abcdef, 0xfedcba0987654321),
+            ringoa::block(0x1122334455667788, 0x8877665544332211)};
         Logger::DebugLog(LOC, "Blocks Hex: " +
-                                  FormatMatrix(blocks, 2, 1, fsswm::FormatType::kHex));
+                                  FormatMatrix(blocks, 2, 1, ringoa::FormatType::kHex));
         Logger::DebugLog(LOC, "Blocks Bin: " +
-                                  FormatMatrix(blocks, 2, 1, fsswm::FormatType::kBin));
+                                  FormatMatrix(blocks, 2, 1, ringoa::FormatType::kBin));
     }
 
     // FormatMatrix block tests
     {
-        std::vector<fsswm::block> blocks = {
-            fsswm::MakeBlock(0, 0), fsswm::MakeBlock(1, 1),
-            fsswm::MakeBlock(2, 2), fsswm::MakeBlock(3, 3),
-            fsswm::MakeBlock(4, 4), fsswm::MakeBlock(5, 5)};
+        std::vector<ringoa::block> blocks = {
+            ringoa::MakeBlock(0, 0), ringoa::MakeBlock(1, 1),
+            ringoa::MakeBlock(2, 2), ringoa::MakeBlock(3, 3),
+            ringoa::MakeBlock(4, 4), ringoa::MakeBlock(5, 5)};
         Logger::DebugLog(LOC, "Blocks Hex: " +
-                                  FormatMatrix(std::span<const fsswm::block>(blocks), 3, 2, fsswm::FormatType::kHex));
+                                  FormatMatrix(std::span<const ringoa::block>(blocks), 3, 2, ringoa::FormatType::kHex));
         Logger::DebugLog(LOC, "Blocks Bin: " +
-                                  FormatMatrix(std::span<const fsswm::block>(blocks), 2, 3, fsswm::FormatType::kBin));
+                                  FormatMatrix(std::span<const ringoa::block>(blocks), 2, 3, ringoa::FormatType::kBin));
     }
 
     Logger::DebugLog(LOC, "Utils_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

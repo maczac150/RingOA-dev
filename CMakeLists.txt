@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 # Set the project name and language
-project(FssWM VERSION 1.0.0 LANGUAGES CXX)
+project(RingOA VERSION 1.0.0 LANGUAGES CXX)
 
 # Enable verbose output
 set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -104,10 +104,10 @@ message(STATUS "  LOG_LEVEL                 : ${LOG_LEVEL}")
 message(STATUS "--------------------------------------------")
 
 # ############################
-# Build FssWM
+# Build RingOA
 # ############################
 
 # Add the source files
-add_subdirectory(FssWM)
-add_subdirectory(FssWM_Tests)
-add_subdirectory(FssWM_Bench)
+add_subdirectory(RingOA)
+add_subdirectory(RingOA_Tests)
+add_subdirectory(RingOA_Bench)

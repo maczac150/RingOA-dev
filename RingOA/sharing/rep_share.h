@@ -4,16 +4,16 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <span>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <fstream>
 
-#include "FssWM/utils/block.h"
-#include "FssWM/utils/to_string.h"
+#include "RingOA/utils/block.h"
+#include "RingOA/utils/to_string.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 // Generic share pair struct for uint64_t or block types
@@ -58,7 +58,7 @@ struct RepShare {
     std::string ToString() const {
         std::ostringstream oss;
         if constexpr (std::is_same_v<T, block>) {
-            oss << "(" << fsswm::Format(data[0]) << ", " << fsswm::Format(data[1]) << ")";
+            oss << "(" << ringoa::Format(data[0]) << ", " << ringoa::Format(data[1]) << ")";
         } else {
             oss << "(" << data[0] << ", " << data[1] << ")";
         }
@@ -154,9 +154,9 @@ struct RepShareVec {
     std::string ToString(FormatType format = FormatType::kHex, std::string_view delim = " ", size_t max_size = kSizeMax) const {
         std::ostringstream oss;
         if constexpr (std::is_same_v<T, block>) {
-            oss << "(" << fsswm::Format(data[0], format, delim, max_size) << ", " << fsswm::Format(data[1], format, delim, max_size) << ")";
+            oss << "(" << ringoa::Format(data[0], format, delim, max_size) << ", " << ringoa::Format(data[1], format, delim, max_size) << ")";
         } else {
-            oss << "(" << fsswm::ToString(data[0], delim, max_size) << ", " << fsswm::ToString(data[1], delim, max_size) << ")";
+            oss << "(" << ringoa::ToString(data[0], delim, max_size) << ", " << ringoa::ToString(data[1], delim, max_size) << ")";
         }
         return oss.str();
     }
@@ -284,9 +284,9 @@ struct RepShareView {
     std::string ToString(FormatType format = FormatType::kHex, std::string_view delim = " ", size_t max_size = kSizeMax) const {
         std::ostringstream oss;
         if constexpr (std::is_same_v<T, block>) {
-            oss << "(" << fsswm::Format(share0, format, delim, max_size) << ", " << fsswm::Format(share1, format, delim, max_size) << ")";
+            oss << "(" << ringoa::Format(share0, format, delim, max_size) << ", " << ringoa::Format(share1, format, delim, max_size) << ")";
         } else {
-            oss << "(" << fsswm::ToString(share0, delim, max_size) << ", " << fsswm::ToString(share1, delim, max_size) << ")";
+            oss << "(" << ringoa::ToString(share0, delim, max_size) << ", " << ringoa::ToString(share1, delim, max_size) << ")";
         }
         return oss.str();
     }
@@ -356,12 +356,12 @@ struct RepShareMat {
                                size_t           max_size = kSizeMax) const {
         std::ostringstream oss;
         if constexpr (std::is_same_v<T, block>) {
-            oss << "(" << fsswm::FormatMatrix(shares.data[0], rows, cols, format, row_pref, row_suff, col_del, row_del, max_size) << ", "
-                << fsswm::FormatMatrix(shares.data[1], rows, cols, format, row_pref, row_suff, col_del, row_del, max_size) << ")";
+            oss << "(" << ringoa::FormatMatrix(shares.data[0], rows, cols, format, row_pref, row_suff, col_del, row_del, max_size) << ", "
+                << ringoa::FormatMatrix(shares.data[1], rows, cols, format, row_pref, row_suff, col_del, row_del, max_size) << ")";
             return oss.str();
         } else {
-            oss << "(" << fsswm::ToStringMatrix(shares.data[0], rows, cols, row_pref, row_suff, col_del, row_del, max_size) << ", "
-                << fsswm::ToStringMatrix(shares.data[1], rows, cols, row_pref, row_suff, col_del, row_del, max_size) << ")";
+            oss << "(" << ringoa::ToStringMatrix(shares.data[0], rows, cols, row_pref, row_suff, col_del, row_del, max_size) << ", "
+                << ringoa::ToStringMatrix(shares.data[1], rows, cols, row_pref, row_suff, col_del, row_del, max_size) << ")";
         }
         return oss.str();
     }
@@ -448,6 +448,6 @@ struct RepShareMat {
 };
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // SHARING_REP_SHARE_H_

@@ -2,7 +2,7 @@
 
 #include "logger.h"
 
-namespace fsswm {
+namespace ringoa {
 
 int32_t TimerManager::CreateNewTimer(const std::string &name) {
     int32_t timer_id  = timer_count_++;
@@ -165,4 +165,4 @@ std::string TimerManager::GetUnitString(TimeUnit unit) const {
     }
 }
 
-}    // namespace fsswm
+}    // namespace ringoa

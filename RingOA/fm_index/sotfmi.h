@@ -1,10 +1,10 @@
 #ifndef FM_INDEX_SOTFMI_H_
 #define FM_INDEX_SOTFMI_H_
 
-#include "FssWM/protocol/zero_test.h"
-#include "FssWM/wm/sotwm.h"
+#include "RingOA/protocol/zero_test.h"
+#include "RingOA/wm/sotwm.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fm_index {
 
 /**
@@ -280,14 +280,14 @@ public:
                               sharing::RepShareVec64       &result) const;
 
 private:
-    SotFMIParameters              params_;   /**< SotFMIParameters for the SotFMIEvaluator. */
-    wm::SotWMEvaluator            wm_eval_;  /**< SotWMEvaluator for the SotFMIEvaluator. */
-    proto::ZeroTestEvaluator      zt_eval_;  /**< ZeroTestEvaluator for the SotFMIEvaluator. */
-    sharing::ReplicatedSharing3P &rss_;      /**< Replicated sharing for 3-party for the SotFMIEvaluator. */
-    sharing::AdditiveSharing2P   &ass_;      /**< Additive sharing for 2-party for the SotFMIEvaluator. */
+    SotFMIParameters              params_;  /**< SotFMIParameters for the SotFMIEvaluator. */
+    wm::SotWMEvaluator            wm_eval_; /**< SotWMEvaluator for the SotFMIEvaluator. */
+    proto::ZeroTestEvaluator      zt_eval_; /**< ZeroTestEvaluator for the SotFMIEvaluator. */
+    sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the SotFMIEvaluator. */
+    sharing::AdditiveSharing2P   &ass_;     /**< Additive sharing for 2-party for the SotFMIEvaluator. */
 };
 
 }    // namespace fm_index
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // FM_INDEX_SOTFMI_H_

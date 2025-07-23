@@ -3,7 +3,7 @@
 
 #include <cstdint>    // std::size_t
 
-namespace fsswm {
+namespace ringoa {
 
 // Define format types
 enum class FormatType
@@ -16,6 +16,6 @@ enum class FormatType
 // Default max size for string conversions
 constexpr std::size_t kSizeMax = 30;
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_FORMAT_TYPES_H_

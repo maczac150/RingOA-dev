@@ -2,40 +2,40 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/protocol/integer_comparison.h"
-#include "FssWM/protocol/key_io.h"
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/protocol/integer_comparison.h"
+#include "RingOA/protocol/key_io.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath = ringoa::GetCurrentDirectory();
 const std::string kTestEqPath  = kCurrentPath + "/data/test/protocol/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::FileIo;
-using fsswm::FormatType;
-using fsswm::GlobalRng;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::ToString, fsswm::Format;
-using fsswm::TwoPartyNetworkManager;
-using fsswm::proto::IntegerComparisonEvaluator;
-using fsswm::proto::IntegerComparisonKey;
-using fsswm::proto::IntegerComparisonKeyGenerator;
-using fsswm::proto::IntegerComparisonParameters;
-using fsswm::proto::KeyIo;
-using fsswm::sharing::AdditiveSharing2P;
+using ringoa::block;
+using ringoa::FileIo;
+using ringoa::FormatType;
+using ringoa::GlobalRng;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::ToString, ringoa::Format;
+using ringoa::TwoPartyNetworkManager;
+using ringoa::proto::IntegerComparisonEvaluator;
+using ringoa::proto::IntegerComparisonKey;
+using ringoa::proto::IntegerComparisonKeyGenerator;
+using ringoa::proto::IntegerComparisonParameters;
+using ringoa::proto::KeyIo;
+using ringoa::sharing::AdditiveSharing2P;
 
 void IntegerComparison_Offline_Test() {
     Logger::DebugLog(LOC, "IntegerComparison_Offline_Test...");
@@ -63,8 +63,8 @@ void IntegerComparison_Offline_Test() {
         key_io.SaveKey(key_path + "_1", keys.second);
 
         // Generate input
-        // std::vector<uint64_t> x1 = fsswm::CreateSequence(0, 1 << n);
-        // std::vector<uint64_t> x2 = fsswm::CreateSequence(0, 1 << n);
+        // std::vector<uint64_t> x1 = ringoa::CreateSequence(0, 1 << n);
+        // std::vector<uint64_t> x2 = ringoa::CreateSequence(0, 1 << n);
         std::vector<uint64_t>                                   x1    = {0};
         std::vector<uint64_t>                                   x2    = {0};
         std::pair<std::vector<uint64_t>, std::vector<uint64_t>> x1_sh = ss_in.Share(x1);
@@ -140,8 +140,8 @@ void IntegerComparison_Online_Test(const osuCrypto::CLP &cmd) {
             Logger::DebugLog(LOC, "x2: " + ToString(x2));
             for (size_t i = 0; i < x1.size(); ++i) {
                 for (size_t j = 0; j < x2.size(); ++j) {
-                    int64_t s1 = fsswm::UnsignedToSignedNBits(x1[i], n);
-                    int64_t s2 = fsswm::UnsignedToSignedNBits(x2[j], n);
+                    int64_t s1 = ringoa::UnsignedToSignedNBits(x1[i], n);
+                    int64_t s2 = ringoa::UnsignedToSignedNBits(x2[j], n);
 
                     bool     signed_condition      = (std::abs(s1) + std::abs(s2)) < static_cast<int64_t>(N / 2);
                     uint64_t signed_compare_result = (s1 > s2) ? 1 : 0;
@@ -226,4 +226,4 @@ void IntegerComparison_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "IntegerComparison_Online_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

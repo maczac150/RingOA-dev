@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <sdsl/csa_wt.hpp>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace wm {
 
 CharMapper::CharMapper(CharType type)
@@ -513,4 +513,4 @@ uint64_t FMIndex::ComputeLPMfromBWT(const std::string &query) const {
 }
 
 }    // namespace wm
-}    // namespace fsswm
+}    // namespace ringoa

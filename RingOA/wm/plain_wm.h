@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace fsswm {
+namespace ringoa {
 namespace wm {
 
 /**
@@ -110,6 +110,6 @@ private:
 };
 
 }    // namespace wm
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // WM_PLAIN_WM_H_

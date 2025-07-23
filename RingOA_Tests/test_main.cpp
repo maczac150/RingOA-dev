@@ -3,29 +3,29 @@
 #include <random>
 #include <tests_cryptoTools/UnitTests.h>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM_Tests/fm_index/fssfmi_test.h"
-#include "FssWM_Tests/fss/dcf_test.h"
-#include "FssWM_Tests/fss/dpf_test.h"
-#include "FssWM_Tests/fss/prg_test.h"
-#include "FssWM_Tests/protocol/ddcf_test.h"
-#include "FssWM_Tests/protocol/equality_test.h"
-#include "FssWM_Tests/protocol/integer_comparison_test.h"
-#include "FssWM_Tests/protocol/obliv_access_test.h"
-#include "FssWM_Tests/protocol/zt_test.h"
-#include "FssWM_Tests/sharing/additive_2p_test.h"
-#include "FssWM_Tests/sharing/additive_3p_test.h"
-#include "FssWM_Tests/sharing/binary_2p_test.h"
-#include "FssWM_Tests/sharing/binary_3p_test.h"
-#include "FssWM_Tests/utils/file_io_test.h"
-#include "FssWM_Tests/utils/network_test.h"
-#include "FssWM_Tests/utils/timer_test.h"
-#include "FssWM_Tests/utils/utils_test.h"
-#include "FssWM_Tests/wm/fsswm_test.h"
-#include "FssWM_Tests/wm/wm_test.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA_Tests/fm_index/secure_fmi_test.h"
+#include "RingOA_Tests/fss/dcf_test.h"
+#include "RingOA_Tests/fss/dpf_test.h"
+#include "RingOA_Tests/fss/prg_test.h"
+#include "RingOA_Tests/protocol/ddcf_test.h"
+#include "RingOA_Tests/protocol/equality_test.h"
+#include "RingOA_Tests/protocol/integer_comparison_test.h"
+#include "RingOA_Tests/protocol/obliv_access_test.h"
+#include "RingOA_Tests/protocol/zt_test.h"
+#include "RingOA_Tests/sharing/additive_2p_test.h"
+#include "RingOA_Tests/sharing/additive_3p_test.h"
+#include "RingOA_Tests/sharing/binary_2p_test.h"
+#include "RingOA_Tests/sharing/binary_3p_test.h"
+#include "RingOA_Tests/utils/file_io_test.h"
+#include "RingOA_Tests/utils/network_test.h"
+#include "RingOA_Tests/utils/timer_test.h"
+#include "RingOA_Tests/utils/utils_test.h"
+#include "RingOA_Tests/wm/secure_wm_test.h"
+#include "RingOA_Tests/wm/wm_test.h"
 
-namespace test_fsswm {
+namespace test_ringoa {
 
 osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Utils_Test", Utils_Test);
@@ -78,15 +78,15 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("RingOa_Online_Test", RingOa_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
-    t.add("FssWM_Offline_Test", FssWM_Offline_Test);
-    t.add("FssWM_Online_Test", FssWM_Online_Test);
+    t.add("SecureWM_Offline_Test", SecureWM_Offline_Test);
+    t.add("SecureWM_Online_Test", SecureWM_Online_Test);
     t.add("SotFMI_Offline_Test", SotFMI_Offline_Test);
     t.add("SotFMI_Online_Test", SotFMI_Online_Test);
-    t.add("FssFMI_Offline_Test", FssFMI_Offline_Test);
-    t.add("FssFMI_Online_Test", FssFMI_Online_Test);
+    t.add("SecureFMI_Offline_Test", SecureFMI_Offline_Test);
+    t.add("SecureFMI_Online_Test", SecureFMI_Online_Test);
 });
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa
 
 namespace {
 
@@ -117,14 +117,14 @@ int main(int argc, char **argv) {
         {
             std::random_device rd;
             osuCrypto::block   seed = osuCrypto::toBlock(rd(), rd());
-            fsswm::GlobalRng::Initialize(seed);
+            ringoa::GlobalRng::Initialize(seed);
         }
 #else
-        fsswm::GlobalRng::Initialize();
+        ringoa::GlobalRng::Initialize();
 #endif
 
         osuCrypto::CLP cmd(argc, argv);
-        auto           tests = test_fsswm::Tests;
+        auto           tests = test_ringoa::Tests;
 
         // Display help message
         if (cmd.isSet(helpTags)) {
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 
         // Unit test execution
         if (cmd.isSet(unitTags)) {
-            fsswm::Logger::SetPrintLog(false);
+            ringoa::Logger::SetPrintLog(false);
             auto result = tests.runIf(cmd);
             if (result != osuCrypto::TestCollection::Result::passed) {
                 return 1;    // Exit on failure

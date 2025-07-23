@@ -3,11 +3,11 @@
 
 #include <cryptoTools/Common/CLP.h>
 
-namespace test_fsswm {
+namespace test_ringoa {
 
 void IntegerComparison_Offline_Test();
 void IntegerComparison_Online_Test(const osuCrypto::CLP &cmd);
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa
 
 #endif    // TESTS_INTEGER_COMPARISON_H_

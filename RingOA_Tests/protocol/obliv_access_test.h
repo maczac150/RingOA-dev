@@ -3,7 +3,7 @@
 
 #include <cryptoTools/Common/CLP.h>
 
-namespace test_fsswm {
+namespace test_ringoa {
 
 void OblivSelect_Offline_Test();
 void OblivSelect_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd);
@@ -13,6 +13,6 @@ void SharedOt_Online_Test(const osuCrypto::CLP &cmd);
 void RingOa_Offline_Test();
 void RingOa_Online_Test(const osuCrypto::CLP &cmd);
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa
 
 #endif    // TESTS_OBLIV_SELECT_TEST_H_

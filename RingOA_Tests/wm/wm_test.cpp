@@ -2,19 +2,19 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
-#include "FssWM/wm/plain_wm.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
+#include "RingOA/wm/plain_wm.h"
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::Logger;
-using fsswm::ToString;
-using fsswm::wm::CharType;
-using fsswm::wm::FMIndex;
-using fsswm::wm::WaveletMatrix;
+using ringoa::Logger;
+using ringoa::ToString;
+using ringoa::wm::CharType;
+using ringoa::wm::FMIndex;
+using ringoa::wm::WaveletMatrix;
 
 void WaveletMatrix_Test() {
     Logger::DebugLog(LOC, "WaveletMatrix_Test...");
@@ -96,4 +96,4 @@ void FMIndex_Test() {
     Logger::DebugLog(LOC, "FMIndex_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

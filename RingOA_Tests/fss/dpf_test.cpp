@@ -2,14 +2,14 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/fss/dpf_eval.h"
-#include "FssWM/fss/dpf_gen.h"
-#include "FssWM/fss/dpf_key.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/fss/dpf_eval.h"
+#include "RingOA/fss/dpf_gen.h"
+#include "RingOA/fss/dpf_key.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
@@ -20,22 +20,22 @@ bool DpfFullDomainCheck(const uint64_t alpha, const uint64_t beta, const std::ve
             check &= true;
         } else {
             check &= false;
-            fsswm::Logger::DebugLog(LOC, "FDE check failed at x=" + fsswm::ToString(i) + " -> Result: " + fsswm::ToString(res[i]));
+            ringoa::Logger::DebugLog(LOC, "FDE check failed at x=" + ringoa::ToString(i) + " -> Result: " + ringoa::ToString(res[i]));
         }
     }
     return check;
 }
 
 // Check if the XOR sum of all blocks matches the expected block (Note: Can detect only error exists, not the position)
-bool DpfFullDomainCheckOneBit(const uint64_t alpha, const uint64_t beta, const std::vector<fsswm::block> &res, const fsswm::fss::OutputType mode) {
+bool DpfFullDomainCheckOneBit(const uint64_t alpha, const uint64_t beta, const std::vector<ringoa::block> &res, const ringoa::fss::OutputType mode) {
     // Compute XOR sum of all blocks
-    fsswm::block xor_sum = fsswm::zero_block;
+    ringoa::block xor_sum = ringoa::zero_block;
     for (const auto &r : res) {
         xor_sum = xor_sum ^ r;
     }
-    if (mode == fsswm::fss::OutputType::kShiftedAdditive) {
+    if (mode == ringoa::fss::OutputType::kShiftedAdditive) {
         // Calculate bit position
-        uint64_t bit_position = alpha % (sizeof(fsswm::block) * 8);
+        uint64_t bit_position = alpha % (sizeof(ringoa::block) * 8);
         // Generate block with only the bit_position set to 1
         uint64_t high = 0, low = 0;
         // Set the bit_position to 1
@@ -44,11 +44,11 @@ bool DpfFullDomainCheckOneBit(const uint64_t alpha, const uint64_t beta, const s
         } else {
             high = 1ULL << (bit_position - 64);
         }
-        fsswm::block expected_block = fsswm::MakeBlock(high, low);
+        ringoa::block expected_block = ringoa::MakeBlock(high, low);
         // Check if XOR sum matches the expected block
         bool is_match = xor_sum == expected_block;
         if (!is_match) {
-            fsswm::Logger::DebugLog(LOC, "FDE check failed for alpha=" + std::to_string(alpha) + " and beta=" + std::to_string(beta));
+            ringoa::Logger::DebugLog(LOC, "FDE check failed for alpha=" + std::to_string(alpha) + " and beta=" + std::to_string(beta));
         }
         return is_match;
     } else {
@@ -57,14 +57,14 @@ bool DpfFullDomainCheckOneBit(const uint64_t alpha, const uint64_t beta, const s
         uint64_t byte_idx     = bit_position % 16;
         uint64_t bit_idx      = bit_position / 16;
 
-        fsswm::block expected_block = fsswm::zero_block;
-        auto         expected_byte  = reinterpret_cast<uint8_t *>(&expected_block);
+        ringoa::block expected_block = ringoa::zero_block;
+        auto          expected_byte  = reinterpret_cast<uint8_t *>(&expected_block);
         expected_byte[byte_idx] ^= static_cast<uint8_t>(1) << bit_idx;
 
         // Check if XOR sum matches the expected block
         bool is_match = xor_sum == expected_block;
         if (!is_match) {
-            fsswm::Logger::DebugLog(LOC, "FDE check failed for alpha=" + fsswm::ToString(alpha) + " and beta=" + fsswm::ToString(beta));
+            ringoa::Logger::DebugLog(LOC, "FDE check failed for alpha=" + ringoa::ToString(alpha) + " and beta=" + ringoa::ToString(beta));
         }
         return is_match;
     }
@@ -72,20 +72,20 @@ bool DpfFullDomainCheckOneBit(const uint64_t alpha, const uint64_t beta, const s
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::FormatType;
-using fsswm::GlobalRng;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::TimerManager;
-using fsswm::ToString, fsswm::Format;
-using fsswm::fss::EvalType, fsswm::fss::OutputType;
-using fsswm::fss::dpf::DpfEvaluator;
-using fsswm::fss::dpf::DpfKey;
-using fsswm::fss::dpf::DpfKeyGenerator;
-using fsswm::fss::dpf::DpfParameters;
+using ringoa::block;
+using ringoa::FormatType;
+using ringoa::GlobalRng;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::TimerManager;
+using ringoa::ToString, ringoa::Format;
+using ringoa::fss::EvalType, ringoa::fss::OutputType;
+using ringoa::fss::dpf::DpfEvaluator;
+using ringoa::fss::dpf::DpfKey;
+using ringoa::fss::dpf::DpfKeyGenerator;
+using ringoa::fss::dpf::DpfParameters;
 
 void Dpf_Params_Test() {
     Logger::DebugLog(LOC, "Dpf_Params_Test...");
@@ -299,15 +299,15 @@ void Dpf_Pir_Test() {
         // Generate database
         std::vector<block> database(1 << n);
         for (uint64_t i = 0; i < database.size(); ++i) {
-            database[i] = fsswm::MakeBlock(0, i);
+            database[i] = ringoa::MakeBlock(0, i);
         }
-        Logger::DebugLog(LOC, "Database :" + fsswm::Format(database, FormatType::kDec));
+        Logger::DebugLog(LOC, "Database :" + ringoa::Format(database, FormatType::kDec));
 
         // Evaluate keys
         block result_0 = eval.ComputeDotProductBlockSIMD(keys.first, database);
         block result_1 = eval.ComputeDotProductBlockSIMD(keys.second, database);
         block output   = result_0 ^ result_1;
-        Logger::DebugLog(LOC, "Output :" + fsswm::Format(output, FormatType::kDec));
+        Logger::DebugLog(LOC, "Output :" + ringoa::Format(output, FormatType::kDec));
 
         // Check FDE
         if (output != database[alpha])
@@ -328,13 +328,13 @@ void Dpf_Pir_Test() {
         for (uint64_t i = 0; i < data64.size(); ++i) {
             data64[i] = i;
         }
-        Logger::DebugLog(LOC, "Data64 :" + fsswm::ToString(data64));
+        Logger::DebugLog(LOC, "Data64 :" + ringoa::ToString(data64));
 
         // Evaluate keys
         uint64_t output64_0 = eval2.ComputeDotProductUint64Bitwise(keys2.first, data64);
         uint64_t output64_1 = eval2.ComputeDotProductUint64Bitwise(keys2.second, data64);
         uint64_t output64   = output64_0 ^ output64_1;
-        Logger::DebugLog(LOC, "Output64 :" + fsswm::ToString(output64));
+        Logger::DebugLog(LOC, "Output64 :" + ringoa::ToString(output64));
 
         // Check FDE
         if (output64 != data64[alpha])
@@ -345,7 +345,7 @@ void Dpf_Pir_Test() {
         output64_0 = eval2.EvaluateFullDomainThenDotProduct(keys2.first, outputs_0, data64);
         output64_1 = eval2.EvaluateFullDomainThenDotProduct(keys2.second, outputs_1, data64);
         output64   = output64_0 ^ output64_1;
-        Logger::DebugLog(LOC, "Output64 (FDE then DP) :" + fsswm::ToString(output64));
+        Logger::DebugLog(LOC, "Output64 (FDE then DP) :" + ringoa::ToString(output64));
 
         // Check FDE
         if (output64 != data64[alpha])
@@ -355,4 +355,4 @@ void Dpf_Pir_Test() {
     }
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

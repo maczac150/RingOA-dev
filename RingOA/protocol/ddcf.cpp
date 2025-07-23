@@ -2,12 +2,12 @@
 
 #include <cstring>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace proto {
 
 void DdcfParameters::PrintParameters() const {
@@ -146,4 +146,4 @@ uint64_t DdcfEvaluator::EvaluateAt(const DdcfKey &key, uint64_t x) const {
 }
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa

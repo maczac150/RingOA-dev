@@ -3,7 +3,7 @@
 
 #include "dcf_key.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 
 namespace prg {
@@ -49,11 +49,10 @@ private:
      * @return True if the input values are valid, false otherwise.
      */
     bool ValidateInput(const uint64_t alpha, const uint64_t beta) const;
-
 };
 
 }    // namespace dcf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // FSS_DCF_GEN_H_

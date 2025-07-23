@@ -15,7 +15,7 @@ class Channel;
 
 }    // namespace osuCrypto
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 class BinarySharing2P {
@@ -63,9 +63,9 @@ public:
     uint64_t GetRemainingTripleCount() const;
 
 private:
-    const uint64_t          bitsize_;      /**< The size of the bits used for secret sharing operations. */
-    BeaverTriples           triples_;      /**< The Beaver triples used for secure multiplication. */
-    uint64_t                triple_index_; /**< The index of the current Beaver triple. */
+    const uint64_t bitsize_;      /**< The size of the bits used for secret sharing operations. */
+    BeaverTriples  triples_;      /**< The Beaver triples used for secure multiplication. */
+    uint64_t       triple_index_; /**< The index of the current Beaver triple. */
 
     // Internal functions
     void GenerateBeaverTriples(const uint64_t num_triples, const uint64_t bitsize, BeaverTriples &triples) const;
@@ -74,6 +74,6 @@ private:
 };
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif

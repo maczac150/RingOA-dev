@@ -5,7 +5,7 @@
 
 #include "block.h"
 
-namespace fsswm {
+namespace ringoa {
 
 class GlobalRng {
 public:
@@ -39,6 +39,6 @@ private:
     }
 };
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_RNG_H_

@@ -2,7 +2,7 @@
 
 #include "logger.h"
 
-namespace fsswm {
+namespace ringoa {
 
 TwoPartyNetworkManager::TwoPartyNetworkManager(const std::string &channel_name,
                                                const std::string &ip_address,
@@ -185,4 +185,4 @@ void ThreePartyNetworkManager::WaitForCompletion() {
     ios_.stop();
 }
 
-}    // namespace fsswm
+}    // namespace ringoa

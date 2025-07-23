@@ -5,7 +5,7 @@
 #include <cmath>         // std::pow, std::log2
 #include <filesystem>    // std::filesystem::current_path
 
-namespace fsswm {
+namespace ringoa {
 
 // #############################
 // ######## Calculation ########
@@ -136,6 +136,6 @@ inline std::vector<uint64_t> CreateSequence(const uint64_t start, const uint64_t
     return sequence;
 }
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_UTILS_H_

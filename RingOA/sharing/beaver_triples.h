@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 /**
@@ -116,6 +116,6 @@ struct BeaverTriples {
 };
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // SHARING_BEAVER_TRIPLES_H_

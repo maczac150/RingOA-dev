@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <vector>
 
-#include "FssWM/utils/block.h"
+#include "RingOA/utils/block.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 
 constexpr uint64_t kSecurityParameter = 128;
@@ -75,6 +75,6 @@ uint64_t GetSplitBlockValue(const block &blk,
                             OutputType   mode);
 
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // FSS_FSS_H_

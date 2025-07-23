@@ -2,27 +2,27 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath    = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath    = ringoa::GetCurrentDirectory();
 const std::string kTestBinaryPath = kCurrentPath + "/data/test/ss/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::FileIo;
-using fsswm::Logger;
-using fsswm::ToString;
-using fsswm::TwoPartyNetworkManager;
-using fsswm::sharing::BinarySharing2P;
+using ringoa::FileIo;
+using ringoa::Logger;
+using ringoa::ToString;
+using ringoa::TwoPartyNetworkManager;
+using ringoa::sharing::BinarySharing2P;
 
 const std::vector<uint64_t> kBitsizes = {
     5,
@@ -313,4 +313,4 @@ void Binary2P_EvaluateAnd_Online_Test() {
     Logger::DebugLog(LOC, "Binary2P_EvaluateAnd_Online_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

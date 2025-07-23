@@ -12,7 +12,7 @@
 #include "block.h"
 #include "format_types.h"
 
-namespace fsswm {
+namespace ringoa {
 
 // ――――――――――――――――――――――
 //  scalar overloads
@@ -247,6 +247,6 @@ inline std::string ToString(const std::vector<bool> &bv) {
     return s;
 }
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_TO_STRING_H_

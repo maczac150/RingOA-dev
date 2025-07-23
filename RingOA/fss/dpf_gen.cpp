@@ -1,12 +1,12 @@
 #include "dpf_gen.h"
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 #include "prg.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace dpf {
 
@@ -344,4 +344,4 @@ void DpfKeyGenerator::ComputeSingleBitMaskOutput(uint64_t alpha, block &final_se
 
 }    // namespace dpf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa

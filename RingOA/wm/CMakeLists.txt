@@ -6,7 +6,7 @@
 add_library(wm
     plain_wm.cpp
     sotwm.cpp
-    fsswm.cpp
+    secure_wm.cpp
 )
 
 # Include directories

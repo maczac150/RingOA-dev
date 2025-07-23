@@ -3,11 +3,11 @@
 
 #include <cryptoTools/Common/CLP.h>
 
-namespace test_fsswm {
+namespace test_ringoa {
 
 void Network_TwoPartyManager_Test(const osuCrypto::CLP &cmd);
 void Network_ThreePartyManager_Test(const osuCrypto::CLP &cmd);
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa
 
 #endif    // TESTS_NETWORK_TEST_H_

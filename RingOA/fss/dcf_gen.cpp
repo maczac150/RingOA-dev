@@ -1,12 +1,12 @@
 #include "dcf_gen.h"
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 #include "prg.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace dcf {
 
@@ -168,4 +168,4 @@ bool DcfKeyGenerator::ValidateInput(const uint64_t alpha, const uint64_t beta) c
 
 }    // namespace dcf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa

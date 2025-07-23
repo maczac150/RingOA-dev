@@ -2,17 +2,17 @@
 
 #include <cstring>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 #include "plain_wm.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace wm {
 
-using fsswm::sharing::ReplicatedSharing3P;
+using ringoa::sharing::ReplicatedSharing3P;
 
 void SotWMParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[SotWM Parameters]" + GetParametersInfo());
@@ -242,4 +242,4 @@ void SotWMEvaluator::EvaluateRankCF_Parallel(Channels                      &chls
 }
 
 }    // namespace wm
-}    // namespace fsswm
+}    // namespace ringoa

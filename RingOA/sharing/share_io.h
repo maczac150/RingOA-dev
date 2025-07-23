@@ -1,9 +1,9 @@
 #ifndef SHARING_SHARE_IO_H_
 #define SHARING_SHARE_IO_H_
 
-#include "FssWM/utils/logger.h"
+#include "RingOA/utils/logger.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 class ShareIo {
@@ -67,6 +67,6 @@ public:
 };
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // SHARING_SHARE_IO_H_

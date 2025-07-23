@@ -1,25 +1,25 @@
 #include "prg_test.h"
 
-#include "FssWM/fss/fss.h"
-#include "FssWM/fss/prg.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/fss/fss.h"
+#include "RingOA/fss/prg.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::Logger;
-using fsswm::ToString, fsswm::Format;
+using ringoa::block;
+using ringoa::Logger;
+using ringoa::ToString, ringoa::Format;
 
 void Prg_Test() {
     Logger::DebugLog(LOC, "Prg_Test...");
 
-    fsswm::fss::prg::PseudoRandomGenerator prg = fsswm::fss::prg::PseudoRandomGenerator::GetInstance();
+    ringoa::fss::prg::PseudoRandomGenerator prg = ringoa::fss::prg::PseudoRandomGenerator::GetInstance();
     Logger::DebugLog(LOC, "PseudoRandomGenerator created successfully");
 
-    block                seed_in = fsswm::MakeBlock(0x1234567890abcdef, 0x1234567890abcdef);
+    block                seed_in = ringoa::MakeBlock(0x1234567890abcdef, 0x1234567890abcdef);
     std::array<block, 2> seed_out;
     prg.DoubleExpand(seed_in, seed_out);
 
@@ -43,4 +43,4 @@ void Prg_Test() {
     Logger::DebugLog(LOC, "Prg_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

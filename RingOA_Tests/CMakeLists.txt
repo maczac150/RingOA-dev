@@ -1,9 +1,9 @@
 # ############################
-# Build FssWM_Tests
+# Build RingOA_Tests
 # ############################
 
 # Set the project name
-project(FssWM_Tests)
+project(RingOA_Tests)
 
 # Add the test sources
 set(TEST_SOURCES
@@ -24,19 +24,19 @@ set(TEST_SOURCES
     protocol/obliv_access_test.cpp
     protocol/ddcf_test.cpp
     wm/wm_test.cpp
-    wm/fsswm_test.cpp
-    fm_index/fssfmi_test.cpp
+    wm/secure_wm_test.cpp
+    fm_index/secure_fmi_test.cpp
     test_main.cpp
 )
 
 # Add the executable target
-add_executable(test_FssWM ${TEST_SOURCES})
+add_executable(test_RingOA ${TEST_SOURCES})
 
 # Include directories
-target_include_directories(test_FssWM PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(test_RingOA PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Link the libraries
-target_link_libraries(test_FssWM
-    FssWM
+target_link_libraries(test_RingOA
+    RingOA
     oc::tests_cryptoTools
 )

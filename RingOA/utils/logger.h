@@ -30,7 +30,7 @@
 #define LOG_LEVEL LOG_LEVEL_INFO    // Default log level
 #endif
 
-namespace fsswm {
+namespace ringoa {
 
 constexpr int     kMsgMaxLength = 70;
 const std::string kDash         = "---------------------------------------------------------------------";
@@ -159,6 +159,6 @@ private:
     static void SetLogFormat(const std::string &log_level, const std::string &func_name, const std::string &message);
 };
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_LOGGER_H_

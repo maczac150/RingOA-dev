@@ -1,8 +1,8 @@
 #include "fss.h"
 
-#include "FssWM/utils/to_string.h"
+#include "RingOA/utils/to_string.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 
 std::string GetEvalTypeString(const EvalType eval_type) {
@@ -141,4 +141,4 @@ uint64_t GetSplitBlockValue(
 }
 
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa

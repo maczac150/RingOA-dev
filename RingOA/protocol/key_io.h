@@ -3,11 +3,11 @@
 
 #include <string>
 
-#include "FssWM/fss/dpf_key.h"
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
+#include "RingOA/fss/dpf_key.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace proto {
 
 // Set key type
@@ -15,9 +15,9 @@ enum class KeyType
 {
     kDpfKey,
     kOblivSelectKey,
-    kFssWMKey,
+    kSecureWMKey,
     kZeroTestKey,
-    kFssFMIKey,
+    kSecureFMIKey,
 };
 
 class KeyIo {
@@ -78,6 +78,6 @@ public:
 };
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // PROTOCOL_KEY_IO_H_

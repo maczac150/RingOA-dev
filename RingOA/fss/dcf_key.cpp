@@ -2,10 +2,10 @@
 
 #include <cstring>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace dcf {
 
@@ -164,4 +164,4 @@ void DcfKey::PrintKey(const bool detailed) const {
 
 }    // namespace dcf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa

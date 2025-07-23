@@ -2,57 +2,57 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/protocol/key_io.h"
-#include "FssWM/protocol/obliv_select.h"
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/sharing/binary_3p.h"
-#include "FssWM/sharing/share_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/protocol/key_io.h"
+#include "RingOA/protocol/obliv_select.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/sharing/binary_3p.h"
+#include "RingOA/sharing/share_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath = ringoa::GetCurrentDirectory();
 const std::string kBenchOSPath = kCurrentPath + "/data/bench/os/";
 
 // std::vector<uint64_t> db_bitsizes = {16, 18, 20, 22, 24, 26, 28};
-std::vector<uint64_t> db_bitsizes = fsswm::CreateSequence(10, 30);
+std::vector<uint64_t> db_bitsizes = ringoa::CreateSequence(10, 30);
 
 constexpr uint64_t kIterDefault = 10;
 
 }    // namespace
 
-namespace bench_fsswm {
+namespace bench_ringoa {
 
-using fsswm::block;
-using fsswm::Channels;
-using fsswm::FileIo;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::ThreePartyNetworkManager;
-using fsswm::TimerManager;
-using fsswm::ToString, fsswm::Format;
-using fsswm::fss::dpf::DpfEvaluator;
-using fsswm::fss::dpf::DpfKey;
-using fsswm::fss::dpf::DpfKeyGenerator;
-using fsswm::fss::dpf::DpfParameters;
-using fsswm::proto::KeyIo;
-using fsswm::proto::OblivSelectEvaluator;
-using fsswm::proto::OblivSelectKey;
-using fsswm::proto::OblivSelectKeyGenerator;
-using fsswm::proto::OblivSelectParameters;
-using fsswm::sharing::AdditiveSharing2P;
-using fsswm::sharing::BinaryReplicatedSharing3P;
-using fsswm::sharing::BinarySharing2P;
-using fsswm::sharing::ReplicatedSharing3P;
-using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
-using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
-using fsswm::sharing::RepShareView64, fsswm::sharing::RepShareViewBlock;
-using fsswm::sharing::ShareIo;
+using ringoa::block;
+using ringoa::Channels;
+using ringoa::FileIo;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::ThreePartyNetworkManager;
+using ringoa::TimerManager;
+using ringoa::ToString, ringoa::Format;
+using ringoa::fss::dpf::DpfEvaluator;
+using ringoa::fss::dpf::DpfKey;
+using ringoa::fss::dpf::DpfKeyGenerator;
+using ringoa::fss::dpf::DpfParameters;
+using ringoa::proto::KeyIo;
+using ringoa::proto::OblivSelectEvaluator;
+using ringoa::proto::OblivSelectKey;
+using ringoa::proto::OblivSelectKeyGenerator;
+using ringoa::proto::OblivSelectParameters;
+using ringoa::sharing::AdditiveSharing2P;
+using ringoa::sharing::BinaryReplicatedSharing3P;
+using ringoa::sharing::BinarySharing2P;
+using ringoa::sharing::ReplicatedSharing3P;
+using ringoa::sharing::RepShare64, ringoa::sharing::RepShareBlock;
+using ringoa::sharing::RepShareVec64, ringoa::sharing::RepShareVecBlock;
+using ringoa::sharing::RepShareView64, ringoa::sharing::RepShareViewBlock;
+using ringoa::sharing::ShareIo;
 
 void OblivSelect_ComputeDotProductBlockSIMD_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_ComputeDotProductBlockSIMD_Bench...");
@@ -68,8 +68,8 @@ void OblivSelect_ComputeDotProductBlockSIMD_Bench(const osuCrypto::CLP &cmd) {
         uint64_t                  beta  = 1;
         RepShareVecBlock          database_sh(1U << n);
         for (size_t i = 0; i < database_sh.Size(); ++i) {
-            database_sh[0][i] = fsswm::MakeBlock(0, i);
-            database_sh[1][i] = fsswm::MakeBlock(0, i);
+            database_sh[0][i] = ringoa::MakeBlock(0, i);
+            database_sh[1][i] = ringoa::MakeBlock(0, i);
         }
         uint64_t pr_prev = brss.GenerateRandomValue();
         uint64_t pr_next = brss.GenerateRandomValue();
@@ -91,7 +91,7 @@ void OblivSelect_ComputeDotProductBlockSIMD_Bench(const osuCrypto::CLP &cmd) {
             Logger::InfoLog(LOC, "Result Prev: " + Format(result_prev) + ", Result Next: " + Format(result_next));
             timer_mgr.Stop("n=" + ToString(db_bitsize) + " (" + ToString(i) + ")");
         }
-        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
+        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), ringoa::TimeUnit::MICROSECONDS, true);
     }
     Logger::InfoLog(LOC, "OblivSelect_ComputeDotProductBlockSIMD_Bench - Finished");
 }
@@ -110,9 +110,9 @@ void OblivSelect_EvaluateFullDomainThenDotProduct_Bench(const osuCrypto::CLP &cm
         uint64_t                  alpha = brss.GenerateRandomValue();
         uint64_t                  beta  = 1;
 
-        std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-        RepShareVec64             database_sh(1U << n);
-        std::vector<uint64_t>     shuf_db_0(1U << n), shuf_db_1(1U << n);
+        std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
+        RepShareVec64              database_sh(1U << n);
+        std::vector<uint64_t>      shuf_db_0(1U << n), shuf_db_1(1U << n);
         for (size_t i = 0; i < database_sh.Size(); ++i) {
             database_sh[0][i] = i;
             database_sh[1][i] = i;
@@ -136,7 +136,7 @@ void OblivSelect_EvaluateFullDomainThenDotProduct_Bench(const osuCrypto::CLP &cm
                 RepShareView64(database_sh), pr_prev, pr_next);
             timer_mgr.Stop("n=" + ToString(db_bitsize) + " (" + ToString(i) + ")");
         }
-        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), fsswm::TimeUnit::MICROSECONDS, true);
+        timer_mgr.PrintCurrentResults("n=" + ToString(db_bitsize), ringoa::TimeUnit::MICROSECONDS, true);
     }
     Logger::InfoLog(LOC, "OblivSelect_EvaluateFullDomainThenDotProduct_Bench - Finished");
 }
@@ -181,7 +181,7 @@ void OblivSelect_Binary_Offline_Bench(const osuCrypto::CLP &cmd) {
             brss.OfflineSetUp(kBenchOSPath + "prf");
             timer_mgr.Stop("OfflineSetUp(" + ToString(i) + ") d=" + ToString(d));
         }
-        timer_mgr.PrintAllResults("Gen d=" + ToString(d), fsswm::MICROSECONDS, true);
+        timer_mgr.PrintAllResults("Gen d=" + ToString(d), ringoa::MICROSECONDS, true);
 
         // Generate the database and index
         int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
@@ -189,7 +189,7 @@ void OblivSelect_Binary_Offline_Bench(const osuCrypto::CLP &cmd) {
         timer_mgr.Start();
         std::vector<block> database(1U << d);
         for (size_t i = 0; i < database.size(); ++i) {
-            database[i] = fsswm::MakeBlock(0, i);
+            database[i] = ringoa::MakeBlock(0, i);
         }
         uint64_t index = bss.GenerateRandomValue();
         timer_mgr.Mark("DataGen d=" + ToString(d));
@@ -199,12 +199,12 @@ void OblivSelect_Binary_Offline_Bench(const osuCrypto::CLP &cmd) {
         timer_mgr.Mark("ShareGen d=" + ToString(d));
 
         // Save data
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         }
         timer_mgr.Mark("ShareSave d=" + ToString(d));
-        timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
+        timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "OblivSelect_Binary_Offline_Bench - Finished");
 }
@@ -212,7 +212,7 @@ void OblivSelect_Binary_Offline_Bench(const osuCrypto::CLP &cmd) {
 void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Binary_Online_Bench...");
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
-    uint64_t    iter   = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
+    uint64_t    iter     = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
     // Helper that returns a task lambda for a given party_id
@@ -281,7 +281,7 @@ void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd) {
                 }
 
                 // (10) Print all timing results
-                timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+                timer_mgr.PrintAllResults("d=" + ToString(d), ringoa::MICROSECONDS, true);
             }
         };
     };
@@ -339,7 +339,7 @@ void OblivSelect_Additive_Offline_Bench(const osuCrypto::CLP &cmd) {
             brss.OfflineSetUp(kBenchOSPath + "prf");
             timer_mgr.Stop("OfflineSetUp(" + ToString(i) + ") d=" + ToString(d));
         }
-        timer_mgr.PrintAllResults("Gen d=" + ToString(d), fsswm::MICROSECONDS, true);
+        timer_mgr.PrintAllResults("Gen d=" + ToString(d), ringoa::MICROSECONDS, true);
 
         // Generate the database and index
         int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
@@ -357,19 +357,19 @@ void OblivSelect_Additive_Offline_Bench(const osuCrypto::CLP &cmd) {
         timer_mgr.Mark("ShareGen d=" + ToString(d));
 
         // Save data
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         }
         timer_mgr.Mark("ShareSave d=" + ToString(d));
-        timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
+        timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "OblivSelect_Additive_Offline_Bench - Finished");
 }
 
 void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Additive_Online_Bench...");
-    uint64_t    iter   = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
+    uint64_t    iter     = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
 
@@ -408,10 +408,10 @@ void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
                 key_io.LoadKey(key_path + "_" + ToString(party_id), key);
 
                 // (5) Load this party’s shares of both databases and the index
-                RepShareVec64             database_sh, _sh;
-                RepShare64                index_sh;
-                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-                ShareIo                   sh_io;
+                RepShareVec64              database_sh, _sh;
+                RepShare64                 index_sh;
+                std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
+                ShareIo                    sh_io;
                 sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
                 sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
 
@@ -442,7 +442,7 @@ void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
                 }
 
                 // (10) Print all timing results
-                timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+                timer_mgr.PrintAllResults("d=" + ToString(d), ringoa::MICROSECONDS, true);
             }
         };
     };
@@ -460,4 +460,4 @@ void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "OblivSelect_Additive_Online_Bench - Finished");
 }
 
-}    // namespace bench_fsswm
+}    // namespace bench_ringoa

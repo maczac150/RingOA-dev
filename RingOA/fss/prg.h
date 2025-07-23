@@ -3,9 +3,9 @@
 
 #include <cryptoTools/Crypto/AES.h>
 
-#include "FssWM/utils/block.h"
+#include "RingOA/utils/block.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace prg {
 
@@ -71,6 +71,6 @@ private:
 
 }    // namespace prg
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // PRG_PRG_H_

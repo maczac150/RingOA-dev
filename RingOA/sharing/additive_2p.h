@@ -13,7 +13,7 @@ class Channel;
 
 }    // namespace osuCrypto
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 class AdditiveSharing2P {
@@ -81,6 +81,6 @@ private:
 };
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif

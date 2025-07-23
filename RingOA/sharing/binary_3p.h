@@ -3,10 +3,10 @@
 
 #include <cryptoTools/Crypto/AES.h>
 
-#include "FssWM/utils/network.h"
+#include "RingOA/utils/network.h"
 #include "share_types.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 class BinaryReplicatedSharing3P {
@@ -63,6 +63,6 @@ private:
 };
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // SHARING_BINARY_3P_H_

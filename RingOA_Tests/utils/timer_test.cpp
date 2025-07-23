@@ -2,18 +2,18 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/utils.h"
-#include "FssWM/utils/to_string.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 #include <thread>
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::Logger;
-using fsswm::TimerManager;
-using fsswm::ToString;
+using ringoa::Logger;
+using ringoa::TimerManager;
+using ringoa::ToString;
 
 void Timer_Test() {
     Logger::DebugLog(LOC, "Timer_Test ...");
@@ -64,9 +64,9 @@ void Timer_Test() {
     timer_mgr.Stop("Process B finished");
 
     // Print the results for the selected timer with details
-    timer_mgr.PrintCurrentResults("", fsswm::TimeUnit::MICROSECONDS, true);
+    timer_mgr.PrintCurrentResults("", ringoa::TimeUnit::MICROSECONDS, true);
 
     Logger::DebugLog(LOC, "Timer_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

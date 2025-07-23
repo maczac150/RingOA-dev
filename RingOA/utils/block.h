@@ -3,7 +3,7 @@
 
 #include <cryptoTools/Common/block.h>
 
-namespace fsswm {
+namespace ringoa {
 
 using block = osuCrypto::block;
 
@@ -57,6 +57,6 @@ static const block                all_one_block      = MakeBlock(uint64_t(-1), u
 static const std::array<block, 2> zero_and_all_one   = {zero_block, all_one_block};
 static const block                all_bytes_one_mask = _mm_set1_epi8(0x01);
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_BLOCK_H_

@@ -2,40 +2,40 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/protocol/equality.h"
-#include "FssWM/protocol/key_io.h"
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/protocol/equality.h"
+#include "RingOA/protocol/key_io.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath = ringoa::GetCurrentDirectory();
 const std::string kTestEqPath  = kCurrentPath + "/data/test/protocol/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::FileIo;
-using fsswm::FormatType;
-using fsswm::GlobalRng;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::ToString, fsswm::Format;
-using fsswm::TwoPartyNetworkManager;
-using fsswm::proto::EqualityEvaluator;
-using fsswm::proto::EqualityKey;
-using fsswm::proto::EqualityKeyGenerator;
-using fsswm::proto::EqualityParameters;
-using fsswm::proto::KeyIo;
-using fsswm::sharing::AdditiveSharing2P;
+using ringoa::block;
+using ringoa::FileIo;
+using ringoa::FormatType;
+using ringoa::GlobalRng;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::ToString, ringoa::Format;
+using ringoa::TwoPartyNetworkManager;
+using ringoa::proto::EqualityEvaluator;
+using ringoa::proto::EqualityKey;
+using ringoa::proto::EqualityKeyGenerator;
+using ringoa::proto::EqualityParameters;
+using ringoa::proto::KeyIo;
+using ringoa::sharing::AdditiveSharing2P;
 
 void Equality_Offline_Test() {
     Logger::DebugLog(LOC, "Equality_Offline_Test...");
@@ -179,4 +179,4 @@ void Equality_Online_Test() {
     Logger::DebugLog(LOC, "Equality_Online_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

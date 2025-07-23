@@ -3,35 +3,35 @@
 #include <cryptoTools/Common/TestCollection.h>
 #include <thread>
 
-#include "FssWM/fss/dpf_eval.h"
-#include "FssWM/fss/dpf_gen.h"
-#include "FssWM/fss/dpf_key.h"
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/fss/dpf_eval.h"
+#include "RingOA/fss/dpf_gen.h"
+#include "RingOA/fss/dpf_key.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace bench_fsswm {
+namespace bench_ringoa {
 
-using fsswm::block;
-using fsswm::FileIo;
-using fsswm::GlobalRng;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::TimerManager;
-using fsswm::ToString;
-using fsswm::fss::EvalType, fsswm::fss::OutputType;
-using fsswm::fss::dpf::DpfEvaluator;
-using fsswm::fss::dpf::DpfKey;
-using fsswm::fss::dpf::DpfKeyGenerator;
-using fsswm::fss::dpf::DpfParameters;
+using ringoa::block;
+using ringoa::FileIo;
+using ringoa::GlobalRng;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::TimerManager;
+using ringoa::ToString;
+using ringoa::fss::EvalType, ringoa::fss::OutputType;
+using ringoa::fss::dpf::DpfEvaluator;
+using ringoa::fss::dpf::DpfKey;
+using ringoa::fss::dpf::DpfKeyGenerator;
+using ringoa::fss::dpf::DpfParameters;
 
 void Dpf_Fde_Bench() {
     uint64_t              repeat = 10;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
+    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
     std::vector<EvalType> eval_types = {
         EvalType::kIterSingleBatch,
     };
@@ -61,7 +61,7 @@ void Dpf_Fde_Bench() {
                 timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
                 eval.EvaluateFullDomain(keys.second, outputs_1);
             }
-            timer_mgr.PrintCurrentResults("n=" + ToString(size), fsswm::TimeUnit::MICROSECONDS, true);
+            timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
@@ -71,7 +71,7 @@ void Dpf_Fde_Bench() {
 void Dpf_Fde_Convert_Bench() {
     uint64_t              repeat = 10;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
+    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
     std::vector<EvalType> eval_types = {
         EvalType::kIterSingleBatch,
     };
@@ -101,7 +101,7 @@ void Dpf_Fde_Convert_Bench() {
                 timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
                 eval.EvaluateFullDomain(keys.second, outputs_1);
             }
-            timer_mgr.PrintCurrentResults("n=" + ToString(size), fsswm::TimeUnit::MICROSECONDS, true);
+            timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
@@ -111,7 +111,7 @@ void Dpf_Fde_Convert_Bench() {
 void Dpf_Fde_One_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
+    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
     std::vector<EvalType> eval_types = {
         EvalType::kIterSingleBatch,
     };
@@ -141,7 +141,7 @@ void Dpf_Fde_One_Bench() {
                 timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
                 eval.EvaluateFullDomain(keys.second, outputs_1);
             }
-            timer_mgr.PrintCurrentResults("n=" + ToString(size), fsswm::TimeUnit::MICROSECONDS, true);
+            timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
@@ -150,7 +150,7 @@ void Dpf_Fde_One_Bench() {
 void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
+    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
 
     Logger::InfoLog(LOC, "Pir Benchmark started");
     for (auto size : sizes) {
@@ -169,7 +169,7 @@ void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
         std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
         std::vector<block>        database(1 << n);
         for (uint64_t i = 0; i < database.size(); ++i) {
-            database[i] = fsswm::MakeBlock(0, i);
+            database[i] = ringoa::MakeBlock(0, i);
         }
 
         // Evaluate keys
@@ -183,11 +183,11 @@ void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
             // the timing measurement.
             block result_1 = eval.ComputeDotProductBlockSIMD(keys.second, database);
             if ((result_0 ^ result_1) != database[alpha]) {
-                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + fsswm::Format(result_0) + ", result_1=" + fsswm::Format(result_1) + ", expected=" + fsswm::Format(database[alpha]));
+                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + ringoa::Format(result_0) + ", result_1=" + ringoa::Format(result_1) + ", expected=" + ringoa::Format(database[alpha]));
                 std::exit(EXIT_FAILURE);
             }
         }
-        timer_mgr.PrintCurrentResults("n=" + ToString(size), fsswm::TimeUnit::MICROSECONDS, true);
+        timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
     }
     Logger::InfoLog(LOC, "Pir Benchmark completed");
 }
@@ -195,7 +195,7 @@ void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
 void Dpf_Pir_ComputeDotProductUint64Bitwise_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
+    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
 
     Logger::InfoLog(LOC, "Pir Shift Benchmark started");
     for (auto size : sizes) {
@@ -228,11 +228,11 @@ void Dpf_Pir_ComputeDotProductUint64Bitwise_Bench() {
             // the timing measurement.
             uint64_t result_1 = eval.ComputeDotProductUint64Bitwise(keys.second, database);
             if ((result_0 ^ result_1) != database[alpha]) {
-                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + fsswm::ToString(result_0) + ", result_1=" + fsswm::ToString(result_1) + ", expected=" + fsswm::ToString(database[alpha]));
+                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + ringoa::ToString(result_0) + ", result_1=" + ringoa::ToString(result_1) + ", expected=" + ringoa::ToString(database[alpha]));
                 std::exit(EXIT_FAILURE);
             }
         }
-        timer_mgr.PrintCurrentResults("n=" + ToString(size), fsswm::TimeUnit::MICROSECONDS, true);
+        timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
     }
     Logger::InfoLog(LOC, "Pir Benchmark completed");
 }
@@ -240,7 +240,7 @@ void Dpf_Pir_ComputeDotProductUint64Bitwise_Bench() {
 void Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench() {
     uint64_t              repeat = 50;
     std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = fsswm::CreateSequence(10, 30);
+    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
 
     Logger::InfoLog(LOC, "Pir Shift Benchmark started");
     for (auto size : sizes) {
@@ -274,13 +274,13 @@ void Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench() {
             // the timing measurement.
             uint64_t result_1 = eval.EvaluateFullDomainThenDotProduct(keys.second, outputs_1, database);
             if ((result_0 ^ result_1) != database[alpha]) {
-                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + fsswm::ToString(result_0) + ", result_1=" + fsswm::ToString(result_1) + ", expected=" + fsswm::ToString(database[alpha]));
+                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + ringoa::ToString(result_0) + ", result_1=" + ringoa::ToString(result_1) + ", expected=" + ringoa::ToString(database[alpha]));
                 std::exit(EXIT_FAILURE);
             }
         }
-        timer_mgr.PrintCurrentResults("n=" + ToString(size), fsswm::TimeUnit::MICROSECONDS, true);
+        timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
     }
     Logger::InfoLog(LOC, "Pir Benchmark completed");
 }
 
-}    // namespace bench_fsswm
+}    // namespace bench_ringoa

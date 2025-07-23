@@ -1,9 +1,9 @@
 #ifndef PROTOCOL_EQUALITY_H_
 #define PROTOCOL_EQUALITY_H_
 
-#include "FssWM/fss/dpf_eval.h"
-#include "FssWM/fss/dpf_gen.h"
-#include "FssWM/fss/dpf_key.h"
+#include "RingOA/fss/dpf_eval.h"
+#include "RingOA/fss/dpf_gen.h"
+#include "RingOA/fss/dpf_key.h"
 
 namespace osuCrypto {
 
@@ -11,7 +11,7 @@ class Channel;
 
 }    // namespace osuCrypto
 
-namespace fsswm {
+namespace ringoa {
 
 namespace sharing {
 
@@ -258,6 +258,6 @@ private:
 };
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // PROTOCOL_EQUALITY_H_

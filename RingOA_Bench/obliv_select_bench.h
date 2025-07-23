@@ -3,7 +3,7 @@
 
 #include <cryptoTools/Common/CLP.h>
 
-namespace bench_fsswm {
+namespace bench_ringoa {
 
 void OblivSelect_ComputeDotProductBlockSIMD_Bench(const osuCrypto::CLP &cmd);
 void OblivSelect_EvaluateFullDomainThenDotProduct_Bench(const osuCrypto::CLP &cmd);
@@ -12,6 +12,6 @@ void OblivSelect_Binary_Online_Bench(const osuCrypto::CLP &cmd);
 void OblivSelect_Additive_Offline_Bench(const osuCrypto::CLP &cmd);
 void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd);
 
-}    // namespace bench_fsswm
+}    // namespace bench_ringoa
 
 #endif    // BENCH_OBLIV_SELECT_BENCH_H_

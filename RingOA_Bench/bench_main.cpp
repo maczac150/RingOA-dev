@@ -3,14 +3,14 @@
 #include <random>
 #include <tests_cryptoTools/UnitTests.h>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM_Bench/dpf_bench.h"
-#include "FssWM_Bench/fssfmi_bench.h"
-#include "FssWM_Bench/obliv_access_bench.h"
-#include "FssWM_Bench/obliv_select_bench.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA_Bench/dpf_bench.h"
+#include "RingOA_Bench/obliv_access_bench.h"
+#include "RingOA_Bench/obliv_select_bench.h"
+#include "RingOA_Bench/secure_fmi_bench.h"
 
-namespace bench_fsswm {
+namespace bench_ringoa {
 
 osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
@@ -31,11 +31,11 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("RingOa_Online_Bench", RingOa_Online_Bench);
     t.add("SotFMI_Offline_Bench", SotFMI_Offline_Bench);
     t.add("SotFMI_Online_Bench", SotFMI_Online_Bench);
-    t.add("FssFMI_Offline_Bench", FssFMI_Offline_Bench);
-    t.add("FssFMI_Online_Bench", FssFMI_Online_Bench);
+    t.add("SecureFMI_Offline_Bench", SecureFMI_Offline_Bench);
+    t.add("SecureFMI_Online_Bench", SecureFMI_Online_Bench);
 });
 
-}    // namespace bench_fsswm
+}    // namespace bench_ringoa
 
 namespace {
 
@@ -64,13 +64,13 @@ int main(int argc, char **argv) {
         {
             std::random_device rd;
             osuCrypto::block   seed = osuCrypto::toBlock(rd(), rd());
-            fsswm::GlobalRng::Initialize(seed);
+            ringoa::GlobalRng::Initialize(seed);
         }
 #else
-        fsswm::GlobalRng::Initialize();
+        ringoa::GlobalRng::Initialize();
 #endif
         osuCrypto::CLP cmd(argc, argv);
-        auto           tests = bench_fsswm::Tests;
+        auto           tests = bench_ringoa::Tests;
 
         // Display help message
         if (cmd.isSet(helpTags)) {

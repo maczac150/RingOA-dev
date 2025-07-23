@@ -2,40 +2,40 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath    = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath    = ringoa::GetCurrentDirectory();
 const std::string kTestFileIoPath = kCurrentPath + "/data/test/utils/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::Logger;
-using fsswm::ToString, fsswm::Format;
+using ringoa::block;
+using ringoa::Logger;
+using ringoa::ToString, ringoa::Format;
 
 void File_Io_Test() {
     Logger::InfoLog(LOC, "File_Io_Test...");
 
-    fsswm::FileIo io;
+    ringoa::FileIo io;
     // Write data to files
     uint64_t                val     = 123456;
     std::vector<uint64_t>   vec     = {1, 2, 3, 4, 5};
     std::array<uint64_t, 3> arr     = {1, 2, 3};
-    block                   blk     = fsswm::MakeBlock(0x1234567890abcdef, 0xfedcba0987654321);
+    block                   blk     = ringoa::MakeBlock(0x1234567890abcdef, 0xfedcba0987654321);
     std::vector<block>      blk_vec = {
-        fsswm::MakeBlock(0x1111111111111111, 0x2222222222222222),
-        fsswm::MakeBlock(0x3333333333333333, 0x4444444444444444),
-        fsswm::MakeBlock(0x5555555555555555, 0x6666666666666666)};
+        ringoa::MakeBlock(0x1111111111111111, 0x2222222222222222),
+        ringoa::MakeBlock(0x3333333333333333, 0x4444444444444444),
+        ringoa::MakeBlock(0x5555555555555555, 0x6666666666666666)};
     std::array<block, 2> blk_arr = {
-        fsswm::MakeBlock(0x5555555555555555, 0x6666666666666666),
-        fsswm::MakeBlock(0x7777777777777777, 0x8888888888888888)};
+        ringoa::MakeBlock(0x5555555555555555, 0x6666666666666666),
+        ringoa::MakeBlock(0x7777777777777777, 0x8888888888888888)};
     std::vector<std::string> str_vec = {"a", "b", "c"};
 
     Logger::DebugLog(LOC, "val: " + ToString(val));
@@ -93,4 +93,4 @@ void File_Io_Test() {
     Logger::DebugLog(LOC, "File_Io_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

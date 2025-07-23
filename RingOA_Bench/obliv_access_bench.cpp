@@ -2,62 +2,62 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/protocol/key_io.h"
-#include "FssWM/protocol/ringoa.h"
-#include "FssWM/protocol/shared_ot.h"
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/sharing/binary_3p.h"
-#include "FssWM/sharing/share_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/protocol/key_io.h"
+#include "RingOA/protocol/ringoa.h"
+#include "RingOA/protocol/shared_ot.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/sharing/binary_3p.h"
+#include "RingOA/sharing/share_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath = ringoa::GetCurrentDirectory();
 const std::string kBenchOSPath = kCurrentPath + "/data/bench/os/";
 
 // std::vector<uint64_t> db_bitsizes = {16, 18, 20, 22, 24, 26, 28};
-std::vector<uint64_t> db_bitsizes = fsswm::CreateSequence(10, 31);
+std::vector<uint64_t> db_bitsizes = ringoa::CreateSequence(10, 31);
 
 constexpr uint64_t kIterDefault = 10;
 
 }    // namespace
 
-namespace bench_fsswm {
+namespace bench_ringoa {
 
-using fsswm::block;
-using fsswm::Channels;
-using fsswm::FileIo;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::ThreePartyNetworkManager;
-using fsswm::TimerManager;
-using fsswm::ToString, fsswm::Format;
-using fsswm::fss::dpf::DpfEvaluator;
-using fsswm::fss::dpf::DpfKey;
-using fsswm::fss::dpf::DpfKeyGenerator;
-using fsswm::fss::dpf::DpfParameters;
-using fsswm::proto::KeyIo;
-using fsswm::proto::RingOaEvaluator;
-using fsswm::proto::RingOaKey;
-using fsswm::proto::RingOaKeyGenerator;
-using fsswm::proto::RingOaParameters;
-using fsswm::proto::SharedOtEvaluator;
-using fsswm::proto::SharedOtKey;
-using fsswm::proto::SharedOtKeyGenerator;
-using fsswm::proto::SharedOtParameters;
-using fsswm::sharing::AdditiveSharing2P;
-using fsswm::sharing::BinaryReplicatedSharing3P;
-using fsswm::sharing::BinarySharing2P;
-using fsswm::sharing::ReplicatedSharing3P;
-using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
-using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
-using fsswm::sharing::RepShareView64, fsswm::sharing::RepShareViewBlock;
-using fsswm::sharing::ShareIo;
+using ringoa::block;
+using ringoa::Channels;
+using ringoa::FileIo;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::ThreePartyNetworkManager;
+using ringoa::TimerManager;
+using ringoa::ToString, ringoa::Format;
+using ringoa::fss::dpf::DpfEvaluator;
+using ringoa::fss::dpf::DpfKey;
+using ringoa::fss::dpf::DpfKeyGenerator;
+using ringoa::fss::dpf::DpfParameters;
+using ringoa::proto::KeyIo;
+using ringoa::proto::RingOaEvaluator;
+using ringoa::proto::RingOaKey;
+using ringoa::proto::RingOaKeyGenerator;
+using ringoa::proto::RingOaParameters;
+using ringoa::proto::SharedOtEvaluator;
+using ringoa::proto::SharedOtKey;
+using ringoa::proto::SharedOtKeyGenerator;
+using ringoa::proto::SharedOtParameters;
+using ringoa::sharing::AdditiveSharing2P;
+using ringoa::sharing::BinaryReplicatedSharing3P;
+using ringoa::sharing::BinarySharing2P;
+using ringoa::sharing::ReplicatedSharing3P;
+using ringoa::sharing::RepShare64, ringoa::sharing::RepShareBlock;
+using ringoa::sharing::RepShareVec64, ringoa::sharing::RepShareVecBlock;
+using ringoa::sharing::RepShareView64, ringoa::sharing::RepShareViewBlock;
+using ringoa::sharing::ShareIo;
 
 void SharedOt_Offline_Bench(const osuCrypto::CLP &cmd) {
     Logger::InfoLog(LOC, "SharedOt_Offline_Bench...");
@@ -99,7 +99,7 @@ void SharedOt_Offline_Bench(const osuCrypto::CLP &cmd) {
         // Offline setup
         rss.OfflineSetUp(kBenchOSPath + "prf");
         timer_mgr.Stop("OfflineSetUp(0) d=" + ToString(d));
-        timer_mgr.PrintAllResults("Gen d=" + ToString(d), fsswm::MICROSECONDS, true);
+        timer_mgr.PrintAllResults("Gen d=" + ToString(d), ringoa::MICROSECONDS, true);
 
         // // Generate the database and index
         // int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
@@ -117,12 +117,12 @@ void SharedOt_Offline_Bench(const osuCrypto::CLP &cmd) {
         // timer_mgr.Mark("ShareGen d=" + ToString(d));
 
         // // Save data
-        // for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        // for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
         //     sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
         //     sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         // }
         // timer_mgr.Mark("ShareSave d=" + ToString(d));
-        // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
+        // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "SharedOt_Offline_Bench - Finished");
     Logger::ExportLogList("./data/logs/oa/sharedot_offline_bench");
@@ -202,7 +202,7 @@ void SharedOt_Online_Bench(const osuCrypto::CLP &cmd) {
                 }
 
                 // (10) Print all timing results
-                timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+                timer_mgr.PrintAllResults("d=" + ToString(d), ringoa::MICROSECONDS, true);
             }
         };
     };
@@ -262,7 +262,7 @@ void RingOa_Offline_Bench(const osuCrypto::CLP &cmd) {
         gen.OfflineSetUp(iter, kBenchOSPath);
         rss.OfflineSetUp(kBenchOSPath + "prf");
         timer_mgr.Stop("OfflineSetUp(0) d=" + ToString(d));
-        timer_mgr.PrintAllResults("Gen d=" + ToString(d), fsswm::MICROSECONDS, true);
+        timer_mgr.PrintAllResults("Gen d=" + ToString(d), ringoa::MICROSECONDS, true);
 
         // // Generate the database and index
         // int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
@@ -280,12 +280,12 @@ void RingOa_Offline_Bench(const osuCrypto::CLP &cmd) {
         // timer_mgr.Mark("ShareGen d=" + ToString(d));
 
         // // Save data
-        // for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        // for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
         //     sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
         //     sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         // }
         // timer_mgr.Mark("ShareSave d=" + ToString(d));
-        // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), fsswm::MILLISECONDS, true);
+        // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "RingOa_Offline_Bench - Finished");
     Logger::ExportLogList("./data/logs/oa/ringoa_offline_bench");
@@ -333,10 +333,10 @@ void RingOa_Online_Bench(const osuCrypto::CLP &cmd) {
                 key_io.LoadKey(key_path + "_" + ToString(party_id), key);
 
                 // (5) Load this party’s shares of both databases and the index
-                RepShareVec64             database_sh, _sh;
-                RepShare64                index_sh;
-                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
-                ShareIo                   sh_io;
+                RepShareVec64              database_sh, _sh;
+                RepShare64                 index_sh;
+                std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
+                ShareIo                    sh_io;
                 sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
                 sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
 
@@ -368,7 +368,7 @@ void RingOa_Online_Bench(const osuCrypto::CLP &cmd) {
                 }
 
                 // (10) Print all timing results
-                timer_mgr.PrintAllResults("d=" + ToString(d), fsswm::MICROSECONDS, true);
+                timer_mgr.PrintAllResults("d=" + ToString(d), ringoa::MICROSECONDS, true);
             }
         };
     };
@@ -387,4 +387,4 @@ void RingOa_Online_Bench(const osuCrypto::CLP &cmd) {
     Logger::ExportLogList("./data/logs/oa/ringoa_online_p" + ToString(party_id) + "_" + network);
 }
 
-}    // namespace bench_fsswm
+}    // namespace bench_ringoa

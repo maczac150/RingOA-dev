@@ -1,9 +1,9 @@
 # ############################
-# Build FssWM
+# Build RingOA
 # ############################
 
 # Set the project name
-project(FssWM)
+project(RingOA)
 
 # Add subdirectories
 add_subdirectory(utils)
@@ -14,10 +14,10 @@ add_subdirectory(wm)
 add_subdirectory(fm_index)
 
 # Add the library target
-add_library(FssWM INTERFACE)
+add_library(RingOA INTERFACE)
 
 # Link the libraries
-target_link_libraries(FssWM INTERFACE
+target_link_libraries(RingOA INTERFACE
     utils
     sharing
     fss
@@ -27,7 +27,7 @@ target_link_libraries(FssWM INTERFACE
 )
 
 # Add the include directories
-target_include_directories(FssWM INTERFACE
+target_include_directories(RingOA INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/sharing

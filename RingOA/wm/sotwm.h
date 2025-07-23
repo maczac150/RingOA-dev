@@ -1,9 +1,9 @@
 #ifndef WM_SOTWM_H_
 #define WM_SOTWM_H_
 
-#include "FssWM/protocol/shared_ot.h"
+#include "RingOA/protocol/shared_ot.h"
 
-namespace fsswm {
+namespace ringoa {
 
 namespace sharing {
 
@@ -285,6 +285,6 @@ private:
 };
 
 }    // namespace wm
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // WM_SOTWM_H_

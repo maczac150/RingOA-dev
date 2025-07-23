@@ -3,7 +3,7 @@
 
 #include "dcf_key.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 
 namespace prg {
@@ -67,6 +67,6 @@ private:
 
 }    // namespace dcf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // FSS_DCF_EVAL_H_

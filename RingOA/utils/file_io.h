@@ -11,7 +11,7 @@
 
 #include "block.h"
 
-namespace fsswm {
+namespace ringoa {
 
 //=========================================================
 // Type traits to detect which types are binary‐writable
@@ -284,6 +284,6 @@ private:
     }
 };
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_FILE_IO_H_

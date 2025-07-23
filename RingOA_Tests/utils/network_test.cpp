@@ -2,18 +2,18 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/utils.h"
-#include "FssWM/utils/to_string.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::Logger;
-using fsswm::ThreePartyNetworkManager;
-using fsswm::ToString;
-using fsswm::TwoPartyNetworkManager;
+using ringoa::Logger;
+using ringoa::ThreePartyNetworkManager;
+using ringoa::ToString;
+using ringoa::TwoPartyNetworkManager;
 
 void Network_TwoPartyManager_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "Network_Manager_Test...");
@@ -322,4 +322,4 @@ void Network_ThreePartyManager_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "Network_ThreePartyManager_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

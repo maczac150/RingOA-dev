@@ -1,24 +1,24 @@
-#include "fsswm.h"
+#include "secure_wm.h"
 
 #include <cstring>
 
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 #include "plain_wm.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace wm {
 
-using fsswm::sharing::ReplicatedSharing3P;
+using ringoa::sharing::ReplicatedSharing3P;
 
-void FssWMParameters::PrintParameters() const {
-    Logger::DebugLog(LOC, "[FssWM Parameters]" + GetParametersInfo());
+void SecureWMParameters::PrintParameters() const {
+    Logger::DebugLog(LOC, "[SecureWM Parameters]" + GetParametersInfo());
 }
 
-FssWMKey::FssWMKey(const uint64_t id, const FssWMParameters &params)
+SecureWMKey::SecureWMKey(const uint64_t id, const SecureWMParameters &params)
     : num_oa_keys(params.GetSigma()),
       params_(params) {
     oa_keys.reserve(num_oa_keys);
@@ -28,7 +28,7 @@ FssWMKey::FssWMKey(const uint64_t id, const FssWMParameters &params)
     serialized_size_ = CalculateSerializedSize();
 }
 
-size_t FssWMKey::CalculateSerializedSize() const {
+size_t SecureWMKey::CalculateSerializedSize() const {
     size_t size = sizeof(num_oa_keys);
     for (uint64_t i = 0; i < num_oa_keys; ++i) {
         size += oa_keys[i].GetSerializedSize();
@@ -36,9 +36,9 @@ size_t FssWMKey::CalculateSerializedSize() const {
     return size;
 }
 
-void FssWMKey::Serialize(std::vector<uint8_t> &buffer) const {
+void SecureWMKey::Serialize(std::vector<uint8_t> &buffer) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Serializing FssWMKey");
+    Logger::DebugLog(LOC, "Serializing SecureWMKey");
 #endif
 
     // Serialize the number of OA keys
@@ -58,9 +58,9 @@ void FssWMKey::Serialize(std::vector<uint8_t> &buffer) const {
     }
 }
 
-void FssWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
+void SecureWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Deserializing FssWMKey");
+    Logger::DebugLog(LOC, "Deserializing SecureWMKey");
 #endif
     size_t offset = 0;
 
@@ -76,16 +76,16 @@ void FssWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
     }
 }
 
-void FssWMKey::PrintKey(const bool detailed) const {
-    Logger::DebugLog(LOC, Logger::StrWithSep("FssWM Key"));
+void SecureWMKey::PrintKey(const bool detailed) const {
+    Logger::DebugLog(LOC, Logger::StrWithSep("SecureWM Key"));
     Logger::DebugLog(LOC, "Number of RingOa Keys: " + ToString(num_oa_keys));
     for (uint64_t i = 0; i < num_oa_keys; ++i) {
         oa_keys[i].PrintKey(detailed);
     }
 }
 
-FssWMKeyGenerator::FssWMKeyGenerator(
-    const FssWMParameters        &params,
+SecureWMKeyGenerator::SecureWMKeyGenerator(
+    const SecureWMParameters     &params,
     sharing::AdditiveSharing2P   &ass,
     sharing::ReplicatedSharing3P &rss)
     : params_(params),
@@ -93,24 +93,24 @@ FssWMKeyGenerator::FssWMKeyGenerator(
       rss_(rss) {
 }
 
-std::array<sharing::RepShareMat64, 3> FssWMKeyGenerator::GenerateDatabaseU64Share(const FMIndex &fm) const {
+std::array<sharing::RepShareMat64, 3> SecureWMKeyGenerator::GenerateDatabaseU64Share(const FMIndex &fm) const {
     if (fm.GetWaveletMatrix().GetLength() + 1 != params_.GetDatabaseSize()) {
-        throw std::invalid_argument("FMIndex length does not match the database size in FssWMParameters");
+        throw std::invalid_argument("FMIndex length does not match the database size in SecureWMParameters");
     }
     const std::vector<uint64_t> &rank0_tables = fm.GetRank0Tables();
     return rss_.ShareLocal(rank0_tables, fm.GetWaveletMatrix().GetSigma(), fm.GetWaveletMatrix().GetLength() + 1);
 }
 
-std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
+std::array<SecureWMKey, 3> SecureWMKeyGenerator::GenerateKeys() const {
     // Initialize the keys
-    std::array<FssWMKey, 3> keys = {
-        FssWMKey(0, params_),
-        FssWMKey(1, params_),
-        FssWMKey(2, params_),
+    std::array<SecureWMKey, 3> keys = {
+        SecureWMKey(0, params_),
+        SecureWMKey(1, params_),
+        SecureWMKey(2, params_),
     };
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate FssWM keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate SecureWM keys"));
 #endif
 
     for (uint64_t i = 0; i < keys[0].num_oa_keys; ++i) {
@@ -124,7 +124,7 @@ std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "FssWM keys generated");
+    Logger::DebugLog(LOC, "SecureWM keys generated");
     keys[0].PrintKey();
     keys[1].PrintKey();
     keys[2].PrintKey();
@@ -134,8 +134,8 @@ std::array<FssWMKey, 3> FssWMKeyGenerator::GenerateKeys() const {
     return keys;
 }
 
-FssWMEvaluator::FssWMEvaluator(
-    const FssWMParameters        &params,
+SecureWMEvaluator::SecureWMEvaluator(
+    const SecureWMParameters     &params,
     sharing::ReplicatedSharing3P &rss,
     sharing::AdditiveSharing2P   &ass_prev,
     sharing::AdditiveSharing2P   &ass_next)
@@ -144,14 +144,14 @@ FssWMEvaluator::FssWMEvaluator(
       rss_(rss) {
 }
 
-void FssWMEvaluator::EvaluateRankCF(Channels                      &chls,
-                                    const FssWMKey                &key,
-                                    std::vector<block>            &uv_prev,
-                                    std::vector<block>            &uv_next,
-                                    const sharing::RepShareMat64  &wm_tables,
-                                    const sharing::RepShareView64 &char_sh,
-                                    sharing::RepShare64           &position_sh,
-                                    sharing::RepShare64           &result) const {
+void SecureWMEvaluator::EvaluateRankCF(Channels                      &chls,
+                                       const SecureWMKey             &key,
+                                       std::vector<block>            &uv_prev,
+                                       std::vector<block>            &uv_next,
+                                       const sharing::RepShareMat64  &wm_tables,
+                                       const sharing::RepShareView64 &char_sh,
+                                       sharing::RepShare64           &position_sh,
+                                       sharing::RepShare64           &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
@@ -159,7 +159,7 @@ void FssWMEvaluator::EvaluateRankCF(Channels                      &chls,
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssWM key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SecureWM key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
@@ -197,22 +197,22 @@ void FssWMEvaluator::EvaluateRankCF(Channels                      &chls,
     result = position_sh;
 }
 
-void FssWMEvaluator::EvaluateRankCF_Parallel(Channels                      &chls,
-                                             const FssWMKey                &key1,
-                                             const FssWMKey                &key2,
-                                             std::vector<block>            &uv_prev,
-                                             std::vector<block>            &uv_next,
-                                             const sharing::RepShareMat64  &wm_tables,
-                                             const sharing::RepShareView64 &char_sh,
-                                             sharing::RepShareVec64        &position_sh,
-                                             sharing::RepShareVec64        &result) const {
+void SecureWMEvaluator::EvaluateRankCF_Parallel(Channels                      &chls,
+                                                const SecureWMKey             &key1,
+                                                const SecureWMKey             &key2,
+                                                std::vector<block>            &uv_prev,
+                                                std::vector<block>            &uv_next,
+                                                const sharing::RepShareMat64  &wm_tables,
+                                                const sharing::RepShareView64 &char_sh,
+                                                sharing::RepShareVec64        &position_sh,
+                                                sharing::RepShareVec64        &result) const {
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
     uint64_t sigma    = params_.GetSigma();
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate FssWM key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SecureWM key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
@@ -244,4 +244,4 @@ void FssWMEvaluator::EvaluateRankCF_Parallel(Channels                      &chls
 }
 
 }    // namespace wm
-}    // namespace fsswm
+}    // namespace ringoa

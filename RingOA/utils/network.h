@@ -7,7 +7,7 @@
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/IOService.h>
 
-namespace fsswm {
+namespace ringoa {
 
 /**
  * @brief Two-Party Network Manager
@@ -121,6 +121,6 @@ struct Channels {
     }
 };
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_NETWORK_H_

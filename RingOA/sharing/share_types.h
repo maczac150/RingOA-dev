@@ -8,7 +8,7 @@
 
 #include "rep_share.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 constexpr size_t kTwoParties   = 2;
@@ -28,6 +28,6 @@ using RepShareMatBlock  = RepShareMat<block>;
 using RepShareViewBlock = RepShareView<block>;
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // SHARING_SHARE_TYPES_H_

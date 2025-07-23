@@ -2,13 +2,13 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/timer.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
-#include "FssWM/protocol/ddcf.h"
+#include "RingOA/protocol/ddcf.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/timer.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
@@ -19,7 +19,7 @@ bool DdcfFullDomainCheck(const uint64_t alpha, const uint64_t beta_1, const uint
             check &= true;
         } else {
             check &= false;
-            fsswm::Logger::DebugLog(LOC, "FDE check failed at x=" + fsswm::ToString(i) + " -> Result: " + fsswm::ToString(res[i]));
+            ringoa::Logger::DebugLog(LOC, "FDE check failed at x=" + ringoa::ToString(i) + " -> Result: " + ringoa::ToString(res[i]));
         }
     }
     return check;
@@ -27,21 +27,21 @@ bool DdcfFullDomainCheck(const uint64_t alpha, const uint64_t beta_1, const uint
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::block;
-using fsswm::FormatType;
-using fsswm::GlobalRng;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::TimerManager;
-using fsswm::ToString, fsswm::Format;
-using fsswm::fss::EvalType, fsswm::fss::OutputType;
-using fsswm::sharing::BinarySharing2P;
-using fsswm::proto::DdcfEvaluator;
-using fsswm::proto::DdcfKey;
-using fsswm::proto::DdcfKeyGenerator;
-using fsswm::proto::DdcfParameters;
+using ringoa::block;
+using ringoa::FormatType;
+using ringoa::GlobalRng;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::TimerManager;
+using ringoa::ToString, ringoa::Format;
+using ringoa::fss::EvalType, ringoa::fss::OutputType;
+using ringoa::proto::DdcfEvaluator;
+using ringoa::proto::DdcfKey;
+using ringoa::proto::DdcfKeyGenerator;
+using ringoa::proto::DdcfParameters;
+using ringoa::sharing::BinarySharing2P;
 
 void Ddcf_EvalAt_Test() {
     Logger::DebugLog(LOC, "Ddcf_EvalAt_Test...");
@@ -127,4 +127,4 @@ void Ddcf_Fde_Test() {
     Logger::DebugLog(LOC, "Ddcf_Fde_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

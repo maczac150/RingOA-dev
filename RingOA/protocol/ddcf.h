@@ -1,11 +1,11 @@
 #ifndef PROTOCOL_DDCF_H_
 #define PROTOCOL_DDCF_H_
 
-#include "FssWM/fss/dcf_eval.h"
-#include "FssWM/fss/dcf_gen.h"
-#include "FssWM/fss/dcf_key.h"
+#include "RingOA/fss/dcf_eval.h"
+#include "RingOA/fss/dcf_gen.h"
+#include "RingOA/fss/dcf_key.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace prg {
 
@@ -233,6 +233,6 @@ private:
 };
 
 }    // namespace proto
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // PROTOCOL_DDCF_H_

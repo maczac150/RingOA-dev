@@ -1,17 +1,17 @@
 #include "prg.h"
 
-#include "FssWM/utils/block.h"
+#include "RingOA/utils/block.h"
 
 namespace {
 
-const fsswm::block kPrgKeySeedLeft   = fsswm::MakeBlock(0x00, 0x00);
-const fsswm::block kPrgKeySeedRight  = fsswm::MakeBlock(0x00, 0x01);
-const fsswm::block kPrgKeyValueRight = fsswm::MakeBlock(0x01, 0x00);
-const fsswm::block kPrgKeyValueLeft  = fsswm::MakeBlock(0x01, 0x01);
+const ringoa::block kPrgKeySeedLeft   = ringoa::MakeBlock(0x00, 0x00);
+const ringoa::block kPrgKeySeedRight  = ringoa::MakeBlock(0x00, 0x01);
+const ringoa::block kPrgKeyValueRight = ringoa::MakeBlock(0x01, 0x00);
+const ringoa::block kPrgKeyValueLeft  = ringoa::MakeBlock(0x01, 0x01);
 
 }    // namespace
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace prg {
 
@@ -91,4 +91,4 @@ PseudoRandomGenerator &PseudoRandomGenerator::GetInstance() {
 
 }    // namespace prg
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa

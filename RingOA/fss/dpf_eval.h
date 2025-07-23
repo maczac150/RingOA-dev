@@ -3,7 +3,7 @@
 
 #include "dpf_key.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 
 namespace prg {
@@ -143,6 +143,6 @@ private:
 
 }    // namespace dpf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // FSS_DPF_EVAL_H_

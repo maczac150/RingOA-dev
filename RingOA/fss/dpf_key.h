@@ -5,7 +5,7 @@
 
 #include "fss.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace fss {
 namespace dpf {
 
@@ -220,6 +220,6 @@ private:
 
 }    // namespace dpf
 }    // namespace fss
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // FSS_DPF_KEY_H_

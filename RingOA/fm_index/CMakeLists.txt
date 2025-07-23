@@ -5,7 +5,7 @@
 # Add library
 add_library(fm_index
     sotfmi.cpp
-    fssfmi.cpp
+    secure_fmi.cpp
 )
 
 # Include directories

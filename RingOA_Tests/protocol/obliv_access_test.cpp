@@ -2,62 +2,62 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/protocol/key_io.h"
-#include "FssWM/protocol/obliv_select.h"
-#include "FssWM/protocol/ringoa.h"
-#include "FssWM/protocol/shared_ot.h"
-#include "FssWM/sharing/additive_2p.h"
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/sharing/binary_2p.h"
-#include "FssWM/sharing/binary_3p.h"
-#include "FssWM/sharing/share_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/protocol/key_io.h"
+#include "RingOA/protocol/obliv_select.h"
+#include "RingOA/protocol/ringoa.h"
+#include "RingOA/protocol/shared_ot.h"
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/sharing/binary_2p.h"
+#include "RingOA/sharing/binary_3p.h"
+#include "RingOA/sharing/share_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath = ringoa::GetCurrentDirectory();
 const std::string kTestOSPath  = kCurrentPath + "/data/test/protocol/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::Channels;
-using fsswm::FileIo;
-using fsswm::Logger;
-using fsswm::Mod;
-using fsswm::ThreePartyNetworkManager;
-using fsswm::ToString, fsswm::Format;
-using fsswm::proto::KeyIo;
-using fsswm::proto::OblivSelectEvaluator;
-using fsswm::proto::OblivSelectKey;
-using fsswm::proto::OblivSelectKeyGenerator;
-using fsswm::proto::OblivSelectParameters;
-using fsswm::proto::RingOaEvaluator;
-using fsswm::proto::RingOaKey;
-using fsswm::proto::RingOaKeyGenerator;
-using fsswm::proto::RingOaParameters;
-using fsswm::proto::SharedOtEvaluator;
-using fsswm::proto::SharedOtKey;
-using fsswm::proto::SharedOtKeyGenerator;
-using fsswm::proto::SharedOtParameters;
-using fsswm::sharing::AdditiveSharing2P;
-using fsswm::sharing::BinaryReplicatedSharing3P;
-using fsswm::sharing::BinarySharing2P;
-using fsswm::sharing::ReplicatedSharing3P;
-using fsswm::sharing::RepShare64, fsswm::sharing::RepShareBlock;
-using fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareVecBlock;
-using fsswm::sharing::RepShareView64, fsswm::sharing::RepShareViewBlock;
-using fsswm::sharing::ShareIo;
+using ringoa::Channels;
+using ringoa::FileIo;
+using ringoa::Logger;
+using ringoa::Mod;
+using ringoa::ThreePartyNetworkManager;
+using ringoa::ToString, ringoa::Format;
+using ringoa::proto::KeyIo;
+using ringoa::proto::OblivSelectEvaluator;
+using ringoa::proto::OblivSelectKey;
+using ringoa::proto::OblivSelectKeyGenerator;
+using ringoa::proto::OblivSelectParameters;
+using ringoa::proto::RingOaEvaluator;
+using ringoa::proto::RingOaKey;
+using ringoa::proto::RingOaKeyGenerator;
+using ringoa::proto::RingOaParameters;
+using ringoa::proto::SharedOtEvaluator;
+using ringoa::proto::SharedOtKey;
+using ringoa::proto::SharedOtKeyGenerator;
+using ringoa::proto::SharedOtParameters;
+using ringoa::sharing::AdditiveSharing2P;
+using ringoa::sharing::BinaryReplicatedSharing3P;
+using ringoa::sharing::BinarySharing2P;
+using ringoa::sharing::ReplicatedSharing3P;
+using ringoa::sharing::RepShare64, ringoa::sharing::RepShareBlock;
+using ringoa::sharing::RepShareVec64, ringoa::sharing::RepShareVecBlock;
+using ringoa::sharing::RepShareView64, ringoa::sharing::RepShareViewBlock;
+using ringoa::sharing::ShareIo;
 
 void OblivSelect_Offline_Test() {
     Logger::DebugLog(LOC, "OblivSelect_Offline_Test...");
     std::vector<OblivSelectParameters> params_list = {
-        OblivSelectParameters(10, fsswm::fss::OutputType::kSingleBitMask),
-        OblivSelectParameters(10, fsswm::fss::OutputType::kShiftedAdditive),
+        OblivSelectParameters(10, ringoa::fss::OutputType::kSingleBitMask),
+        OblivSelectParameters(10, ringoa::fss::OutputType::kShiftedAdditive),
         // OblivSelectParameters(15),
         // OblivSelectParameters(20),
     };
@@ -75,7 +75,7 @@ void OblivSelect_Offline_Test() {
         // Generate keys
         std::array<OblivSelectKey, 3> keys = gen.GenerateKeys();
 
-        if (params.GetParameters().GetOutputType() == fsswm::fss::OutputType::kSingleBitMask) {
+        if (params.GetParameters().GetOutputType() == ringoa::fss::OutputType::kSingleBitMask) {
             // Save keys
             std::string key_path = kTestOSPath + "oskeySBM_d" + ToString(d);
             key_io.SaveKey(key_path + "_0", keys[0]);
@@ -83,21 +83,21 @@ void OblivSelect_Offline_Test() {
             key_io.SaveKey(key_path + "_2", keys[2]);
 
             // Generate the database and index
-            std::vector<fsswm::block> database(1U << d);
+            std::vector<ringoa::block> database(1U << d);
             for (size_t i = 0; i < database.size(); ++i) {
-                database[i] = fsswm::MakeBlock(0, i);
+                database[i] = ringoa::MakeBlock(0, i);
             }
             Logger::DebugLog(LOC, "Database: " + Format(database));
 
             std::array<RepShareVecBlock, 3> database_sh = brss.ShareLocal(database);
-            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
                 Logger::DebugLog(LOC, "Party " + ToString(p) + " shares: " + database_sh[p].ToString());
             }
 
             // Save data
             std::string db_path = kTestOSPath + "dbSBM_d" + ToString(d);
             file_io.WriteBinary(db_path, database);
-            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
                 sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
             }
         } else {
@@ -115,7 +115,7 @@ void OblivSelect_Offline_Test() {
             Logger::DebugLog(LOC, "Database: " + ToString(database));
 
             std::array<RepShareVec64, 3> database_sh = brss.ShareLocal(database);
-            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
                 Logger::DebugLog(LOC, "Party " + ToString(p) + " db: " + database_sh[p].ToString());
             }
 
@@ -123,7 +123,7 @@ void OblivSelect_Offline_Test() {
             std::string db_path = kTestOSPath + "dbSA_d" + ToString(d);
 
             file_io.WriteBinary(db_path, database);
-            for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+            for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
                 sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
             }
         }
@@ -132,12 +132,12 @@ void OblivSelect_Offline_Test() {
         uint64_t index = bss.GenerateRandomValue();
         Logger::DebugLog(LOC, "Index: " + ToString(index));
         std::array<RepShare64, 3> index_sh = brss.ShareLocal(index);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " index share: " + index_sh[p].ToString());
         }
         std::string idx_path = kTestOSPath + "idx_d" + ToString(d);
         file_io.WriteBinary(idx_path, index);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         }
 
@@ -150,7 +150,7 @@ void OblivSelect_Offline_Test() {
 void OblivSelect_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "OblivSelect_SingleBitMask_Online_Test...");
     std::vector<OblivSelectParameters> params_list = {
-        OblivSelectParameters(10, fsswm::fss::OutputType::kSingleBitMask),
+        OblivSelectParameters(10, ringoa::fss::OutputType::kSingleBitMask),
         // OblivSelectParameters(15),
         // OblivSelectParameters(20),
     };
@@ -161,14 +161,14 @@ void OblivSelect_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd) {
         FileIo   file_io;
 
         // Variable for the opened result (all parties will write into this)
-        fsswm::block result = fsswm::MakeBlock(0, 0);
+        ringoa::block result = ringoa::MakeBlock(0, 0);
 
         std::string key_path = kTestOSPath + "oskeySBM_d" + ToString(d);
         std::string db_path  = kTestOSPath + "dbSBM_d" + ToString(d);
         std::string idx_path = kTestOSPath + "idx_d" + ToString(d);
 
-        std::vector<fsswm::block> database;
-        uint64_t                  index;
+        std::vector<ringoa::block> database;
+        uint64_t                   index;
         file_io.ReadBinary(db_path, database);
         file_io.ReadBinary(idx_path, index);
 
@@ -237,7 +237,7 @@ void OblivSelect_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd) {
 void OblivSelect_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "OblivSelect_ShiftedAdditive_Online_Test...");
     std::vector<OblivSelectParameters> params_list = {
-        OblivSelectParameters(10, fsswm::fss::OutputType::kShiftedAdditive),
+        OblivSelectParameters(10, ringoa::fss::OutputType::kShiftedAdditive),
         // OblivSelectParameters(15),
         // OblivSelectParameters(20),
     };
@@ -276,7 +276,7 @@ void OblivSelect_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd) {
                 sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
                 sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
 
-                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
+                std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
 
                 // Setup the PRF keys
                 brss.OnlineSetUp(party_id, kTestOSPath + "prf");
@@ -347,7 +347,7 @@ void SharedOt_Offline_Test() {
         Logger::DebugLog(LOC, "Database: " + ToString(database));
 
         std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " db: " + database_sh[p].ToString());
         }
 
@@ -355,7 +355,7 @@ void SharedOt_Offline_Test() {
         std::string db_path = kTestOSPath + "sharedotdb_d" + ToString(d);
 
         file_io.WriteBinary(db_path, database);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
         }
 
@@ -363,12 +363,12 @@ void SharedOt_Offline_Test() {
         uint64_t index = ass.GenerateRandomValue();
         Logger::DebugLog(LOC, "Index: " + ToString(index));
         std::array<RepShare64, 3> index_sh = rss.ShareLocal(index);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " index share: " + index_sh[p].ToString());
         }
         std::string idx_path = kTestOSPath + "sharedotidx_d" + ToString(d);
         file_io.WriteBinary(idx_path, index);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         }
 
@@ -490,7 +490,7 @@ void RingOa_Offline_Test() {
         Logger::DebugLog(LOC, "Database: " + ToString(database));
 
         std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " db: " + database_sh[p].ToString());
         }
 
@@ -498,7 +498,7 @@ void RingOa_Offline_Test() {
         std::string db_path = kTestOSPath + "ringoadb_d" + ToString(d);
 
         file_io.WriteBinary(db_path, database);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
         }
 
@@ -506,12 +506,12 @@ void RingOa_Offline_Test() {
         uint64_t index = ass.GenerateRandomValue();
         Logger::DebugLog(LOC, "Index: " + ToString(index));
         std::array<RepShare64, 3> index_sh = rss.ShareLocal(index);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " index share: " + index_sh[p].ToString());
         }
         std::string idx_path = kTestOSPath + "ringoaidx_d" + ToString(d);
         file_io.WriteBinary(idx_path, index);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
         }
 
@@ -566,7 +566,7 @@ void RingOa_Online_Test(const osuCrypto::CLP &cmd) {
                 sh_io.LoadShare(db_path + "_" + ToString(party_id), database_sh);
                 sh_io.LoadShare(idx_path + "_" + ToString(party_id), index_sh);
 
-                std::vector<fsswm::block> uv_prev(1U << nu), uv_next(1U << nu);
+                std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
 
                 // Setup the PRF keys
                 eval.OnlineSetUp(party_id, kTestOSPath);
@@ -582,7 +582,7 @@ void RingOa_Online_Test(const osuCrypto::CLP &cmd) {
                 eval.Evaluate_Parallel(chls, key, key, uv_prev, uv_next, RepShareView64(database_sh), index_vec_sh, result_vec_sh);
 
                 // Open the result
-                uint64_t local_res = 0;
+                uint64_t              local_res = 0;
                 std::vector<uint64_t> local_res_vec(2);
 
                 rss.Open(chls, result_sh, local_res);
@@ -612,4 +612,4 @@ void RingOa_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "RingOa_Online_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

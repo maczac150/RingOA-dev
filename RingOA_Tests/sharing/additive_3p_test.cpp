@@ -2,27 +2,27 @@
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "FssWM/sharing/additive_3p.h"
-#include "FssWM/sharing/share_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/network.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/sharing/share_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/network.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
 namespace {
 
-const std::string kCurrentPath      = fsswm::GetCurrentDirectory();
+const std::string kCurrentPath      = ringoa::GetCurrentDirectory();
 const std::string kTestAdditivePath = kCurrentPath + "/data/test/ss3/";
 
 }    // namespace
 
-namespace test_fsswm {
+namespace test_ringoa {
 
-using fsswm::Logger, fsswm::ToString, fsswm::ToStringMatrix;
-using fsswm::ThreePartyNetworkManager, fsswm::Channels;
-using fsswm::sharing::ReplicatedSharing3P;
-using fsswm::sharing::RepShare64, fsswm::sharing::RepShareVec64, fsswm::sharing::RepShareMat64;
-using fsswm::sharing::ShareIo;
+using ringoa::Logger, ringoa::ToString, ringoa::ToStringMatrix;
+using ringoa::ThreePartyNetworkManager, ringoa::Channels;
+using ringoa::sharing::ReplicatedSharing3P;
+using ringoa::sharing::RepShare64, ringoa::sharing::RepShareVec64, ringoa::sharing::RepShareMat64;
+using ringoa::sharing::ShareIo;
 
 const std::vector<uint64_t> kBitsizes = {
     5,
@@ -53,7 +53,7 @@ void Additive3P_Offline_Test() {
         std::array<RepShareMat64, 3> x_flat_sh = rss.ShareLocal(x_flat, rows, cols);
         std::array<RepShareMat64, 3> y_flat_sh = rss.ShareLocal(y_flat, rows, cols);
 
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_sh: " + x_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " y_sh: " + y_sh[p].ToString());
             Logger::DebugLog(LOC, "Party " + ToString(p) + " x_vec_sh: " + x_vec_sh[p].ToString());
@@ -64,7 +64,7 @@ void Additive3P_Offline_Test() {
 
         const std::string x_path = kTestAdditivePath + "x_n" + ToString(bitsize);
         const std::string y_path = kTestAdditivePath + "y_n" + ToString(bitsize);
-        for (size_t p = 0; p < fsswm::sharing::kThreeParties; ++p) {
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
             sh_io.SaveShare(x_path + "_" + ToString(p), x_sh[p]);
             sh_io.SaveShare(y_path + "_" + ToString(p), y_sh[p]);
             sh_io.SaveShare(x_path + "_vec_" + ToString(p), x_vec_sh[p]);
@@ -349,7 +349,7 @@ void Additive3P_EvaluateInnerProduct_Online_Test() {
         Logger::DebugLog(LOC, "open_z: " + ToString(open_z));
 
         // Validate the opened value
-        if (open_z != fsswm::Mod(35, bitsize))
+        if (open_z != ringoa::Mod(35, bitsize))
             throw osuCrypto::UnitTestFail(
                 "Additive protocol failed: open_z != Mod(35, " + ToString(bitsize) + ")");
     }
@@ -357,4 +357,4 @@ void Additive3P_EvaluateInnerProduct_Online_Test() {
     Logger::DebugLog(LOC, "Additive3P_EvaluateInnerProduct_Online_Test - Passed");
 }
 
-}    // namespace test_fsswm
+}    // namespace test_ringoa

@@ -2,13 +2,13 @@
 
 #include <cryptoTools/Network/Channel.h>
 
-#include "FssWM/utils/file_io.h"
-#include "FssWM/utils/logger.h"
-#include "FssWM/utils/rng.h"
-#include "FssWM/utils/to_string.h"
-#include "FssWM/utils/utils.h"
+#include "RingOA/utils/file_io.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/rng.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
 
-namespace fsswm {
+namespace ringoa {
 namespace sharing {
 
 BinarySharing2P::BinarySharing2P(const uint64_t bitsize)
@@ -428,4 +428,4 @@ void BinarySharing2P::LoadTriplesShareFromFile(const uint64_t party_id, const st
 }
 
 }    // namespace sharing
-}    // namespace fsswm
+}    // namespace ringoa

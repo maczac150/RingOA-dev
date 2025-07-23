@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace fsswm {
+namespace ringoa {
 
 /**
  * @brief Enumeration of time units.
@@ -118,6 +118,6 @@ private:
     std::string GetUnitString(TimeUnit unit) const;
 };
 
-}    // namespace fsswm
+}    // namespace ringoa
 
 #endif    // UTILS_TIMER_H_
