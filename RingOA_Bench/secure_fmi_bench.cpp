@@ -141,7 +141,7 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "SotFMI_Offline_Bench - Finished");
-    Logger::ExportLogList("./data/logs/secure_fmi/sotfmi_offline");
+    Logger::ExportLogList("./data/logs/sfmi/sotfmi_offline");
 }
 
 void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
@@ -216,7 +216,7 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "SotFMI_Online_Bench - Finished");
-    Logger::ExportLogList("./data/logs/secure_fmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
+    Logger::ExportLogList("./data/logs/sfmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
 }
 
 void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
@@ -240,7 +240,7 @@ void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             int32_t      timer_keygen = timer_mgr.CreateNewTimer("SecureFMI KeyGen");
             int32_t      timer_off    = timer_mgr.CreateNewTimer("SecureFMI OfflineSetUp");
 
-            std::string key_path   = kBenchSecureFMIPath + "secure_fmikey_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string key_path   = kBenchSecureFMIPath + "sfmikey_d" + ToString(d) + "_qs" + ToString(qs);
             std::string db_path    = kBenchSecureFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
             std::string query_path = kBenchSecureFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
@@ -289,7 +289,7 @@ void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "SecureFMI_Offline_Bench - Finished");
-    Logger::ExportLogList("./data/logs/secure_fmi/secure_fmi_offline");
+    Logger::ExportLogList("./data/logs/sfmi/secure_fmi_offline");
 }
 
 void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
@@ -308,7 +308,7 @@ void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     uint64_t            qs = params.GetQuerySize();
                     uint64_t            nu = params.GetSecureWMParameters().GetOaParameters().GetParameters().GetTerminateBitsize();
 
-                    std::string key_path   = kBenchSecureFMIPath + "secure_fmikey_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string key_path   = kBenchSecureFMIPath + "sfmikey_d" + ToString(d) + "_qs" + ToString(qs);
                     std::string db_path    = kBenchSecureFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
                     std::string query_path = kBenchSecureFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
@@ -368,7 +368,7 @@ void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "SecureFMI_Online_Bench - Finished");
-    Logger::ExportLogList("./data/logs/secure_fmi/secure_fmi_online_p" + ToString(party_id) + "_" + network);
+    Logger::ExportLogList("./data/logs/sfmi/secure_fmi_online_p" + ToString(party_id) + "_" + network);
 }
 
 }    // namespace bench_ringoa
