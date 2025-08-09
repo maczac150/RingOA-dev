@@ -37,17 +37,11 @@ public:
     void SaveKey(const std::string &file_path, const KeyType &key) {
         std::vector<uint8_t> buffer;
         key.Serialize(buffer);
-        try {
-            FileIo io(".key.bin");
-            io.WriteBinary(file_path, buffer);
+        FileIo io(".key.bin");
+        io.WriteBinary(file_path, buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Key saved successfully to " + file_path);
+        Logger::DebugLog(LOC, "Key saved successfully to " + file_path);
 #endif
-        } catch (const std::exception &e) {
-            // throw std::runtime_error("Failed to save key: " + std::string(e.what()));
-            Logger::FatalLog(LOC, "Failed to save key: " + std::string(e.what()));
-            std::exit(EXIT_FAILURE);
-        }
     }
 
     /**
@@ -59,21 +53,15 @@ public:
     template <typename KeyType>
     void LoadKey(const std::string &file_path, KeyType &key) {
         std::vector<uint8_t> buffer;
-        try {
-            FileIo io(".key.bin");
-            io.ReadBinary(file_path, buffer);
-            if (buffer.empty()) {
-                throw std::runtime_error("Loaded buffer is empty.");
-            }
-            key.Deserialize(buffer);
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            Logger::DebugLog(LOC, "Key loaded successfully from " + file_path);
-#endif
-        } catch (const std::exception &e) {
-            // throw std::runtime_error("Failed to load key: " + std::string(e.what()));
-            Logger::FatalLog(LOC, "Failed to load key: " + std::string(e.what()));
-            std::exit(EXIT_FAILURE);
+        FileIo               io(".key.bin");
+        io.ReadBinary(file_path, buffer);
+        if (buffer.empty()) {
+            throw std::runtime_error("Loaded buffer is empty: " + file_path);
         }
+        key.Deserialize(buffer);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Key loaded successfully from " + file_path);
+#endif
     }
 };
 

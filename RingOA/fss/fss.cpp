@@ -13,6 +13,8 @@ std::string GetEvalTypeString(const EvalType eval_type) {
             return "Recursion";
         case EvalType::kIterSingleBatch:
             return "IterSingleBatch";
+        case EvalType::kIterDepthFirst:
+            return "IterDepthFirst";
         default:
             return "Unknown";
     }

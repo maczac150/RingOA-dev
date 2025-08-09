@@ -31,6 +31,7 @@ using ringoa::Logger;
 using ringoa::Mod;
 using ringoa::ThreePartyNetworkManager;
 using ringoa::ToString, ringoa::Format;
+using ringoa::fss::EvalType;
 using ringoa::proto::KeyIo;
 using ringoa::proto::OblivSelectEvaluator;
 using ringoa::proto::OblivSelectKey;
@@ -316,6 +317,7 @@ void SharedOt_Offline_Test() {
     Logger::DebugLog(LOC, "SharedOt_Offline_Test...");
     std::vector<SharedOtParameters> params_list = {
         SharedOtParameters(10),
+        SharedOtParameters(11, EvalType::kIterDepthFirst),
         // SharedOtParameters(15),
         // SharedOtParameters(20),
     };
@@ -382,6 +384,7 @@ void SharedOt_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "SharedOt_Additive_Online_Test...");
     std::vector<SharedOtParameters> params_list = {
         SharedOtParameters(10),
+        SharedOtParameters(11, EvalType::kIterDepthFirst),
         // SharedOtParameters(15),
         // SharedOtParameters(20),
     };

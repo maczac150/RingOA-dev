@@ -32,12 +32,13 @@ public:
      * @param sigma The alphabet size for the SotWMParameters.
      * @param mode The output type for the SotWMParameters.
      */
-    SotWMParameters(const uint64_t database_bitsize,
-                    const uint64_t sigma = 3)
+    SotWMParameters(const uint64_t      database_bitsize,
+                    const uint64_t      sigma = 3,
+                    const fss::EvalType type  = fss::kOptimizedEvalType)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
           sigma_(sigma),
-          sot_params_(database_bitsize) {
+          sot_params_(database_bitsize, type) {
     }
 
     /**
@@ -46,11 +47,13 @@ public:
      * @param query_size The query size for the SotWMParameters.
      * @param sigma The alphabet size for the SotWMParameters.
      */
-    void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3) {
+    void ReconfigureParameters(const uint64_t      database_bitsize,
+                               const uint64_t      sigma = 3,
+                               const fss::EvalType type  = fss::kOptimizedEvalType) {
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
         sigma_            = sigma;
-        sot_params_.ReconfigureParameters(database_bitsize);
+        sot_params_.ReconfigureParameters(database_bitsize, type);
     }
 
     /**

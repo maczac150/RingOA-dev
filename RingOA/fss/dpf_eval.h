@@ -54,10 +54,6 @@ public:
     void EvaluateFullDomain(const DpfKey &key, std::vector<block> &outputs) const;
     void EvaluateFullDomain(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
-    block    ComputeDotProductBlockSIMD(const DpfKey &key, std::vector<block> &database) const;
-    uint64_t ComputeDotProductUint64Bitwise(const DpfKey &key, std::vector<uint64_t> &database) const;
-    uint64_t EvaluateFullDomainThenDotProduct(const DpfKey &key, std::vector<block> &outputs, std::vector<uint64_t> &database) const;
-
 private:
     DpfParameters               params_; /**< DPF parameters for the DPF key. */
     prg::PseudoRandomGenerator &G_;      /**< Pseudo-random generator for the DPF key. */
@@ -112,6 +108,13 @@ private:
      * @param outputs The outputs for the DPF key.
      */
     void FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const;
+
+    /**
+     * @brief Full domain evaluation of the DPF key using the iterative approach with single PRG and parallel evaluation.
+     * @param key The DPF key to evaluate.
+     * @param outputs The outputs for the DPF key.
+     */
+    void FullDomainIterativeDepthFirst(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
     /**
      * @brief Full domain evaluation of the DPF key using the naive approach.

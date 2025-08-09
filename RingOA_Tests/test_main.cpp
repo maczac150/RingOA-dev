@@ -10,6 +10,7 @@
 #include "RingOA_Tests/fss/dpf_test.h"
 #include "RingOA_Tests/fss/prg_test.h"
 #include "RingOA_Tests/protocol/ddcf_test.h"
+#include "RingOA_Tests/protocol/dpf_pir_test.h"
 #include "RingOA_Tests/protocol/equality_test.h"
 #include "RingOA_Tests/protocol/integer_comparison_test.h"
 #include "RingOA_Tests/protocol/obliv_access_test.h"
@@ -38,7 +39,6 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_EvalAt_Test", Dpf_EvalAt_Test);
     t.add("Dpf_Fde_Test", Dpf_Fde_Test);
     t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
-    t.add("Dpf_Pir_Test", Dpf_Pir_Test);
     t.add("Dcf_EvalAt_Test", Dcf_EvalAt_Test);
     t.add("Dcf_Fde_Test", Dcf_Fde_Test);
     t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
@@ -69,6 +69,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Equality_Online_Test", Equality_Online_Test);
     t.add("IntegerComparison_Offline_Test", IntegerComparison_Offline_Test);
     t.add("IntegerComparison_Online_Test", IntegerComparison_Online_Test);
+    t.add("DpfPir_Offline_Test", DpfPir_Offline_Test);
+    t.add("DpfPir_Online_Test", DpfPir_Online_Test);
     t.add("OblivSelect_Offline_Test", OblivSelect_Offline_Test);
     t.add("OblivSelect_SingleBitMask_Online_Test", OblivSelect_SingleBitMask_Online_Test);
     t.add("OblivSelect_ShiftedAdditive_Online_Test", OblivSelect_ShiftedAdditive_Online_Test);

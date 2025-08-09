@@ -14,13 +14,15 @@ constexpr uint64_t kLeft              = 0;
 constexpr uint64_t kRight             = 1;
 
 /**
- * @brief Enumeration for the evaluation types for DPF.
+ * @brief Evaluation strategies for DPF full-domain evaluation.
+ *
  */
 enum class EvalType
 {
-    kNaive,
-    kRecursion,
-    kIterSingleBatch,
+    kNaive,              ///< Full-domain without early termination; baseline O(n * N)
+    kRecursion,          ///< Full-domain with early termination; recursive traversal
+    kIterSingleBatch,    ///< Full-domain with early termination; first ~3 levels BFS, then DFS
+    kIterDepthFirst,     ///< Full-domain without early termination; pure iterative DFS
 };
 
 /**

@@ -42,6 +42,8 @@ std::vector<uint64_t> query_sizes = {16};
 
 constexpr uint64_t kIterDefault = 10;
 
+constexpr ringoa::fss::EvalType kEvalType = ringoa::fss::EvalType::kIterDepthFirst;
+
 }    // namespace
 
 namespace bench_ringoa {
@@ -78,7 +80,7 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
 
     for (auto text_bitsize : text_bitsizes) {
         for (auto query_size : query_sizes) {
-            SotFMIParameters    params(text_bitsize, query_size, 3);
+            SotFMIParameters    params(text_bitsize, query_size, 3, kEvalType);
             uint64_t            d  = params.GetDatabaseBitSize();
             uint64_t            ds = params.GetDatabaseSize();
             uint64_t            qs = params.GetQuerySize();
@@ -141,7 +143,11 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "SotFMI_Offline_Bench - Finished");
-    Logger::ExportLogList("./data/logs/sfmi/sotfmi_offline");
+    if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
+        Logger::ExportLogList("./data/logs/sfmi/sotfmi_offline");
+    } else {
+        Logger::ExportLogList("./data/logs/sfmi/sotfmi_naive_offline");
+    }
 }
 
 void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
@@ -155,7 +161,7 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
         return [=](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
             for (auto text_bitsize : text_bitsizes) {
                 for (auto query_size : query_sizes) {
-                    SotFMIParameters params(text_bitsize, query_size);
+                    SotFMIParameters params(text_bitsize, query_size, 3, kEvalType);
                     uint64_t         d  = params.GetDatabaseBitSize();
                     uint64_t         qs = params.GetQuerySize();
 
@@ -216,7 +222,11 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "SotFMI_Online_Bench - Finished");
-    Logger::ExportLogList("./data/logs/sfmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
+    if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
+        Logger::ExportLogList("./data/logs/sfmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
+    } else {
+        Logger::ExportLogList("./data/logs/sfmi/sotfmi_naive_online_p" + ToString(party_id) + "_" + network);
+    }
 }
 
 void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {

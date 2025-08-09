@@ -10,84 +10,14 @@ namespace fss {
 namespace dpf {
 
 DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_type, OutputType output_mode)
-    : input_bitsize_(n), element_bitsize_(e), enable_et_(true), fde_type_(eval_type), output_mode_(output_mode) {
+    : input_bitsize_(n),
+      element_bitsize_(e),
+      enable_et_(true),
+      fde_type_(eval_type),
+      output_mode_(output_mode) {
 
-    if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
-        (element_bitsize_ > 1 && input_bitsize_ <= 8)) {
-        if (fde_type_ != EvalType::kNaive) {
-            Logger::WarnLog(LOC, "Switching to naive evaluation: EvalType -> Naive");
-        }
-        fde_type_ = EvalType::kNaive;
-    }
-
-    if (fde_type_ == EvalType::kNaive) {
-        enable_et_   = false;
-        output_mode_ = OutputType::kShiftedAdditive;
-        if (enable_et_) {
-            Logger::WarnLog(LOC, "Disabling early termination for naive evaluation: ET OFF");
-        }
-    }
-
-    if (enable_et_) {
-        int32_t nu = 0;
-        if (element_bitsize_ == 1) {
-            nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7 = 128
-        } else if (input_bitsize_ < 17) {
-            nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
-            if (output_mode_ == OutputType::kSingleBitMask) {
-                output_mode_ = OutputType::kShiftedAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
-            }
-        } else if (input_bitsize_ < 33) {
-            nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
-            if (output_mode_ == OutputType::kSingleBitMask) {
-                output_mode_ = OutputType::kShiftedAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
-            }
-        }
-        terminate_bitsize_ = std::max(nu, 0);
-    } else {
-        terminate_bitsize_ = input_bitsize_;
-    }
-
-    if (!ValidateParameters()) {
-        Logger::FatalLog(LOC, "Invalid DPF parameters");
-        std::exit(EXIT_FAILURE);
-    }
-}
-
-bool DpfParameters::ValidateParameters() const {
-    bool valid = true;
-    if (input_bitsize_ == 0 || element_bitsize_ == 0) {
-        valid = false;
-        Logger::FatalLog(LOC, "The input bitsize and element bitsize must be greater than 0");
-    }
-    if (input_bitsize_ > 32) {
-        valid = false;
-        Logger::FatalLog(LOC, "The input bitsize must be less than or equal to 32 (current: " + ToString(input_bitsize_) + ")");
-    }
-    if (enable_et_) {
-        if (terminate_bitsize_ > input_bitsize_) {
-            valid = false;
-            Logger::FatalLog(LOC,
-                             "terminate_bitsize_ (" + ToString(terminate_bitsize_) +
-                                 ") must be <= input_bitsize_ (" + ToString(input_bitsize_) +
-                                 ") when early termination is enabled.");
-        }
-    } else {
-        if (terminate_bitsize_ != input_bitsize_) {
-            valid = false;
-            Logger::FatalLog(LOC,
-                             "terminate_bitsize_ (" + ToString(terminate_bitsize_) +
-                                 ") must be == input_bitsize_ (" + ToString(input_bitsize_) +
-                                 ") when early termination is disabled.");
-        }
-    }
-    if (fde_type_ == EvalType::kNaive && enable_et_) {
-        valid = false;
-        Logger::FatalLog(LOC, "EvalType is Naive, but enable_et_ is true. This is invalid.");
-    }
-    return valid;
+    Resolve_();
+    ValidateOrThrow_();
 }
 
 void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, EvalType eval_type, OutputType output_mode) {
@@ -97,6 +27,12 @@ void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, Ev
     fde_type_        = eval_type;
     output_mode_     = output_mode;
 
+    Resolve_();
+    ValidateOrThrow_();
+}
+
+void DpfParameters::Resolve_() {
+    // Small-n -> Naive
     if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
         (element_bitsize_ > 1 && input_bitsize_ <= 8)) {
         if (fde_type_ != EvalType::kNaive) {
@@ -105,39 +41,60 @@ void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, Ev
         fde_type_ = EvalType::kNaive;
     }
 
-    if (fde_type_ == EvalType::kNaive) {
-        enable_et_   = false;
-        output_mode_ = OutputType::kShiftedAdditive;
+    // Disable ET for Naive / IterDepthFirst
+    if (fde_type_ == EvalType::kNaive || fde_type_ == EvalType::kIterDepthFirst) {
         if (enable_et_) {
-            Logger::WarnLog(LOC, "Disabling early termination for naive evaluation: ET OFF");
+            Logger::WarnLog(LOC, "Disabling early termination for non-ET strategy: ET OFF");
         }
+        enable_et_   = false;
+        output_mode_ = OutputType::kShiftedAdditive;    // keep only if truly required
     }
 
+    // Compute terminate_bitsize_
     if (enable_et_) {
         int32_t nu = 0;
         if (element_bitsize_ == 1) {
-            nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7 = 128
+            nu = static_cast<int32_t>(input_bitsize_) - 7;    // 2^7
         } else if (input_bitsize_ < 17) {
-            nu = static_cast<int32_t>(input_bitsize_) - 3;    // Split seed (128 bits) 2^3 = 8 blocks
+            nu = static_cast<int32_t>(input_bitsize_) - 3;    // 8 blocks
             if (output_mode_ == OutputType::kSingleBitMask) {
+                Logger::WarnLog(LOC, "Switching output to Additive for e!=1: OutputType -> ShiftedAdditive");
                 output_mode_ = OutputType::kShiftedAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
             }
         } else if (input_bitsize_ < 33) {
-            nu = static_cast<int32_t>(input_bitsize_) - 2;    // Split seed (128 bits) 2^2 = 4 blocks
+            nu = static_cast<int32_t>(input_bitsize_) - 2;    // 4 blocks
             if (output_mode_ == OutputType::kSingleBitMask) {
+                Logger::WarnLog(LOC, "Switching output to Additive for e!=1: OutputType -> ShiftedAdditive");
                 output_mode_ = OutputType::kShiftedAdditive;
-                Logger::WarnLog(LOC, "Switching output mode to Additive for input bitsize != 1: OutputType -> Additive");
             }
         }
-        terminate_bitsize_ = std::max(nu, 0);
+        terminate_bitsize_ = static_cast<uint64_t>(std::max(nu, 0));
     } else {
         terminate_bitsize_ = input_bitsize_;
     }
+}
 
-    if (!ValidateParameters()) {
-        Logger::FatalLog(LOC, "Invalid DPF parameters");
-        std::exit(EXIT_FAILURE);
+void DpfParameters::ValidateOrThrow_() const {
+    if (input_bitsize_ == 0 || element_bitsize_ == 0) {
+        throw std::invalid_argument("input_bitsize and element_bitsize must be > 0");
+    }
+    if (input_bitsize_ > 32) {
+        throw std::invalid_argument("input_bitsize must be <= 32 (got " + ToString(input_bitsize_) + ")");
+    }
+    if (enable_et_) {
+        if (terminate_bitsize_ > input_bitsize_) {
+            throw std::invalid_argument("nu (" + ToString(terminate_bitsize_) + ") must be <= n (" + ToString(input_bitsize_) + ") when ET is enabled");
+        }
+    } else {
+        if (terminate_bitsize_ != input_bitsize_) {
+            throw std::invalid_argument("nu (" + ToString(terminate_bitsize_) + ") must equal n (" + ToString(input_bitsize_) + ") when ET is disabled");
+        }
+    }
+    if (fde_type_ == EvalType::kNaive && enable_et_) {
+        throw std::invalid_argument("EvalType::kNaive requires ET to be disabled");
+    }
+    if (element_bitsize_ != 1 && output_mode_ == OutputType::kSingleBitMask) {
+        throw std::invalid_argument("OutputType::kSingleBitMask requires element_bitsize == 1");
     }
 }
 

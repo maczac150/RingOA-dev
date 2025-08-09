@@ -6,6 +6,7 @@
 #include "RingOA/utils/logger.h"
 #include "RingOA/utils/rng.h"
 #include "RingOA_Bench/dpf_bench.h"
+#include "RingOA_Bench/dpf_pir_bench.h"
 #include "RingOA_Bench/obliv_access_bench.h"
 #include "RingOA_Bench/obliv_select_bench.h"
 #include "RingOA_Bench/secure_fmi_bench.h"
@@ -16,15 +17,13 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
     t.add("Dpf_Fde_Convert_Bench", Dpf_Fde_Convert_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
-    t.add("Dpf_Pir_ComputeDotProductBlockSIMD_Bench", Dpf_Pir_ComputeDotProductBlockSIMD_Bench);
-    t.add("Dpf_Pir_ComputeDotProductUint64Bitwise_Bench", Dpf_Pir_ComputeDotProductUint64Bitwise_Bench);
-    t.add("Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench", Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench);
-    // t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
-    // t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
-    // t.add("OblivSelect_Binary_Offline_Bench", OblivSelect_Binary_Offline_Bench);
-    // t.add("OblivSelect_Binary_Online_Bench", OblivSelect_Binary_Online_Bench);
-    // t.add("OblivSelect_Additive_Offline_Bench", OblivSelect_Additive_Offline_Bench);
-    // t.add("OblivSelect_Additive_Online_Bench", OblivSelect_Additive_Online_Bench);
+    t.add("DpfPir_Bench", DpfPir_Bench);
+    t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
+    t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
+    t.add("OblivSelect_Binary_Offline_Bench", OblivSelect_Binary_Offline_Bench);
+    t.add("OblivSelect_Binary_Online_Bench", OblivSelect_Binary_Online_Bench);
+    t.add("OblivSelect_Additive_Offline_Bench", OblivSelect_Additive_Offline_Bench);
+    t.add("OblivSelect_Additive_Online_Bench", OblivSelect_Additive_Online_Bench);
     t.add("SharedOt_Offline_Bench", SharedOt_Offline_Bench);
     t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
     t.add("RingOa_Offline_Bench", RingOa_Offline_Bench);

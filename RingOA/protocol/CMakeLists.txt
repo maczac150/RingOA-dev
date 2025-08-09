@@ -8,6 +8,7 @@ add_library(protocol
     equality.cpp
     integer_comparison.cpp
     zero_test.cpp
+    dpf_pir.cpp
     obliv_select.cpp
     ringoa.cpp
     shared_ot.cpp

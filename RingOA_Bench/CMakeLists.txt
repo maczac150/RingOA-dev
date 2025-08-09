@@ -8,6 +8,7 @@ project(RingOA_Bench)
 # Add the bench sources
 set(BENCH_SOURCES
     dpf_bench.cpp
+    dpf_pir_bench.cpp
     obliv_select_bench.cpp
     obliv_access_bench.cpp
     secure_fmi_bench.cpp

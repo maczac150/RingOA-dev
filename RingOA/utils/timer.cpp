@@ -12,16 +12,16 @@ int32_t TimerManager::CreateNewTimer(const std::string &name) {
 
 void TimerManager::SelectTimer(int32_t timer_id) {
     if (timers_.find(timer_id) == timers_.end()) {
-        Logger::FatalLog(LOC, "Invalid timer ID.");
-        std::exit(EXIT_FAILURE);
+        Logger::ErrorLog(LOC, "Invalid timer ID.");
+        return;
     }
     current_timer_id_ = timer_id;
 }
 
 void TimerManager::Start() {
     if (current_timer_id_ == -1) {
-        Logger::FatalLog(LOC, "No timer selected.");
-        std::exit(EXIT_FAILURE);
+        Logger::ErrorLog(LOC, "No timer selected.");
+        return;
     }
     auto &timer = timers_[current_timer_id_];
     timer.start_times.push_back(std::chrono::high_resolution_clock::now());
@@ -29,8 +29,8 @@ void TimerManager::Start() {
 
 void TimerManager::Stop(const std::string &msg) {
     if (current_timer_id_ == -1) {
-        Logger::FatalLog(LOC, "No timer selected.");
-        std::exit(EXIT_FAILURE);
+        Logger::ErrorLog(LOC, "No timer selected.");
+        return;
     }
     auto &timer     = timers_[current_timer_id_];
     auto  stop_time = std::chrono::high_resolution_clock::now();
@@ -44,15 +44,15 @@ void TimerManager::Stop(const std::string &msg) {
 
 void TimerManager::Mark(const std::string &msg) {
     if (current_timer_id_ == -1) {
-        Logger::FatalLog(LOC, "No timer selected.");
-        std::exit(EXIT_FAILURE);
+        Logger::ErrorLog(LOC, "No timer selected.");
+        return;
     }
 
     auto &timer = timers_[current_timer_id_];
 
     if (timer.start_times.empty()) {
-        Logger::FatalLog(LOC, "Timer has not been started.");
-        std::exit(EXIT_FAILURE);
+        Logger::ErrorLog(LOC, "Timer has not been started.");
+        return;
     }
 
     auto   now     = std::chrono::high_resolution_clock::now();
@@ -63,8 +63,8 @@ void TimerManager::Mark(const std::string &msg) {
 
 void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit unit, const bool show_details) const {
     if (current_timer_id_ == -1) {
-        Logger::FatalLog(LOC, "No timer selected.");
-        std::exit(EXIT_FAILURE);
+        Logger::ErrorLog(LOC, "No timer selected.");
+        return;
     }
 
     const auto &timer    = timers_.at(current_timer_id_);

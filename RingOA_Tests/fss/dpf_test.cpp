@@ -175,6 +175,7 @@ void Dpf_Fde_Test() {
         {3, 3, EvalType::kNaive},
         {8, 8, EvalType::kRecursion},
         {8, 8, EvalType::kIterSingleBatch},
+        {9, 9, EvalType::kIterDepthFirst},
         {9, 9, EvalType::kRecursion},
         {9, 9, EvalType::kIterSingleBatch},
         {17, 17, EvalType::kRecursion},
@@ -239,7 +240,7 @@ void Dpf_Fde_One_Test() {
         std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
         // Evaluate keys
-        if (param.GetFdeEvalType() == EvalType::kNaive) {
+        if (param.GetEvalType() == EvalType::kNaive) {
             std::vector<uint64_t> outputs_0(1 << n), outputs_1(1 << n);
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);
@@ -274,85 +275,6 @@ void Dpf_Fde_One_Test() {
         }
     }
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test - Passed");
-}
-
-void Dpf_Pir_Test() {
-    Logger::DebugLog(LOC, "Dpf_Pir_Test...");
-    const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
-        {10, 1, EvalType::kIterSingleBatch},
-    };
-    // Test all combinations of parameters
-    for (auto [n, e, eval_type] : fde_param) {
-        DpfParameters param(n, e, eval_type, OutputType::kSingleBitMask);
-        param.PrintParameters();
-        DpfKeyGenerator gen(param);
-        DpfEvaluator    eval(param);
-        uint64_t        alpha = 32;
-        uint64_t        beta  = 1;
-
-        // Generate keys
-        Logger::DebugLog(LOC, "alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
-        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
-        keys.first.PrintKey(true);
-        keys.second.PrintKey(true);
-
-        // Generate database
-        std::vector<block> database(1 << n);
-        for (uint64_t i = 0; i < database.size(); ++i) {
-            database[i] = ringoa::MakeBlock(0, i);
-        }
-        Logger::DebugLog(LOC, "Database :" + ringoa::Format(database, FormatType::kDec));
-
-        // Evaluate keys
-        block result_0 = eval.ComputeDotProductBlockSIMD(keys.first, database);
-        block result_1 = eval.ComputeDotProductBlockSIMD(keys.second, database);
-        block output   = result_0 ^ result_1;
-        Logger::DebugLog(LOC, "Output :" + ringoa::Format(output, FormatType::kDec));
-
-        // Check FDE
-        if (output != database[alpha])
-            throw osuCrypto::UnitTestFail("FDE check failed");
-
-        DpfParameters   param2(n, e, eval_type);
-        DpfKeyGenerator gen2(param2);
-        DpfEvaluator    eval2(param2);
-
-        // Generate keys with additive output mode
-        Logger::DebugLog(LOC, "Generating keys with additive output mode...");
-        std::pair<DpfKey, DpfKey> keys2 = gen2.GenerateKeys(alpha, beta);
-        keys2.first.PrintKey(true);
-        keys2.second.PrintKey(true);
-
-        // Generate database
-        std::vector<uint64_t> data64(1 << n);
-        for (uint64_t i = 0; i < data64.size(); ++i) {
-            data64[i] = i;
-        }
-        Logger::DebugLog(LOC, "Data64 :" + ringoa::ToString(data64));
-
-        // Evaluate keys
-        uint64_t output64_0 = eval2.ComputeDotProductUint64Bitwise(keys2.first, data64);
-        uint64_t output64_1 = eval2.ComputeDotProductUint64Bitwise(keys2.second, data64);
-        uint64_t output64   = output64_0 ^ output64_1;
-        Logger::DebugLog(LOC, "Output64 :" + ringoa::ToString(output64));
-
-        // Check FDE
-        if (output64 != data64[alpha])
-            throw osuCrypto::UnitTestFail("FDE check failed for 64-bit output");
-
-        // Generate output vector
-        std::vector<block> outputs_0(1 << param.GetTerminateBitsize()), outputs_1(1 << param.GetTerminateBitsize());
-        output64_0 = eval2.EvaluateFullDomainThenDotProduct(keys2.first, outputs_0, data64);
-        output64_1 = eval2.EvaluateFullDomainThenDotProduct(keys2.second, outputs_1, data64);
-        output64   = output64_0 ^ output64_1;
-        Logger::DebugLog(LOC, "Output64 (FDE then DP) :" + ringoa::ToString(output64));
-
-        // Check FDE
-        if (output64 != data64[alpha])
-            throw osuCrypto::UnitTestFail("FDE check failed for 64-bit output");
-
-        Logger::DebugLog(LOC, "Dpf_Pir_Test - Passed");
-    }
 }
 
 }    // namespace test_ringoa

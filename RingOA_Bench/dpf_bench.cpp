@@ -48,7 +48,7 @@ void Dpf_Fde_Bench() {
             uint64_t        beta  = Mod(GlobalRng::Rand<uint64_t>(), e);
 
             TimerManager timer_mgr;
-            int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetFdeEvalType()));
+            int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetEvalType()));
             timer_mgr.SelectTimer(timer_id);
 
             // Generate keys
@@ -74,6 +74,7 @@ void Dpf_Fde_Convert_Bench() {
     // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
     std::vector<EvalType> eval_types = {
         EvalType::kIterSingleBatch,
+        EvalType::kIterDepthFirst,
     };
 
     Logger::InfoLog(LOC, "FDE Benchmark started");
@@ -88,7 +89,7 @@ void Dpf_Fde_Convert_Bench() {
             uint64_t        beta  = Mod(GlobalRng::Rand<uint64_t>(), e);
 
             TimerManager timer_mgr;
-            int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetFdeEvalType()));
+            int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetEvalType()));
             timer_mgr.SelectTimer(timer_id);
 
             // Generate keys
@@ -127,7 +128,7 @@ void Dpf_Fde_One_Bench() {
             uint64_t        beta  = 1;
 
             TimerManager timer_mgr;
-            int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetFdeEvalType()));
+            int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetEvalType()));
             timer_mgr.SelectTimer(timer_id);
 
             // Generate keys
@@ -145,142 +146,6 @@ void Dpf_Fde_One_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-}
-
-void Dpf_Pir_ComputeDotProductBlockSIMD_Bench() {
-    uint64_t              repeat = 50;
-    std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
-
-    Logger::InfoLog(LOC, "Pir Benchmark started");
-    for (auto size : sizes) {
-        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputType::kSingleBitMask);
-        uint64_t        n = params.GetInputBitsize();
-        DpfKeyGenerator gen(params);
-        DpfEvaluator    eval(params);
-        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-        uint64_t        beta  = 1;
-
-        TimerManager timer_mgr;
-        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir:ComputeDotProductBlockSIMD");
-        timer_mgr.SelectTimer(timer_id);
-
-        // Generate keys
-        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
-        std::vector<block>        database(1 << n);
-        for (uint64_t i = 0; i < database.size(); ++i) {
-            database[i] = ringoa::MakeBlock(0, i);
-        }
-
-        // Evaluate keys
-        for (uint64_t i = 0; i < repeat; ++i) {
-            timer_mgr.Start();
-            block result_0 = eval.ComputeDotProductBlockSIMD(keys.first, database);
-            timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
-            // Use result_0 in the check below to prevent the compiler from
-            // optimizing away the PIR evaluation call. If result_0 were never used,
-            // the compiler might inline or remove the call entirely, invalidating
-            // the timing measurement.
-            block result_1 = eval.ComputeDotProductBlockSIMD(keys.second, database);
-            if ((result_0 ^ result_1) != database[alpha]) {
-                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + ringoa::Format(result_0) + ", result_1=" + ringoa::Format(result_1) + ", expected=" + ringoa::Format(database[alpha]));
-                std::exit(EXIT_FAILURE);
-            }
-        }
-        timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
-    }
-    Logger::InfoLog(LOC, "Pir Benchmark completed");
-}
-
-void Dpf_Pir_ComputeDotProductUint64Bitwise_Bench() {
-    uint64_t              repeat = 50;
-    std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
-
-    Logger::InfoLog(LOC, "Pir Shift Benchmark started");
-    for (auto size : sizes) {
-        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputType::kShiftedAdditive);
-        uint64_t        n = params.GetInputBitsize();
-        DpfKeyGenerator gen(params);
-        DpfEvaluator    eval(params);
-        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-        uint64_t        beta  = 1;
-
-        TimerManager timer_mgr;
-        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir:ComputeDotProductUint64Bitwise");
-        timer_mgr.SelectTimer(timer_id);
-
-        // Generate keys
-        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
-        std::vector<uint64_t>     database(1 << n);
-        for (uint64_t i = 0; i < database.size(); ++i) {
-            database[i] = i;
-        }
-
-        // Evaluate keys
-        for (uint64_t i = 0; i < repeat; ++i) {
-            timer_mgr.Start();
-            uint64_t result_0 = eval.ComputeDotProductUint64Bitwise(keys.first, database);
-            timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
-            // Use result_0 in the check below to prevent the compiler from
-            // optimizing away the PIR evaluation call. If result_0 were never used,
-            // the compiler might inline or remove the call entirely, invalidating
-            // the timing measurement.
-            uint64_t result_1 = eval.ComputeDotProductUint64Bitwise(keys.second, database);
-            if ((result_0 ^ result_1) != database[alpha]) {
-                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + ringoa::ToString(result_0) + ", result_1=" + ringoa::ToString(result_1) + ", expected=" + ringoa::ToString(database[alpha]));
-                std::exit(EXIT_FAILURE);
-            }
-        }
-        timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
-    }
-    Logger::InfoLog(LOC, "Pir Benchmark completed");
-}
-
-void Dpf_Pir_EvaluateFullDomainThenDotProduct_Bench() {
-    uint64_t              repeat = 50;
-    std::vector<uint64_t> sizes  = {16, 18, 20, 22, 24, 26, 28};
-    // std::vector<uint64_t> sizes      = ringoa::CreateSequence(10, 30);
-
-    Logger::InfoLog(LOC, "Pir Shift Benchmark started");
-    for (auto size : sizes) {
-        DpfParameters   params(size, 1, EvalType::kIterSingleBatch, OutputType::kShiftedAdditive);
-        uint64_t        n = params.GetInputBitsize();
-        DpfKeyGenerator gen(params);
-        DpfEvaluator    eval(params);
-        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-        uint64_t        beta  = 1;
-
-        TimerManager timer_mgr;
-        int32_t      timer_id = timer_mgr.CreateNewTimer("Pir:EvaluateFullDomainThenDotProduct");
-        timer_mgr.SelectTimer(timer_id);
-
-        // Generate keys
-        std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
-        std::vector<uint64_t>     database(1 << n);
-        for (uint64_t i = 0; i < database.size(); ++i) {
-            database[i] = i;
-        }
-
-        // Evaluate keys
-        std::vector<block> outputs_0(1U << params.GetTerminateBitsize()), outputs_1(1U << params.GetTerminateBitsize());
-        for (uint64_t i = 0; i < repeat; ++i) {
-            timer_mgr.Start();
-            uint64_t result_0 = eval.EvaluateFullDomainThenDotProduct(keys.first, outputs_0, database);
-            timer_mgr.Stop("n=" + ToString(size) + " (" + ToString(i) + ")");
-            // Use result_0 in the check below to prevent the compiler from
-            // optimizing away the PIR evaluation call. If result_0 were never used,
-            // the compiler might inline or remove the call entirely, invalidating
-            // the timing measurement.
-            uint64_t result_1 = eval.EvaluateFullDomainThenDotProduct(keys.second, outputs_1, database);
-            if ((result_0 ^ result_1) != database[alpha]) {
-                Logger::FatalLog(LOC, "Pir evaluation failed: result_0=" + ringoa::ToString(result_0) + ", result_1=" + ringoa::ToString(result_1) + ", expected=" + ringoa::ToString(database[alpha]));
-                std::exit(EXIT_FAILURE);
-            }
-        }
-        timer_mgr.PrintCurrentResults("n=" + ToString(size), ringoa::TimeUnit::MICROSECONDS, true);
-    }
-    Logger::InfoLog(LOC, "Pir Benchmark completed");
 }
 
 }    // namespace bench_ringoa

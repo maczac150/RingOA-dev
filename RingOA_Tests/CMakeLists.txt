@@ -21,6 +21,7 @@ set(TEST_SOURCES
     protocol/equality_test.cpp
     protocol/integer_comparison_test.cpp
     protocol/zt_test.cpp
+    protocol/dpf_pir_test.cpp
     protocol/obliv_access_test.cpp
     protocol/ddcf_test.cpp
     wm/wm_test.cpp

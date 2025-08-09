@@ -41,16 +41,16 @@ public:
      * @brief Parameterized constructor for SharedOtParameters.
      * @param d The input bitsize.
      */
-    explicit SharedOtParameters(const uint64_t d, const fss::OutputType mode = fss::OutputType::kShiftedAdditive)
-        : params_(d, d, fss::kOptimizedEvalType, mode) {
+    explicit SharedOtParameters(const uint64_t d, const fss::EvalType type = fss::kOptimizedEvalType)
+        : params_(d, d, type, fss::OutputType::kShiftedAdditive) {
     }
 
     /**
      * @brief Reconfigure the parameters for the Zero Test technique.
      * @param d The input bitsize.
      */
-    void ReconfigureParameters(const uint64_t d, const fss::OutputType mode = fss::OutputType::kShiftedAdditive) {
-        params_.ReconfigureParameters(d, d, fss::kOptimizedEvalType, mode);
+    void ReconfigureParameters(const uint64_t d, const fss::EvalType type = fss::kOptimizedEvalType) {
+        params_.ReconfigureParameters(d, d, type, fss::OutputType::kShiftedAdditive);
     }
 
     /**

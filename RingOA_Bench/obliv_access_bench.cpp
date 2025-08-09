@@ -25,6 +25,8 @@ std::vector<uint64_t> db_bitsizes = ringoa::CreateSequence(10, 31);
 
 constexpr uint64_t kIterDefault = 10;
 
+constexpr ringoa::fss::EvalType kEvalType = ringoa::fss::EvalType::kIterDepthFirst;
+
 }    // namespace
 
 namespace bench_ringoa {
@@ -64,7 +66,7 @@ void SharedOt_Offline_Bench(const osuCrypto::CLP &cmd) {
     uint64_t iter = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
 
     for (auto db_bitsize : db_bitsizes) {
-        SharedOtParameters params(db_bitsize);
+        SharedOtParameters params(db_bitsize, kEvalType);
         params.PrintParameters();
         uint64_t             d = params.GetParameters().GetInputBitsize();
         AdditiveSharing2P    ass(d);
@@ -125,7 +127,11 @@ void SharedOt_Offline_Bench(const osuCrypto::CLP &cmd) {
         // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "SharedOt_Offline_Bench - Finished");
-    Logger::ExportLogList("./data/logs/oa/sharedot_offline_bench");
+    if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
+        Logger::ExportLogList("./data/logs/oa/sharedot_offline_bench");
+    } else {
+        Logger::ExportLogList("./data/logs/oa/sharedot_naive_offline_bench");
+    }
 }
 
 void SharedOt_Online_Bench(const osuCrypto::CLP &cmd) {
@@ -139,7 +145,7 @@ void SharedOt_Online_Bench(const osuCrypto::CLP &cmd) {
         // Capture d, nu, params, and paths
         return [=](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
             for (auto db_bitsize : db_bitsizes) {
-                SharedOtParameters params(db_bitsize);
+                SharedOtParameters params(db_bitsize, kEvalType);
                 params.PrintParameters();
                 uint64_t d = params.GetParameters().GetInputBitsize();
 
@@ -218,7 +224,11 @@ void SharedOt_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "SharedOt_Online_Bench - Finished");
-    Logger::ExportLogList("./data/logs/oa/sharedot_online_p" + ToString(party_id) + "_" + network);
+    if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
+        Logger::ExportLogList("./data/logs/oa/sharedot_online_p" + ToString(party_id) + "_" + network);
+    } else {
+        Logger::ExportLogList("./data/logs/oa/sharedot_naive_online_p" + ToString(party_id) + "_" + network);
+    }
 }
 
 void RingOa_Offline_Bench(const osuCrypto::CLP &cmd) {

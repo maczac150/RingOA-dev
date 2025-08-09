@@ -64,10 +64,10 @@ public:
     }
 
     /**
-     * @brief Get the Full Domain Evaluation type.
-     * @return EvalType The evaluation type for full domain evaluation.
+     * @brief Get the Evaluation Type.
+     * @return EvalType The evaluation type for the DPF.
      */
-    EvalType GetFdeEvalType() const {
+    EvalType GetEvalType() const {
         return fde_type_;
     }
 
@@ -78,12 +78,6 @@ public:
     OutputType GetOutputType() const {
         return output_mode_;
     }
-
-    /**
-     * @brief Validate the parameters for the DPF.
-     * @return True if the parameters are valid, false otherwise.
-     */
-    bool ValidateParameters() const;
 
     /**
      * @brief Reconfigure the parameters for the DPF.
@@ -116,6 +110,9 @@ private:
     uint64_t   terminate_bitsize_; /**< The size of the termination bits. */
     EvalType   fde_type_;          /**< The evaluation type for full domain evaluation. */
     OutputType output_mode_;       /**< The output mode for the DPF. */
+
+    void Resolve_();
+    void ValidateOrThrow_() const;
 };
 
 /**
