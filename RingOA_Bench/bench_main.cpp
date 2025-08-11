@@ -17,7 +17,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_Bench", Dpf_Fde_Bench);
     t.add("Dpf_Fde_Convert_Bench", Dpf_Fde_Convert_Bench);
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
-    t.add("DpfPir_Bench", DpfPir_Bench);
+    t.add("DpfPir_Offline_Bench", DpfPir_Offline_Bench);
+    t.add("DpfPir_Online_Bench", DpfPir_Online_Bench);
     t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
     t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
     t.add("OblivSelect_Binary_Offline_Bench", OblivSelect_Binary_Offline_Bench);

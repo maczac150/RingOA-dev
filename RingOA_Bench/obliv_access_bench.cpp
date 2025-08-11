@@ -227,7 +227,7 @@ void SharedOt_Online_Bench(const osuCrypto::CLP &cmd) {
     if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
         Logger::ExportLogList("./data/logs/oa/sharedot_online_p" + ToString(party_id) + "_" + network);
     } else {
-        Logger::ExportLogList("./data/logs/oa/sharedot_naive_online_p" + ToString(party_id) + "_" + network);
+        Logger::ExportLogList("./data/logs/oa/sharedot_naive2_online_p" + ToString(party_id) + "_" + network);
     }
 }
 

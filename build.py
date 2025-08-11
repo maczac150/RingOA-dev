@@ -64,15 +64,16 @@ def Setup(install, prefix, par):
     print("Setup completed.")
 
     paths_to_create = [
-        "./test/utils",
-        "./test/ss",
-        "./test/ss3",
-        "./test/protocol",
-        "./test/wm",
-        "./test/fmi",
-        "./bench/fmi",
-        "./bench/os"
-        "./log"
+        "./data/test/utils",
+        "./data/test/ss",
+        "./data/test/ss3",
+        "./data/test/protocol",
+        "./data/test/wm",
+        "./data/test/fmi",
+        "./data/bench/fmi",
+        "./data/bench/os",
+        "./data/bench/pir",
+        "./data/log"
     ]
     current_file_path = os.path.dirname(os.path.abspath(__file__))
     paths_to_create = [current_file_path +

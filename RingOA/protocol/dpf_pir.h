@@ -44,16 +44,22 @@ public:
      * @brief Parameterized constructor for DpfPirParameters.
      * @param d The input bitsize.
      */
-    explicit DpfPirParameters(const uint64_t d, const fss::OutputType mode = fss::OutputType::kShiftedAdditive)
-        : params_(d, 1, fss::kOptimizedEvalType, mode) {
+    explicit DpfPirParameters(const uint64_t        d,
+                              const uint64_t        dpf_out = 1,
+                              const fss::EvalType   type = fss::kOptimizedEvalType,
+                              const fss::OutputType mode = fss::OutputType::kShiftedAdditive)
+        : params_(d, dpf_out, type, mode) {
     }
 
     /**
      * @brief Reconfigure the parameters for the Zero Test technique.
      * @param d The input bitsize.
      */
-    void ReconfigureParameters(const uint64_t d, const fss::OutputType mode = fss::OutputType::kShiftedAdditive) {
-        params_.ReconfigureParameters(d, 1, fss::kOptimizedEvalType, mode);
+    void ReconfigureParameters(const uint64_t        d,
+                               const uint64_t        dpf_out = 1,
+                               const fss::EvalType   type = fss::kOptimizedEvalType,
+                               const fss::OutputType mode = fss::OutputType::kShiftedAdditive) {
+        params_.ReconfigureParameters(d, dpf_out, type, mode);
     }
 
     /**
@@ -94,7 +100,8 @@ private:
  */
 struct DpfPirKey {
     fss::dpf::DpfKey dpf_key;
-    uint64_t         shr_in;
+    uint64_t         r_sh;
+    uint64_t         w_sh;
 
     /**
      * @brief Default constructor for DpfPirKey is deleted.
@@ -131,7 +138,7 @@ struct DpfPirKey {
      * @return True if the DpfPirKey is equal, false otherwise.
      */
     bool operator==(const DpfPirKey &rhs) const {
-        return (dpf_key == rhs.dpf_key) && (shr_in == rhs.shr_in);
+        return (dpf_key == rhs.dpf_key) && (r_sh == rhs.r_sh) && (w_sh == rhs.w_sh);
     }
 
     bool operator!=(const DpfPirKey &rhs) const {
@@ -193,6 +200,8 @@ public:
     DpfPirKeyGenerator(const DpfPirParameters     &params,
                        sharing::AdditiveSharing2P &ss);
 
+    void OfflineSetUp(const uint64_t num_access, const std::string &file_path) const;
+
     /**
      * @brief Generate keys for the DPF PIR.
      * @return std::pair<DpfPirKey, DpfPirKey> The array of DpfPirKey for the DPF PIR.
@@ -222,27 +231,30 @@ public:
      */
     DpfPirEvaluator(const DpfPirParameters &params, sharing::AdditiveSharing2P &ss);
 
-    uint64_t EvaluateSharedInput(osuCrypto::Channel          &chl,
-                                 const DpfPirKey             &key,
-                                 const std::vector<uint64_t> &database,
-                                 const uint64_t               index) const;
+    void OnlineSetUp(const uint64_t party_id, const std::string &file_path) const;
 
-    uint64_t EvaluateMaskedInput(const DpfPirKey             &key,
-                                 const std::vector<uint64_t> &database,
-                                 const uint64_t               index) const;
+    uint64_t Evaluate(osuCrypto::Channel          &chl,
+                      const DpfPirKey             &key,
+                      std::vector<block>          &uv,
+                      const std::vector<uint64_t> &database,
+                      const uint64_t               index) const;
 
-    block    ComputeDotProductBlockSIMD(const fss::dpf::DpfKey &key, std::vector<block> &database) const;
-    uint64_t EvaluateFullDomainThenDotProduct(const fss::dpf::DpfKey &key, const std::vector<uint64_t> &database, std::vector<block> &outputs) const;
+    uint64_t EvaluateNaive(osuCrypto::Channel          &chl,
+                           const DpfPirKey             &key,
+                           std::vector<uint64_t>       &uv,
+                           const std::vector<uint64_t> &database,
+                           const uint64_t               index) const;
+
+    uint64_t EvaluateFullDomainThenDotProduct(const fss::dpf::DpfKey      &key,
+                                              const std::vector<uint64_t> &database,
+                                              const uint64_t               masked_idx,
+                                              std::vector<block>          &outputs) const;
 
 private:
     DpfPirParameters                 params_; /**< DpfPirParameters for the DpfPirEvaluator. */
     fss::dpf::DpfEvaluator           eval_;   /**< DPF evaluator for the DpfPirEvaluator. */
     sharing::AdditiveSharing2P      &ss_;     /**< Sharing scheme for the DpfPirEvaluator. */
     fss::prg::PseudoRandomGenerator &G_;      /**< Pseudo random generator for the DpfPirEvaluator. */
-
-    void EvaluateNextSeed(const uint64_t current_level, const block &current_seed, const bool &current_control_bit,
-                          std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
-                          const fss::dpf::DpfKey &key) const;
 };
 
 }    // namespace proto

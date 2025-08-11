@@ -485,7 +485,7 @@ void AdditiveSharing2P::LoadTriplesShareFromFile(const uint64_t party_id, const 
     triples_ = std::move(triples);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Beaver triples loaded successfully from " + file_path + io.GetExtension());
+    Logger::DebugLog(LOC, "Beaver triples loaded successfully from " + file_path + "_" + ToString(party_id) + io.GetExtension());
 #endif
 }
 

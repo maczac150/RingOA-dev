@@ -69,6 +69,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Equality_Online_Test", Equality_Online_Test);
     t.add("IntegerComparison_Offline_Test", IntegerComparison_Offline_Test);
     t.add("IntegerComparison_Online_Test", IntegerComparison_Online_Test);
+    t.add("DpfPir_Naive_Offline_Test", DpfPir_Naive_Offline_Test);
+    t.add("DpfPir_Naive_Online_Test", DpfPir_Naive_Online_Test);
     t.add("DpfPir_Offline_Test", DpfPir_Offline_Test);
     t.add("DpfPir_Online_Test", DpfPir_Online_Test);
     t.add("OblivSelect_Offline_Test", OblivSelect_Offline_Test);
