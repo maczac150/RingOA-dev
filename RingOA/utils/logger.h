@@ -143,7 +143,7 @@ public:
      */
     static void ClearLogList();
 
-    static void ExportLogList(const std::string &file_path, const bool append = false);
+    static void ExportLogList(const std::string &file_path, const bool use_timestamp = true);
 
 private:
     static LogFormat                log_format_; /**< A struct to store log information. */

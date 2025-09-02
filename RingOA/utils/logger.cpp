@@ -165,14 +165,19 @@ void Logger::ClearLogList() {
     log_list_.clear();
 }
 
-void Logger::ExportLogList(const std::string &file_path, const bool append) {
+void Logger::ExportLogList(const std::string &file_path, const bool use_timestamp) {
     std::lock_guard<std::mutex> lock(log_mutex_);
     if (log_list_.empty()) {
         return;    // No logs to export
     }
 
+    std::string out_path = file_path;
+    if (use_timestamp) {
+        out_path = file_path + "_" + GetCurrentDateTimeAsString();
+    }
+
     FileIo io(".log");
-    io.WriteTextToFile(file_path, log_list_, append);
+    io.WriteTextToFile(out_path, log_list_);
 }
 
 void Logger::SetLogFormat(const std::string &log_level, const std::string &func_name, const std::string &message) {

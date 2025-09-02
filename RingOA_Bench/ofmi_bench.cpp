@@ -126,20 +126,20 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             std::string query    = GenerateRandomString(qs);
             timer_mgr.Mark("DataGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // // Generate the database and index
-            // FMIndex fm(database);
-            // timer_mgr.Mark("FMIndex d=" + ToString(d) + " qs=" + ToString(qs));
+            // Generate the database and index
+            FMIndex fm(database);
+            timer_mgr.Mark("FMIndex d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // std::array<RepShareMat64, 3> db_sh    = gen.GenerateDatabaseU64Share(fm);
-            // std::array<RepShareMat64, 3> query_sh = gen.GenerateQueryU64Share(fm, query);
-            // timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
+            std::array<RepShareMat64, 3> db_sh    = gen.GenerateDatabaseU64Share(fm);
+            std::array<RepShareMat64, 3> query_sh = gen.GenerateQueryU64Share(fm, query);
+            timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
-            //     sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
-            //     sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
-            // }
-            // timer_mgr.Mark("ShareSave d=" + ToString(d) + " qs=" + ToString(qs));
-            // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
+            for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
+                sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
+                sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
+            }
+            timer_mgr.Mark("ShareSave d=" + ToString(d) + " qs=" + ToString(qs));
+            timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "SotFMI_Offline_Bench - Finished");
@@ -282,20 +282,20 @@ void OFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             std::string query    = GenerateRandomString(qs);
             timer_mgr.Mark("DataGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // // Generate the database and index
-            // FMIndex fm(database);
-            // timer_mgr.Mark("FMIndex d=" + ToString(d) + " qs=" + ToString(qs));
+            // Generate the database and index
+            FMIndex fm(database);
+            timer_mgr.Mark("FMIndex d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // std::array<RepShareMat64, 3> db_sh    = gen.GenerateDatabaseU64Share(fm);
-            // std::array<RepShareMat64, 3> query_sh = gen.GenerateQueryU64Share(fm, query);
-            // timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
+            std::array<RepShareMat64, 3> db_sh    = gen.GenerateDatabaseU64Share(fm);
+            std::array<RepShareMat64, 3> query_sh = gen.GenerateQueryU64Share(fm, query);
+            timer_mgr.Mark("ShareGen d=" + ToString(d) + " qs=" + ToString(qs));
 
-            // for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
-            //     sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
-            //     sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
-            // }
-            // timer_mgr.Mark("ShareSave d=" + ToString(d) + " qs=" + ToString(qs));
-            // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
+            for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
+                sh_io.SaveShare(db_path + "_" + ToString(p), db_sh[p]);
+                sh_io.SaveShare(query_path + "_" + ToString(p), query_sh[p]);
+            }
+            timer_mgr.Mark("ShareSave d=" + ToString(d) + " qs=" + ToString(qs));
+            timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
         }
     }
     Logger::InfoLog(LOC, "OFMI_Offline_Bench - Finished");

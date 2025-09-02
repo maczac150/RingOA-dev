@@ -103,28 +103,28 @@ void SharedOt_Offline_Bench(const osuCrypto::CLP &cmd) {
         timer_mgr.Stop("OfflineSetUp(0) d=" + ToString(d));
         timer_mgr.PrintAllResults("Gen d=" + ToString(d), ringoa::MICROSECONDS, true);
 
-        // // Generate the database and index
-        // int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
-        // timer_mgr.SelectTimer(timer_data);
-        // timer_mgr.Start();
-        // std::vector<uint64_t> database(1U << d);
-        // for (size_t i = 0; i < database.size(); ++i) {
-        //     database[i] = i;
-        // }
-        // uint64_t index = ass.GenerateRandomValue();
-        // timer_mgr.Mark("DataGen d=" + ToString(d));
+        // Generate the database and index
+        int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
+        timer_mgr.SelectTimer(timer_data);
+        timer_mgr.Start();
+        std::vector<uint64_t> database(1U << d);
+        for (size_t i = 0; i < database.size(); ++i) {
+            database[i] = i;
+        }
+        uint64_t index = ass.GenerateRandomValue();
+        timer_mgr.Mark("DataGen d=" + ToString(d));
 
-        // std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
-        // std::array<RepShare64, 3>    index_sh    = rss.ShareLocal(index);
-        // timer_mgr.Mark("ShareGen d=" + ToString(d));
+        std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
+        std::array<RepShare64, 3>    index_sh    = rss.ShareLocal(index);
+        timer_mgr.Mark("ShareGen d=" + ToString(d));
 
-        // // Save data
-        // for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
-        //     sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
-        //     sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
-        // }
-        // timer_mgr.Mark("ShareSave d=" + ToString(d));
-        // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
+        // Save data
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
+            sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
+            sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
+        }
+        timer_mgr.Mark("ShareSave d=" + ToString(d));
+        timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "SharedOt_Offline_Bench - Finished");
     if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
@@ -274,28 +274,28 @@ void RingOa_Offline_Bench(const osuCrypto::CLP &cmd) {
         timer_mgr.Stop("OfflineSetUp(0) d=" + ToString(d));
         timer_mgr.PrintAllResults("Gen d=" + ToString(d), ringoa::MICROSECONDS, true);
 
-        // // Generate the database and index
-        // int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
-        // timer_mgr.SelectTimer(timer_data);
-        // timer_mgr.Start();
-        // std::vector<uint64_t> database(1U << d);
-        // for (size_t i = 0; i < database.size(); ++i) {
-        //     database[i] = i;
-        // }
-        // uint64_t index = ass.GenerateRandomValue();
-        // timer_mgr.Mark("DataGen d=" + ToString(d));
+        // Generate the database and index
+        int32_t timer_data = timer_mgr.CreateNewTimer("OS DataGen");
+        timer_mgr.SelectTimer(timer_data);
+        timer_mgr.Start();
+        std::vector<uint64_t> database(1U << d);
+        for (size_t i = 0; i < database.size(); ++i) {
+            database[i] = i;
+        }
+        uint64_t index = ass.GenerateRandomValue();
+        timer_mgr.Mark("DataGen d=" + ToString(d));
 
-        // std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
-        // std::array<RepShare64, 3>    index_sh    = rss.ShareLocal(index);
-        // timer_mgr.Mark("ShareGen d=" + ToString(d));
+        std::array<RepShareVec64, 3> database_sh = rss.ShareLocal(database);
+        std::array<RepShare64, 3>    index_sh    = rss.ShareLocal(index);
+        timer_mgr.Mark("ShareGen d=" + ToString(d));
 
-        // // Save data
-        // for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
-        //     sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
-        //     sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
-        // }
-        // timer_mgr.Mark("ShareSave d=" + ToString(d));
-        // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
+        // Save data
+        for (size_t p = 0; p < ringoa::sharing::kThreeParties; ++p) {
+            sh_io.SaveShare(db_path + "_" + ToString(p), database_sh[p]);
+            sh_io.SaveShare(idx_path + "_" + ToString(p), index_sh[p]);
+        }
+        timer_mgr.Mark("ShareSave d=" + ToString(d));
+        timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d), ringoa::MILLISECONDS, true);
     }
     Logger::InfoLog(LOC, "RingOa_Offline_Bench - Finished");
     Logger::ExportLogList("./data/logs/oa/ringoa_offline_bench");

@@ -65,7 +65,7 @@ void Dpf_Fde_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    Logger::ExportLogList("./data/logs/dpf_bench");
+    Logger::ExportLogList("./data/logs/dpf_fde_bench");
 }
 
 void Dpf_Fde_Convert_Bench() {
@@ -106,7 +106,7 @@ void Dpf_Fde_Convert_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    // Logger::ExportLogList("./data/logs/dpf_bench");
+    Logger::ExportLogList("./data/logs/dpf_fde_conv_bench");
 }
 
 void Dpf_Fde_One_Bench() {
@@ -146,6 +146,7 @@ void Dpf_Fde_One_Bench() {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
+    Logger::ExportLogList("./data/logs/dpf_fde_one_bench");
 }
 
 }    // namespace bench_ringoa
