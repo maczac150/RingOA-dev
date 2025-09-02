@@ -1,4 +1,4 @@
-#include "secure_fmi.h"
+#include "ofmi.h"
 
 #include <cstring>
 
@@ -14,11 +14,11 @@
 namespace ringoa {
 namespace fm_index {
 
-void SecureFMIParameters::PrintParameters() const {
-    Logger::DebugLog(LOC, "[SecureFMI Parameters]" + GetParametersInfo());
+void OFMIParameters::PrintParameters() const {
+    Logger::DebugLog(LOC, "[OFMI Parameters]" + GetParametersInfo());
 }
 
-SecureFMIKey::SecureFMIKey(const uint64_t id, const SecureFMIParameters &params)
+OFMIKey::OFMIKey(const uint64_t id, const OFMIParameters &params)
     : num_wm_keys(params.GetQuerySize()),
       num_zt_keys(params.GetQuerySize()),
       params_(params) {
@@ -26,17 +26,17 @@ SecureFMIKey::SecureFMIKey(const uint64_t id, const SecureFMIParameters &params)
     wm_g_keys.reserve(num_wm_keys);
     zt_keys.reserve(num_zt_keys);
     for (uint64_t i = 0; i < num_wm_keys; ++i) {
-        wm_f_keys.emplace_back(wm::SecureWMKey(id, params.GetSecureWMParameters()));
-        wm_g_keys.emplace_back(wm::SecureWMKey(id, params.GetSecureWMParameters()));
+        wm_f_keys.emplace_back(wm::OWMKey(id, params.GetOWMParameters()));
+        wm_g_keys.emplace_back(wm::OWMKey(id, params.GetOWMParameters()));
     }
     for (uint64_t i = 0; i < num_zt_keys; ++i) {
         zt_keys.emplace_back(proto::ZeroTestKey(id, params.GetZeroTestParameters()));
     }
 }
 
-void SecureFMIKey::Serialize(std::vector<uint8_t> &buffer) const {
+void OFMIKey::Serialize(std::vector<uint8_t> &buffer) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Serializing SecureFMIKey");
+    Logger::DebugLog(LOC, "Serializing OFMIKey");
 #endif
 
     // Serialize the number of WM keys
@@ -66,9 +66,9 @@ void SecureFMIKey::Serialize(std::vector<uint8_t> &buffer) const {
     }
 }
 
-void SecureFMIKey::Deserialize(const std::vector<uint8_t> &buffer) {
+void OFMIKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Deserializing SecureFMIKey");
+    Logger::DebugLog(LOC, "Deserializing OFMIKey");
 #endif
     size_t offset = 0;
 
@@ -101,8 +101,8 @@ void SecureFMIKey::Deserialize(const std::vector<uint8_t> &buffer) {
     }
 }
 
-void SecureFMIKey::PrintKey(const bool detailed) const {
-    Logger::DebugLog(LOC, Logger::StrWithSep("SecureFMI Key"));
+void OFMIKey::PrintKey(const bool detailed) const {
+    Logger::DebugLog(LOC, Logger::StrWithSep("OFMI Key"));
     for (const auto &wm_key : wm_f_keys) {
         wm_key.PrintKey(detailed);
     }
@@ -114,25 +114,25 @@ void SecureFMIKey::PrintKey(const bool detailed) const {
     }
 }
 
-SecureFMIKeyGenerator::SecureFMIKeyGenerator(
-    const SecureFMIParameters    &params,
+OFMIKeyGenerator::OFMIKeyGenerator(
+    const OFMIParameters         &params,
     sharing::AdditiveSharing2P   &ass,
     sharing::ReplicatedSharing3P &rss)
     : params_(params),
-      wm_gen_(params.GetSecureWMParameters(), ass, rss),
+      wm_gen_(params.GetOWMParameters(), ass, rss),
       zt_gen_(params.GetZeroTestParameters(), ass, ass),
       rss_(rss) {
 }
 
-void SecureFMIKeyGenerator::OfflineSetUp(const std::string &file_path) {
+void OFMIKeyGenerator::OfflineSetUp(const std::string &file_path) {
     wm_gen_.GetRingOaKeyGenerator().OfflineSetUp(params_.GetSigma() * params_.GetQuerySize() * 2, file_path);
 }
 
-std::array<sharing::RepShareMat64, 3> SecureFMIKeyGenerator::GenerateDatabaseU64Share(const wm::FMIndex &fm) const {
+std::array<sharing::RepShareMat64, 3> OFMIKeyGenerator::GenerateDatabaseU64Share(const wm::FMIndex &fm) const {
     return wm_gen_.GenerateDatabaseU64Share(fm);
 }
 
-std::array<sharing::RepShareMat64, 3> SecureFMIKeyGenerator::GenerateQueryU64Share(const wm::FMIndex &fm, std::string &query) const {
+std::array<sharing::RepShareMat64, 3> OFMIKeyGenerator::GenerateQueryU64Share(const wm::FMIndex &fm, std::string &query) const {
     std::vector<uint64_t> query_bv = fm.ConvertToBitMatrix(query);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Query bitvec: " + ToStringMatrix(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma()));
@@ -140,23 +140,23 @@ std::array<sharing::RepShareMat64, 3> SecureFMIKeyGenerator::GenerateQueryU64Sha
     return rss_.ShareLocal(query_bv, params_.GetQuerySize(), fm.GetWaveletMatrix().GetSigma());
 }
 
-std::array<SecureFMIKey, 3> SecureFMIKeyGenerator::GenerateKeys() const {
+std::array<OFMIKey, 3> OFMIKeyGenerator::GenerateKeys() const {
     // Initialize keys
-    std::array<SecureFMIKey, 3> keys = {
-        SecureFMIKey(0, params_),
-        SecureFMIKey(1, params_),
-        SecureFMIKey(2, params_)};
+    std::array<OFMIKey, 3> keys = {
+        OFMIKey(0, params_),
+        OFMIKey(1, params_),
+        OFMIKey(2, params_)};
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate SecureWM keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate OWM keys"));
 #endif
 
     for (uint64_t i = 0; i < keys[0].num_wm_keys; ++i) {
-        // Generate the SecureWMKey keys
-        std::array<wm::SecureWMKey, 3> wm_f_key = wm_gen_.GenerateKeys();
-        std::array<wm::SecureWMKey, 3> wm_g_key = wm_gen_.GenerateKeys();
+        // Generate the OWMKey keys
+        std::array<wm::OWMKey, 3> wm_f_key = wm_gen_.GenerateKeys();
+        std::array<wm::OWMKey, 3> wm_g_key = wm_gen_.GenerateKeys();
 
-        // Set the SecureWMKey keys
+        // Set the OWMKey keys
         keys[0].wm_f_keys[i] = std::move(wm_f_key[0]);
         keys[1].wm_f_keys[i] = std::move(wm_f_key[1]);
         keys[2].wm_f_keys[i] = std::move(wm_f_key[2]);
@@ -175,7 +175,7 @@ std::array<SecureFMIKey, 3> SecureFMIKeyGenerator::GenerateKeys() const {
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "SecureWM keys generated");
+    Logger::DebugLog(LOC, "OWM keys generated");
     keys[0].PrintKey();
     keys[1].PrintKey();
     keys[2].PrintKey();
@@ -185,27 +185,27 @@ std::array<SecureFMIKey, 3> SecureFMIKeyGenerator::GenerateKeys() const {
     return keys;
 }
 
-SecureFMIEvaluator::SecureFMIEvaluator(const SecureFMIParameters    &params,
-                                       sharing::ReplicatedSharing3P &rss,
-                                       sharing::AdditiveSharing2P   &ass_prev,
-                                       sharing::AdditiveSharing2P   &ass_next)
+OFMIEvaluator::OFMIEvaluator(const OFMIParameters         &params,
+                             sharing::ReplicatedSharing3P &rss,
+                             sharing::AdditiveSharing2P   &ass_prev,
+                             sharing::AdditiveSharing2P   &ass_next)
     : params_(params),
-      wm_eval_(params.GetSecureWMParameters(), rss, ass_prev, ass_next),
+      wm_eval_(params.GetOWMParameters(), rss, ass_prev, ass_next),
       zt_eval_(params.GetZeroTestParameters(), ass_prev, ass_next),
       rss_(rss), ass_prev_(ass_prev), ass_next_(ass_next) {
 }
 
-void SecureFMIEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) {
+void OFMIEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) {
     wm_eval_.GetRingOaEvaluator().OnlineSetUp(party_id, file_path);
 }
 
-void SecureFMIEvaluator::EvaluateLPM(Channels                     &chls,
-                                     const SecureFMIKey           &key,
-                                     std::vector<block>           &uv_prev,
-                                     std::vector<block>           &uv_next,
-                                     const sharing::RepShareMat64 &wm_tables,
-                                     const sharing::RepShareMat64 &query,
-                                     sharing::RepShareVec64       &result) const {
+void OFMIEvaluator::EvaluateLPM(Channels                     &chls,
+                                const OFMIKey                &key,
+                                std::vector<block>           &uv_prev,
+                                std::vector<block>           &uv_next,
+                                const sharing::RepShareMat64 &wm_tables,
+                                const sharing::RepShareMat64 &query,
+                                sharing::RepShareVec64       &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
@@ -214,7 +214,7 @@ void SecureFMIEvaluator::EvaluateLPM(Channels                     &chls,
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SecureFMI key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OFMI key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Query size: " + ToString(qs));
@@ -313,13 +313,13 @@ void SecureFMIEvaluator::EvaluateLPM(Channels                     &chls,
     chls.prev.recv(result[1]);
 }
 
-void SecureFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
-                                              const SecureFMIKey           &key,
-                                              std::vector<block>           &uv_prev,
-                                              std::vector<block>           &uv_next,
-                                              const sharing::RepShareMat64 &wm_tables,
-                                              const sharing::RepShareMat64 &query,
-                                              sharing::RepShareVec64       &result) const {
+void OFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
+                                         const OFMIKey                &key,
+                                         std::vector<block>           &uv_prev,
+                                         std::vector<block>           &uv_next,
+                                         const sharing::RepShareMat64 &wm_tables,
+                                         const sharing::RepShareMat64 &query,
+                                         sharing::RepShareVec64       &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
@@ -328,7 +328,7 @@ void SecureFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SecureFMI key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OFMI key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Query size: " + ToString(qs));

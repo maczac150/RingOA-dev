@@ -5,7 +5,7 @@
 
 #include "RingOA/utils/logger.h"
 #include "RingOA/utils/rng.h"
-#include "RingOA_Tests/fm_index/secure_fmi_test.h"
+#include "RingOA_Tests/fm_index/ofmi_test.h"
 #include "RingOA_Tests/fss/dcf_test.h"
 #include "RingOA_Tests/fss/dpf_test.h"
 #include "RingOA_Tests/fss/prg_test.h"
@@ -23,7 +23,7 @@
 #include "RingOA_Tests/utils/network_test.h"
 #include "RingOA_Tests/utils/timer_test.h"
 #include "RingOA_Tests/utils/utils_test.h"
-#include "RingOA_Tests/wm/secure_wm_test.h"
+#include "RingOA_Tests/wm/owm_test.h"
 #include "RingOA_Tests/wm/wm_test.h"
 
 namespace test_ringoa {
@@ -82,12 +82,12 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("RingOa_Online_Test", RingOa_Online_Test);
     t.add("WaveletMatrix_Test", WaveletMatrix_Test);
     t.add("FMIndex_Test", FMIndex_Test);
-    t.add("SecureWM_Offline_Test", SecureWM_Offline_Test);
-    t.add("SecureWM_Online_Test", SecureWM_Online_Test);
+    t.add("OWM_Offline_Test", OWM_Offline_Test);
+    t.add("OWM_Online_Test", OWM_Online_Test);
     t.add("SotFMI_Offline_Test", SotFMI_Offline_Test);
     t.add("SotFMI_Online_Test", SotFMI_Online_Test);
-    t.add("SecureFMI_Offline_Test", SecureFMI_Offline_Test);
-    t.add("SecureFMI_Online_Test", SecureFMI_Online_Test);
+    t.add("OFMI_Offline_Test", OFMI_Offline_Test);
+    t.add("OFMI_Online_Test", OFMI_Online_Test);
 });
 
 }    // namespace test_ringoa

@@ -9,7 +9,7 @@
 #include "RingOA_Bench/dpf_pir_bench.h"
 #include "RingOA_Bench/obliv_access_bench.h"
 #include "RingOA_Bench/obliv_select_bench.h"
-#include "RingOA_Bench/secure_fmi_bench.h"
+#include "RingOA_Bench/ofmi_bench.h"
 
 namespace bench_ringoa {
 
@@ -31,8 +31,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("RingOa_Online_Bench", RingOa_Online_Bench);
     t.add("SotFMI_Offline_Bench", SotFMI_Offline_Bench);
     t.add("SotFMI_Online_Bench", SotFMI_Online_Bench);
-    t.add("SecureFMI_Offline_Bench", SecureFMI_Offline_Bench);
-    t.add("SecureFMI_Online_Bench", SecureFMI_Online_Bench);
+    t.add("OFMI_Offline_Bench", OFMI_Offline_Bench);
+    t.add("OFMI_Online_Bench", OFMI_Online_Bench);
 });
 
 }    // namespace bench_ringoa

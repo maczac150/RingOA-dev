@@ -1,5 +1,5 @@
-#ifndef WM_SECURE_WM_H_
-#define WM_SECURE_WM_H_
+#ifndef WM_OWM_H_
+#define WM_OWM_H_
 
 #include "RingOA/protocol/ringoa.h"
 
@@ -17,23 +17,23 @@ namespace wm {
 class FMIndex;
 
 /**
- * @brief A class to hold parameters for the SecureWM.
+ * @brief A class to hold parameters for the OWM.
  */
-class SecureWMParameters {
+class OWMParameters {
 public:
     /**
-     * @brief Default constructor for SecureWMParameters is deleted.
+     * @brief Default constructor for OWMParameters is deleted.
      */
-    SecureWMParameters() = delete;
+    OWMParameters() = delete;
 
     /**
-     * @brief Parameterized constructor for SecureWMParameters.
-     * @param database_bitsize The database size for the SecureWMParameters.
-     * @param sigma The alphabet size for the SecureWMParameters.
-     * @param mode The output type for the SecureWMParameters.
+     * @brief Parameterized constructor for OWMParameters.
+     * @param database_bitsize The database size for the OWMParameters.
+     * @param sigma The alphabet size for the OWMParameters.
+     * @param mode The output type for the OWMParameters.
      */
-    SecureWMParameters(const uint64_t database_bitsize,
-                       const uint64_t sigma = 3)
+    OWMParameters(const uint64_t database_bitsize,
+                  const uint64_t sigma = 3)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
           sigma_(sigma),
@@ -41,10 +41,10 @@ public:
     }
 
     /**
-     * @brief Reconfigure the parameters for the SecureWMParameters.
-     * @param database_bitsize The database size for the SecureWMParameters.
-     * @param query_size The query size for the SecureWMParameters.
-     * @param sigma The alphabet size for the SecureWMParameters.
+     * @brief Reconfigure the parameters for the OWMParameters.
+     * @param database_bitsize The database size for the OWMParameters.
+     * @param query_size The query size for the OWMParameters.
+     * @param sigma The alphabet size for the OWMParameters.
      */
     void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3) {
         database_bitsize_ = database_bitsize;
@@ -54,40 +54,40 @@ public:
     }
 
     /**
-     * @brief Get the database bit size for the SecureWMParameters.
-     * @return uint64_t The database size for the SecureWMParameters.
+     * @brief Get the database bit size for the OWMParameters.
+     * @return uint64_t The database size for the OWMParameters.
      */
     uint64_t GetDatabaseBitSize() const {
         return database_bitsize_;
     }
 
     /**
-     * @brief Get the database size for the SecureWMParameters.
-     * @return uint64_t The database size for the SecureWMParameters.
+     * @brief Get the database size for the OWMParameters.
+     * @return uint64_t The database size for the OWMParameters.
      */
     uint64_t GetDatabaseSize() const {
         return database_size_;
     }
 
     /**
-     * @brief Get the alphabet size for the SecureWMParameters.
-     * @return uint64_t The alphabet size for the SecureWMParameters.
+     * @brief Get the alphabet size for the OWMParameters.
+     * @return uint64_t The alphabet size for the OWMParameters.
      */
     uint64_t GetSigma() const {
         return sigma_;
     }
 
     /**
-     * @brief Get the RingOaParameters for the SecureWMParameters.
-     * @return const RingOaParameters& The RingOaParameters for the SecureWMParameters.
+     * @brief Get the RingOaParameters for the OWMParameters.
+     * @return const RingOaParameters& The RingOaParameters for the OWMParameters.
      */
     const proto::RingOaParameters GetOaParameters() const {
         return oa_params_;
     }
 
     /**
-     * @brief Get the parameters info for the SecureWMParameters.
-     * @return std::string The parameters info for the SecureWMParameters.
+     * @brief Get the parameters info for the OWMParameters.
+     * @return std::string The parameters info for the OWMParameters.
      */
     std::string GetParametersInfo() const {
         std::ostringstream oss;
@@ -96,121 +96,121 @@ public:
     }
 
     /**
-     * @brief Print the details of the SecureWMParameters.
+     * @brief Print the details of the OWMParameters.
      */
     void PrintParameters() const;
 
 private:
-    uint64_t                database_bitsize_; /**< The database bit size for the SecureWMParameters. */
-    uint64_t                database_size_;    /**< The database size for the SecureWMParameters. */
-    uint64_t                sigma_;            /**< The alphabet size for the SecureWMParameters. */
-    proto::RingOaParameters oa_params_;        /**< The RingOaParameters for the SecureWMParameters. */
+    uint64_t                database_bitsize_; /**< The database bit size for the OWMParameters. */
+    uint64_t                database_size_;    /**< The database size for the OWMParameters. */
+    uint64_t                sigma_;            /**< The alphabet size for the OWMParameters. */
+    proto::RingOaParameters oa_params_;        /**< The RingOaParameters for the OWMParameters. */
 };
 
 /**
- * @brief A struct to hold the SecureWM key.
+ * @brief A struct to hold the OWM key.
  */
-struct SecureWMKey {
+struct OWMKey {
     uint64_t                      num_oa_keys;
     std::vector<proto::RingOaKey> oa_keys;
 
     /**
-     * @brief Default constructor for SecureWMKey is deleted.
+     * @brief Default constructor for OWMKey is deleted.
      */
-    SecureWMKey() = delete;
+    OWMKey() = delete;
 
     /**
-     * @brief Parameterized constructor for SecureWMKey.
-     * @param id The ID for the SecureWMKey.
-     * @param params The SecureWMParameters for the SecureWMKey.
+     * @brief Parameterized constructor for OWMKey.
+     * @param id The ID for the OWMKey.
+     * @param params The OWMParameters for the OWMKey.
      */
-    SecureWMKey(const uint64_t id, const SecureWMParameters &params);
+    OWMKey(const uint64_t id, const OWMParameters &params);
 
     /**
-     * @brief Default destructor for SecureWMKey.
+     * @brief Default destructor for OWMKey.
      */
-    ~SecureWMKey() = default;
+    ~OWMKey() = default;
 
     /**
-     * @brief Copy constructor is deleted to prevent copying of SecureWMKey.
+     * @brief Copy constructor is deleted to prevent copying of OWMKey.
      */
-    SecureWMKey(const SecureWMKey &)            = delete;
-    SecureWMKey &operator=(const SecureWMKey &) = delete;
+    OWMKey(const OWMKey &)            = delete;
+    OWMKey &operator=(const OWMKey &) = delete;
 
     /**
-     * @brief Move constructor for SecureWMKey.
+     * @brief Move constructor for OWMKey.
      */
-    SecureWMKey(SecureWMKey &&) noexcept            = default;
-    SecureWMKey &operator=(SecureWMKey &&) noexcept = default;
+    OWMKey(OWMKey &&) noexcept            = default;
+    OWMKey &operator=(OWMKey &&) noexcept = default;
 
     /**
-     * @brief Compare two SecureWMKey for equality.
-     * @param rhs The SecureWMKey to compare with.
-     * @return bool True if the SecureWMKey are equal, false otherwise.
+     * @brief Compare two OWMKey for equality.
+     * @param rhs The OWMKey to compare with.
+     * @return bool True if the OWMKey are equal, false otherwise.
      */
-    bool operator==(const SecureWMKey &rhs) const {
+    bool operator==(const OWMKey &rhs) const {
         return (num_oa_keys == rhs.num_oa_keys) && (oa_keys == rhs.oa_keys);
     }
 
-    bool operator!=(const SecureWMKey &rhs) const {
+    bool operator!=(const OWMKey &rhs) const {
         return !(*this == rhs);
     }
 
     /**
-     * @brief Get the size of the serialized SecureWMKey.
-     * @return size_t The size of the serialized SecureWMKey.
+     * @brief Get the size of the serialized OWMKey.
+     * @return size_t The size of the serialized OWMKey.
      */
     size_t GetSerializedSize() const {
         return serialized_size_;
     }
 
     /**
-     * @brief Calculate the size of the serialized SecureWMKey.
-     * @return size_t The size of the serialized SecureWMKey.
+     * @brief Calculate the size of the serialized OWMKey.
+     * @return size_t The size of the serialized OWMKey.
      */
     size_t CalculateSerializedSize() const;
 
     /**
-     * @brief Calculate the size of the serialized SecureWMKey.
-     * @return size_t The size of the serialized SecureWMKey.
+     * @brief Calculate the size of the serialized OWMKey.
+     * @return size_t The size of the serialized OWMKey.
      */
     void Serialize(std::vector<uint8_t> &buffer) const;
 
     /**
-     * @brief Serialize the SecureWMKey.
-     * @param buffer The buffer to store the serialized SecureWMKey.
+     * @brief Serialize the OWMKey.
+     * @param buffer The buffer to store the serialized OWMKey.
      */
     void Deserialize(const std::vector<uint8_t> &buffer);
 
     /**
-     * @brief Print the key for the SecureWMKey.
+     * @brief Print the key for the OWMKey.
      * @param detailed Flag to print detailed information.
      */
     void PrintKey(const bool detailed = false) const;
 
 private:
-    SecureWMParameters params_;          /**< The SecureWMParameters for the SecureWMKey. */
-    size_t             serialized_size_; /**< The size of the serialized SecureWMKey. */
+    OWMParameters params_;          /**< The OWMParameters for the OWMKey. */
+    size_t        serialized_size_; /**< The size of the serialized OWMKey. */
 };
 
 /**
- * @brief A class to generate keys for the SecureWM.
+ * @brief A class to generate keys for the OWM.
  */
-class SecureWMKeyGenerator {
+class OWMKeyGenerator {
 public:
     /**
-     * @brief Default constructor for SecureWMKeyGenerator is deleted.
+     * @brief Default constructor for OWMKeyGenerator is deleted.
      */
-    SecureWMKeyGenerator() = delete;
+    OWMKeyGenerator() = delete;
 
     /**
-     * @brief Parameterized constructor for SecureWMKeyGenerator.
-     * @param params SecureWMParameters for the SecureWMKeyGenerator.
+     * @brief Parameterized constructor for OWMKeyGenerator.
+     * @param params OWMParameters for the OWMKeyGenerator.
      * @param ass Additive sharing for 2-party for the RingOaKeyGenerator.
      * @param rss Replicated sharing for 3-party for the sharing.
      */
-    SecureWMKeyGenerator(
-        const SecureWMParameters     &params,
+    OWMKeyGenerator(
+        const OWMParameters          &params,
         sharing::AdditiveSharing2P   &ass,
         sharing::ReplicatedSharing3P &rss);
 
@@ -226,45 +226,45 @@ public:
     std::array<sharing::RepShareMat64, 3> GenerateDatabaseU64Share(const FMIndex &fm) const;
 
     /**
-     * @brief Generate keys for the SecureWM.
-     * @return std::array<SecureWMKey, 3> Array of generated SecureWMKeys.
+     * @brief Generate keys for the OWM.
+     * @return std::array<OWMKey, 3> Array of generated OWMKeys.
      */
-    std::array<SecureWMKey, 3> GenerateKeys() const;
+    std::array<OWMKey, 3> GenerateKeys() const;
 
 private:
-    SecureWMParameters            params_; /**< SecureWMParameters for the SecureWMKeyGenerator. */
-    proto::RingOaKeyGenerator     oa_gen_; /**< RingOaKeyGenerator for the SecureWMKeyGenerator. */
-    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the SecureWMKeyGenerator. */
+    OWMParameters                 params_; /**< OWMParameters for the OWMKeyGenerator. */
+    proto::RingOaKeyGenerator     oa_gen_; /**< RingOaKeyGenerator for the OWMKeyGenerator. */
+    sharing::ReplicatedSharing3P &rss_;    /**< Replicated sharing for 3-party for the OWMKeyGenerator. */
 };
 
 /**
- * @brief A class to evaluate keys for the SecureWM.
+ * @brief A class to evaluate keys for the OWM.
  */
-class SecureWMEvaluator {
+class OWMEvaluator {
 public:
     /**
-     * @brief Default constructor for SecureWMEvaluator is deleted.
+     * @brief Default constructor for OWMEvaluator is deleted.
      */
-    SecureWMEvaluator() = delete;
+    OWMEvaluator() = delete;
 
     /**
-     * @brief Parameterized constructor for SecureWMEvaluator.
-     * @param params SecureWMParameters for the SecureWMEvaluator.
+     * @brief Parameterized constructor for OWMEvaluator.
+     * @param params OWMParameters for the OWMEvaluator.
      * @param rss Replicated sharing for 3-party for the RingOaEvaluator.
      * @param ass_prev Additive sharing for 2-party (previous) for the RingOaEvaluator.
      * @param ass_next Additive sharing for 2-party (next) for the RingOaEvaluator.
      */
-    SecureWMEvaluator(const SecureWMParameters     &params,
-                      sharing::ReplicatedSharing3P &rss,
-                      sharing::AdditiveSharing2P   &ass_prev,
-                      sharing::AdditiveSharing2P   &ass_next);
+    OWMEvaluator(const OWMParameters          &params,
+                 sharing::ReplicatedSharing3P &rss,
+                 sharing::AdditiveSharing2P   &ass_prev,
+                 sharing::AdditiveSharing2P   &ass_next);
 
     const proto::RingOaEvaluator &GetRingOaEvaluator() const {
         return oa_eval_;
     }
 
     void EvaluateRankCF(Channels                      &chls,
-                        const SecureWMKey             &key,
+                        const OWMKey                  &key,
                         std::vector<block>            &uv_prev,
                         std::vector<block>            &uv_next,
                         const sharing::RepShareMat64  &wm_tables,
@@ -273,8 +273,8 @@ public:
                         sharing::RepShare64           &result) const;
 
     void EvaluateRankCF_Parallel(Channels                      &chls,
-                                 const SecureWMKey             &key1,
-                                 const SecureWMKey             &key2,
+                                 const OWMKey                  &key1,
+                                 const OWMKey                  &key2,
                                  std::vector<block>            &uv_prev,
                                  std::vector<block>            &uv_next,
                                  const sharing::RepShareMat64  &wm_tables,
@@ -283,12 +283,12 @@ public:
                                  sharing::RepShareVec64        &result) const;
 
 private:
-    SecureWMParameters            params_;  /**< SecureWMParameters for the SecureWMEvaluator. */
-    proto::RingOaEvaluator        oa_eval_; /**< RingOaEvaluator for the SecureWMEvaluator. */
+    OWMParameters                 params_;  /**< OWMParameters for the OWMEvaluator. */
+    proto::RingOaEvaluator        oa_eval_; /**< RingOaEvaluator for the OWMEvaluator. */
     sharing::ReplicatedSharing3P &rss_;     /**< Replicated sharing for 3-party for the RingOaEvaluator. */
 };
 
 }    // namespace wm
 }    // namespace ringoa
 
-#endif    // WM_SECURE_WM_H_
+#endif    // WM_OWM_H_

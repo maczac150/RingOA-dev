@@ -11,7 +11,7 @@ set(BENCH_SOURCES
     dpf_pir_bench.cpp
     obliv_select_bench.cpp
     obliv_access_bench.cpp
-    secure_fmi_bench.cpp
+    ofmi_bench.cpp
     bench_main.cpp
 )
 

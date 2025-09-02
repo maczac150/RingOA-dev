@@ -1,4 +1,4 @@
-#include "secure_wm_test.h"
+#include "owm_test.h"
 
 #include <random>
 
@@ -13,14 +13,14 @@
 #include "RingOA/utils/timer.h"
 #include "RingOA/utils/to_string.h"
 #include "RingOA/utils/utils.h"
+#include "RingOA/wm/owm.h"
 #include "RingOA/wm/plain_wm.h"
-#include "RingOA/wm/secure_wm.h"
 
 namespace {
 
-const std::string kCurrentPath      = ringoa::GetCurrentDirectory();
-const std::string kTestSecureWMPath = kCurrentPath + "/data/test/wm/";
-const uint64_t    kFixedSeed        = 6;
+const std::string kCurrentPath = ringoa::GetCurrentDirectory();
+const std::string kTestOWMPath = kCurrentPath + "/data/test/wm/";
+const uint64_t    kFixedSeed   = 6;
 
 std::string GenerateRandomString(size_t length, const std::string &charset = "ATGC") {
     if (charset.empty() || length == 0)
@@ -52,30 +52,30 @@ using ringoa::sharing::RepShareMat64, ringoa::sharing::RepShareView64;
 using ringoa::sharing::RepShareMatBlock, ringoa::sharing::RepShareViewBlock;
 using ringoa::sharing::ShareIo;
 using ringoa::wm::FMIndex;
-using ringoa::wm::SecureWMEvaluator;
-using ringoa::wm::SecureWMKey;
-using ringoa::wm::SecureWMKeyGenerator;
-using ringoa::wm::SecureWMParameters;
+using ringoa::wm::OWMEvaluator;
+using ringoa::wm::OWMKey;
+using ringoa::wm::OWMKeyGenerator;
+using ringoa::wm::OWMParameters;
 
-void SecureWM_Offline_Test() {
-    Logger::DebugLog(LOC, "SecureWM_Offline_Test...");
-    std::vector<SecureWMParameters> params_list = {
-        SecureWMParameters(10),
-        // SecureWMParameters(10),
-        // SecureWMParameters(15),
-        // SecureWMParameters(20),
+void OWM_Offline_Test() {
+    Logger::DebugLog(LOC, "OWM_Offline_Test...");
+    std::vector<OWMParameters> params_list = {
+        OWMParameters(10),
+        // OWMParameters(10),
+        // OWMParameters(15),
+        // OWMParameters(20),
     };
 
     for (const auto &params : params_list) {
         params.PrintParameters();
-        uint64_t             d  = params.GetDatabaseBitSize();
-        uint64_t             ds = params.GetDatabaseSize();
-        AdditiveSharing2P    ass(d);
-        ReplicatedSharing3P  rss(d);
-        SecureWMKeyGenerator gen(params, ass, rss);
-        FileIo               file_io;
-        ShareIo              sh_io;
-        KeyIo                key_io;
+        uint64_t            d  = params.GetDatabaseBitSize();
+        uint64_t            ds = params.GetDatabaseSize();
+        AdditiveSharing2P   ass(d);
+        ReplicatedSharing3P rss(d);
+        OWMKeyGenerator     gen(params, ass, rss);
+        FileIo              file_io;
+        ShareIo             sh_io;
+        KeyIo               key_io;
 
         // Generate the database and index
         std::string           database = GenerateRandomString(ds - 2);
@@ -87,10 +87,10 @@ void SecureWM_Offline_Test() {
         Logger::DebugLog(LOC, "Position: " + ToString(position));
 
         // Generate keys
-        std::array<SecureWMKey, 3> keys = gen.GenerateKeys();
+        std::array<OWMKey, 3> keys = gen.GenerateKeys();
 
         // Save keys
-        std::string key_path = kTestSecureWMPath + "swmkey_d" + ToString(d);
+        std::string key_path = kTestOWMPath + "owmkey_d" + ToString(d);
         key_io.SaveKey(key_path + "_0", keys[0]);
         key_io.SaveKey(key_path + "_1", keys[1]);
         key_io.SaveKey(key_path + "_2", keys[2]);
@@ -106,9 +106,9 @@ void SecureWM_Offline_Test() {
         }
 
         // Save data
-        std::string db_path       = kTestSecureWMPath + "db_d" + ToString(d);
-        std::string query_path    = kTestSecureWMPath + "query_d" + ToString(d);
-        std::string position_path = kTestSecureWMPath + "position_d" + ToString(d);
+        std::string db_path       = kTestOWMPath + "db_d" + ToString(d);
+        std::string query_path    = kTestOWMPath + "query_d" + ToString(d);
+        std::string position_path = kTestOWMPath + "position_d" + ToString(d);
 
         file_io.WriteBinary(db_path, database);
         file_io.WriteBinary(query_path, query);
@@ -121,18 +121,18 @@ void SecureWM_Offline_Test() {
         }
 
         // Offline setup
-        gen.GetRingOaKeyGenerator().OfflineSetUp(params.GetSigma(), kTestSecureWMPath);
-        rss.OfflineSetUp(kTestSecureWMPath + "prf");
+        gen.GetRingOaKeyGenerator().OfflineSetUp(params.GetSigma(), kTestOWMPath);
+        rss.OfflineSetUp(kTestOWMPath + "prf");
     }
-    Logger::DebugLog(LOC, "SecureWM_Offline_Test - Passed");
+    Logger::DebugLog(LOC, "OWM_Offline_Test - Passed");
 }
 
-void SecureWM_Online_Test(const osuCrypto::CLP &cmd) {
-    Logger::DebugLog(LOC, "SecureWM_Online_Test...");
-    std::vector<SecureWMParameters> params_list = {
-        SecureWMParameters(10, 3),
-        // SecureWMParameters(15),
-        // SecureWMParameters(20),
+void OWM_Online_Test(const osuCrypto::CLP &cmd) {
+    Logger::DebugLog(LOC, "OWM_Online_Test...");
+    std::vector<OWMParameters> params_list = {
+        OWMParameters(10, 3),
+        // OWMParameters(15),
+        // OWMParameters(20),
     };
 
     for (const auto &params : params_list) {
@@ -143,10 +143,10 @@ void SecureWM_Online_Test(const osuCrypto::CLP &cmd) {
         FileIo file_io;
 
         uint64_t    result{0};
-        std::string key_path      = kTestSecureWMPath + "swmkey_d" + ToString(d);
-        std::string db_path       = kTestSecureWMPath + "db_d" + ToString(d);
-        std::string query_path    = kTestSecureWMPath + "query_d" + ToString(d);
-        std::string position_path = kTestSecureWMPath + "position_d" + ToString(d);
+        std::string key_path      = kTestOWMPath + "owmkey_d" + ToString(d);
+        std::string db_path       = kTestOWMPath + "db_d" + ToString(d);
+        std::string query_path    = kTestOWMPath + "query_d" + ToString(d);
+        std::string position_path = kTestOWMPath + "position_d" + ToString(d);
 
         std::string           database;
         std::vector<uint64_t> query;
@@ -162,12 +162,12 @@ void SecureWM_Online_Test(const osuCrypto::CLP &cmd) {
                 // Set up replicated sharing and evaluator for this party
                 ReplicatedSharing3P rss(d);
                 AdditiveSharing2P   ass_prev(d), ass_next(d);
-                SecureWMEvaluator   eval(params, rss, ass_prev, ass_next);
+                OWMEvaluator        eval(params, rss, ass_prev, ass_next);
                 Channels            chls(party_id, chl_prev, chl_next);
 
                 // Load this party's key
-                SecureWMKey key(party_id, params);
-                KeyIo       key_io_local;
+                OWMKey key(party_id, params);
+                KeyIo  key_io_local;
                 key_io_local.LoadKey(key_path + "_" + ToString(party_id), key);
 
                 // Load this party's shares of the database, query, and position
@@ -180,8 +180,8 @@ void SecureWM_Online_Test(const osuCrypto::CLP &cmd) {
                 sh_io.LoadShare(position_path + "_" + ToString(party_id), position_sh);
 
                 // Perform the PRF setup step
-                eval.GetRingOaEvaluator().OnlineSetUp(party_id, kTestSecureWMPath);
-                rss.OnlineSetUp(party_id, kTestSecureWMPath + "prf");
+                eval.GetRingOaEvaluator().OnlineSetUp(party_id, kTestOWMPath);
+                rss.OnlineSetUp(party_id, kTestOWMPath + "prf");
 
                 // Evaluate the rank operation
                 RepShare64                 result_sh;
@@ -210,12 +210,12 @@ void SecureWM_Online_Test(const osuCrypto::CLP &cmd) {
         uint64_t expected_result = fmi.GetWaveletMatrix().RankCF(2, position);
         if (result != expected_result) {
             throw osuCrypto::UnitTestFail(
-                "SecureWM_Online_Test failed: result = " + ToString(result) +
+                "OWM_Online_Test failed: result = " + ToString(result) +
                 ", expected = " + ToString(expected_result));
         }
     }
 
-    Logger::DebugLog(LOC, "SecureWM_Online_Test - Passed");
+    Logger::DebugLog(LOC, "OWM_Online_Test - Passed");
 }
 
 }    // namespace test_ringoa

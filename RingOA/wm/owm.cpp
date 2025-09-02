@@ -1,4 +1,4 @@
-#include "secure_wm.h"
+#include "owm.h"
 
 #include <cstring>
 
@@ -14,11 +14,11 @@ namespace wm {
 
 using ringoa::sharing::ReplicatedSharing3P;
 
-void SecureWMParameters::PrintParameters() const {
-    Logger::DebugLog(LOC, "[SecureWM Parameters]" + GetParametersInfo());
+void OWMParameters::PrintParameters() const {
+    Logger::DebugLog(LOC, "[OWM Parameters]" + GetParametersInfo());
 }
 
-SecureWMKey::SecureWMKey(const uint64_t id, const SecureWMParameters &params)
+OWMKey::OWMKey(const uint64_t id, const OWMParameters &params)
     : num_oa_keys(params.GetSigma()),
       params_(params) {
     oa_keys.reserve(num_oa_keys);
@@ -28,7 +28,7 @@ SecureWMKey::SecureWMKey(const uint64_t id, const SecureWMParameters &params)
     serialized_size_ = CalculateSerializedSize();
 }
 
-size_t SecureWMKey::CalculateSerializedSize() const {
+size_t OWMKey::CalculateSerializedSize() const {
     size_t size = sizeof(num_oa_keys);
     for (uint64_t i = 0; i < num_oa_keys; ++i) {
         size += oa_keys[i].GetSerializedSize();
@@ -36,9 +36,9 @@ size_t SecureWMKey::CalculateSerializedSize() const {
     return size;
 }
 
-void SecureWMKey::Serialize(std::vector<uint8_t> &buffer) const {
+void OWMKey::Serialize(std::vector<uint8_t> &buffer) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Serializing SecureWMKey");
+    Logger::DebugLog(LOC, "Serializing OWMKey");
 #endif
 
     // Serialize the number of OA keys
@@ -58,9 +58,9 @@ void SecureWMKey::Serialize(std::vector<uint8_t> &buffer) const {
     }
 }
 
-void SecureWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
+void OWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Deserializing SecureWMKey");
+    Logger::DebugLog(LOC, "Deserializing OWMKey");
 #endif
     size_t offset = 0;
 
@@ -76,16 +76,16 @@ void SecureWMKey::Deserialize(const std::vector<uint8_t> &buffer) {
     }
 }
 
-void SecureWMKey::PrintKey(const bool detailed) const {
-    Logger::DebugLog(LOC, Logger::StrWithSep("SecureWM Key"));
+void OWMKey::PrintKey(const bool detailed) const {
+    Logger::DebugLog(LOC, Logger::StrWithSep("OWM Key"));
     Logger::DebugLog(LOC, "Number of RingOa Keys: " + ToString(num_oa_keys));
     for (uint64_t i = 0; i < num_oa_keys; ++i) {
         oa_keys[i].PrintKey(detailed);
     }
 }
 
-SecureWMKeyGenerator::SecureWMKeyGenerator(
-    const SecureWMParameters     &params,
+OWMKeyGenerator::OWMKeyGenerator(
+    const OWMParameters          &params,
     sharing::AdditiveSharing2P   &ass,
     sharing::ReplicatedSharing3P &rss)
     : params_(params),
@@ -93,24 +93,24 @@ SecureWMKeyGenerator::SecureWMKeyGenerator(
       rss_(rss) {
 }
 
-std::array<sharing::RepShareMat64, 3> SecureWMKeyGenerator::GenerateDatabaseU64Share(const FMIndex &fm) const {
+std::array<sharing::RepShareMat64, 3> OWMKeyGenerator::GenerateDatabaseU64Share(const FMIndex &fm) const {
     if (fm.GetWaveletMatrix().GetLength() + 1 != params_.GetDatabaseSize()) {
-        throw std::invalid_argument("FMIndex length does not match the database size in SecureWMParameters");
+        throw std::invalid_argument("FMIndex length does not match the database size in OWMParameters");
     }
     const std::vector<uint64_t> &rank0_tables = fm.GetRank0Tables();
     return rss_.ShareLocal(rank0_tables, fm.GetWaveletMatrix().GetSigma(), fm.GetWaveletMatrix().GetLength() + 1);
 }
 
-std::array<SecureWMKey, 3> SecureWMKeyGenerator::GenerateKeys() const {
+std::array<OWMKey, 3> OWMKeyGenerator::GenerateKeys() const {
     // Initialize the keys
-    std::array<SecureWMKey, 3> keys = {
-        SecureWMKey(0, params_),
-        SecureWMKey(1, params_),
-        SecureWMKey(2, params_),
+    std::array<OWMKey, 3> keys = {
+        OWMKey(0, params_),
+        OWMKey(1, params_),
+        OWMKey(2, params_),
     };
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate SecureWM keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate OWM keys"));
 #endif
 
     for (uint64_t i = 0; i < keys[0].num_oa_keys; ++i) {
@@ -124,7 +124,7 @@ std::array<SecureWMKey, 3> SecureWMKeyGenerator::GenerateKeys() const {
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "SecureWM keys generated");
+    Logger::DebugLog(LOC, "OWM keys generated");
     keys[0].PrintKey();
     keys[1].PrintKey();
     keys[2].PrintKey();
@@ -134,8 +134,8 @@ std::array<SecureWMKey, 3> SecureWMKeyGenerator::GenerateKeys() const {
     return keys;
 }
 
-SecureWMEvaluator::SecureWMEvaluator(
-    const SecureWMParameters     &params,
+OWMEvaluator::OWMEvaluator(
+    const OWMParameters          &params,
     sharing::ReplicatedSharing3P &rss,
     sharing::AdditiveSharing2P   &ass_prev,
     sharing::AdditiveSharing2P   &ass_next)
@@ -144,14 +144,14 @@ SecureWMEvaluator::SecureWMEvaluator(
       rss_(rss) {
 }
 
-void SecureWMEvaluator::EvaluateRankCF(Channels                      &chls,
-                                       const SecureWMKey             &key,
-                                       std::vector<block>            &uv_prev,
-                                       std::vector<block>            &uv_next,
-                                       const sharing::RepShareMat64  &wm_tables,
-                                       const sharing::RepShareView64 &char_sh,
-                                       sharing::RepShare64           &position_sh,
-                                       sharing::RepShare64           &result) const {
+void OWMEvaluator::EvaluateRankCF(Channels                      &chls,
+                                  const OWMKey                  &key,
+                                  std::vector<block>            &uv_prev,
+                                  std::vector<block>            &uv_next,
+                                  const sharing::RepShareMat64  &wm_tables,
+                                  const sharing::RepShareView64 &char_sh,
+                                  sharing::RepShare64           &position_sh,
+                                  sharing::RepShare64           &result) const {
 
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
@@ -159,7 +159,7 @@ void SecureWMEvaluator::EvaluateRankCF(Channels                      &chls,
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SecureWM key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OWM key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
@@ -197,22 +197,22 @@ void SecureWMEvaluator::EvaluateRankCF(Channels                      &chls,
     result = position_sh;
 }
 
-void SecureWMEvaluator::EvaluateRankCF_Parallel(Channels                      &chls,
-                                                const SecureWMKey             &key1,
-                                                const SecureWMKey             &key2,
-                                                std::vector<block>            &uv_prev,
-                                                std::vector<block>            &uv_next,
-                                                const sharing::RepShareMat64  &wm_tables,
-                                                const sharing::RepShareView64 &char_sh,
-                                                sharing::RepShareVec64        &position_sh,
-                                                sharing::RepShareVec64        &result) const {
+void OWMEvaluator::EvaluateRankCF_Parallel(Channels                      &chls,
+                                           const OWMKey                  &key1,
+                                           const OWMKey                  &key2,
+                                           std::vector<block>            &uv_prev,
+                                           std::vector<block>            &uv_next,
+                                           const sharing::RepShareMat64  &wm_tables,
+                                           const sharing::RepShareView64 &char_sh,
+                                           sharing::RepShareVec64        &position_sh,
+                                           sharing::RepShareVec64        &result) const {
     uint64_t d        = params_.GetDatabaseBitSize();
     uint64_t ds       = params_.GetDatabaseSize();
     uint64_t sigma    = params_.GetSigma();
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate SecureWM key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OWM key"));
     Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
     Logger::DebugLog(LOC, "Database size: " + ToString(ds));
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));

@@ -219,10 +219,8 @@ void Dpf_Fde_Test() {
 void Dpf_Fde_One_Test() {
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test...");
     const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
-        // {3, 1, EvalType::kNaive},
-        // {9, 1, EvalType::kRecursion},
-        // {9, 1, EvalType::kIterSingleBatch},
-        // {10, 1, EvalType::kRecursion},
+        {3, 1, EvalType::kNaive},
+        {10, 1, EvalType::kRecursion},
         {10, 1, EvalType::kIterSingleBatch},
     };
     // Test all combinations of parameters
@@ -231,9 +229,8 @@ void Dpf_Fde_One_Test() {
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
-        // uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-        uint64_t alpha = 733;
-        uint64_t beta  = 1;
+        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
+        uint64_t        beta  = 1;
 
         // Generate keys
         Logger::DebugLog(LOC, "alpha=" + ToString(alpha) + ", beta=" + ToString(beta));

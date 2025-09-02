@@ -1,10 +1,10 @@
-#include "secure_fmi_bench.h"
+#include "ofmi_bench.h"
 
 #include <random>
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "RingOA/fm_index/secure_fmi.h"
+#include "RingOA/fm_index/ofmi.h"
 #include "RingOA/fm_index/sotfmi.h"
 #include "RingOA/protocol/key_io.h"
 #include "RingOA/sharing/additive_2p.h"
@@ -20,9 +20,9 @@
 
 namespace {
 
-const std::string kCurrentPath        = ringoa::GetCurrentDirectory();
-const std::string kBenchSecureFMIPath = kCurrentPath + "/data/bench/fmi/";
-const uint64_t    kFixedSeed          = 6;
+const std::string kCurrentPath   = ringoa::GetCurrentDirectory();
+const std::string kBenchOFMIPath = kCurrentPath + "/data/bench/fmi/";
+const uint64_t    kFixedSeed     = 6;
 
 std::string GenerateRandomString(size_t length, const std::string &charset = "ATGC") {
     if (charset.empty() || length == 0)
@@ -55,10 +55,10 @@ using ringoa::Logger;
 using ringoa::ThreePartyNetworkManager;
 using ringoa::TimerManager;
 using ringoa::ToString;
-using ringoa::fm_index::SecureFMIEvaluator;
-using ringoa::fm_index::SecureFMIKey;
-using ringoa::fm_index::SecureFMIKeyGenerator;
-using ringoa::fm_index::SecureFMIParameters;
+using ringoa::fm_index::OFMIEvaluator;
+using ringoa::fm_index::OFMIKey;
+using ringoa::fm_index::OFMIKeyGenerator;
+using ringoa::fm_index::OFMIParameters;
 using ringoa::fm_index::SotFMIEvaluator;
 using ringoa::fm_index::SotFMIKey;
 using ringoa::fm_index::SotFMIKeyGenerator;
@@ -95,9 +95,9 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             int32_t      timer_keygen = timer_mgr.CreateNewTimer("SotFMI KeyGen");
             int32_t      timer_off    = timer_mgr.CreateNewTimer("SotFMI OfflineSetUp");
 
-            std::string key_path   = kBenchSecureFMIPath + "sotfmikey_d" + ToString(d) + "_qs" + ToString(qs);
-            std::string db_path    = kBenchSecureFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
-            std::string query_path = kBenchSecureFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string key_path   = kBenchOFMIPath + "sotfmikey_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string db_path    = kBenchOFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string query_path = kBenchOFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
             for (uint64_t i = 0; i < iter; ++i) {
                 timer_mgr.SelectTimer(timer_keygen);
@@ -114,7 +114,7 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             timer_mgr.SelectTimer(timer_off);
             timer_mgr.Start();
             // Offline setup
-            rss.OfflineSetUp(kBenchSecureFMIPath + "prf");
+            rss.OfflineSetUp(kBenchOFMIPath + "prf");
             timer_mgr.Stop("OfflineSetUp(0) d=" + ToString(d) + " qs=" + ToString(qs));
             timer_mgr.PrintAllResults("Gen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
 
@@ -144,9 +144,9 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
     }
     Logger::InfoLog(LOC, "SotFMI_Offline_Bench - Finished");
     if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
-        Logger::ExportLogList("./data/logs/sfmi/sotfmi_offline");
+        Logger::ExportLogList("./data/logs/ofmi/sotfmi_offline");
     } else {
-        Logger::ExportLogList("./data/logs/sfmi/sotfmi_naive_offline");
+        Logger::ExportLogList("./data/logs/ofmi/sotfmi_naive_offline");
     }
 }
 
@@ -165,9 +165,9 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     uint64_t         d  = params.GetDatabaseBitSize();
                     uint64_t         qs = params.GetQuerySize();
 
-                    std::string key_path   = kBenchSecureFMIPath + "sotfmikey_d" + ToString(d) + "_qs" + ToString(qs);
-                    std::string db_path    = kBenchSecureFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
-                    std::string query_path = kBenchSecureFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string key_path   = kBenchOFMIPath + "sotfmikey_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string db_path    = kBenchOFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string query_path = kBenchOFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
                     TimerManager timer_mgr;
                     int32_t      timer_setup = timer_mgr.CreateNewTimer("SotFMI SetUp");
@@ -192,7 +192,7 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     sh_io.LoadShare(db_path + "_" + ToString(party_id_inner), db_sh);
                     sh_io.LoadShare(query_path + "_" + ToString(party_id_inner), query_sh);
                     // Setup the PRF keys
-                    rss.OnlineSetUp(party_id, kBenchSecureFMIPath + "prf");
+                    rss.OnlineSetUp(party_id, kBenchOFMIPath + "prf");
                     timer_mgr.Stop("SetUp d=" + ToString(d) + " qs=" + ToString(qs));
 
                     timer_mgr.SelectTimer(timer_eval);
@@ -223,42 +223,42 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
 
     Logger::InfoLog(LOC, "SotFMI_Online_Bench - Finished");
     if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
-        Logger::ExportLogList("./data/logs/sfmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
+        Logger::ExportLogList("./data/logs/ofmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
     } else {
-        Logger::ExportLogList("./data/logs/sfmi/sotfmi_naive_online_p" + ToString(party_id) + "_" + network);
+        Logger::ExportLogList("./data/logs/ofmi/sotfmi_naive_online_p" + ToString(party_id) + "_" + network);
     }
 }
 
-void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
-    Logger::InfoLog(LOC, "SecureFMI_Offline_Bench...");
+void OFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
+    Logger::InfoLog(LOC, "OFMI_Offline_Bench...");
     uint64_t iter = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
 
     for (auto text_bitsize : text_bitsizes) {
         for (auto query_size : query_sizes) {
-            SecureFMIParameters   params(text_bitsize, query_size, 3);
-            uint64_t              d  = params.GetDatabaseBitSize();
-            uint64_t              ds = params.GetDatabaseSize();
-            uint64_t              qs = params.GetQuerySize();
-            AdditiveSharing2P     ass(d);
-            ReplicatedSharing3P   rss(d);
-            SecureFMIKeyGenerator gen(params, ass, rss);
-            FileIo                file_io;
-            ShareIo               sh_io;
-            KeyIo                 key_io;
+            OFMIParameters      params(text_bitsize, query_size, 3);
+            uint64_t            d  = params.GetDatabaseBitSize();
+            uint64_t            ds = params.GetDatabaseSize();
+            uint64_t            qs = params.GetQuerySize();
+            AdditiveSharing2P   ass(d);
+            ReplicatedSharing3P rss(d);
+            OFMIKeyGenerator    gen(params, ass, rss);
+            FileIo              file_io;
+            ShareIo             sh_io;
+            KeyIo               key_io;
 
             TimerManager timer_mgr;
-            int32_t      timer_keygen = timer_mgr.CreateNewTimer("SecureFMI KeyGen");
-            int32_t      timer_off    = timer_mgr.CreateNewTimer("SecureFMI OfflineSetUp");
+            int32_t      timer_keygen = timer_mgr.CreateNewTimer("OFMI KeyGen");
+            int32_t      timer_off    = timer_mgr.CreateNewTimer("OFMI OfflineSetUp");
 
-            std::string key_path   = kBenchSecureFMIPath + "sfmikey_d" + ToString(d) + "_qs" + ToString(qs);
-            std::string db_path    = kBenchSecureFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
-            std::string query_path = kBenchSecureFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string key_path   = kBenchOFMIPath + "ofmikey_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string db_path    = kBenchOFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
+            std::string query_path = kBenchOFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
             for (uint64_t i = 0; i < iter; ++i) {
                 timer_mgr.SelectTimer(timer_keygen);
                 timer_mgr.Start();
                 // Generate keys
-                std::array<SecureFMIKey, 3> keys = gen.GenerateKeys();
+                std::array<OFMIKey, 3> keys = gen.GenerateKeys();
                 timer_mgr.Stop("KeyGen(" + ToString(i) + ") d=" + ToString(d) + " qs=" + ToString(qs));
                 // Save keys
                 key_io.SaveKey(key_path + "_0", keys[0]);
@@ -269,13 +269,13 @@ void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             timer_mgr.SelectTimer(timer_off);
             timer_mgr.Start();
             // Offline setup
-            rss.OfflineSetUp(kBenchSecureFMIPath + "prf");
-            gen.OfflineSetUp(kBenchSecureFMIPath);
+            rss.OfflineSetUp(kBenchOFMIPath + "prf");
+            gen.OfflineSetUp(kBenchOFMIPath);
             timer_mgr.Stop("OfflineSetUp(0) d=" + ToString(d) + " qs=" + ToString(qs));
             timer_mgr.PrintAllResults("Gen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
 
             // Generate the database and index
-            int32_t timer_data = timer_mgr.CreateNewTimer("SecureFMI DataGen");
+            int32_t timer_data = timer_mgr.CreateNewTimer("OFMI DataGen");
             timer_mgr.SelectTimer(timer_data);
             timer_mgr.Start();
             std::string database = GenerateRandomString(ds - 2);
@@ -298,12 +298,12 @@ void SecureFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
             // timer_mgr.PrintCurrentResults("DataGen d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
         }
     }
-    Logger::InfoLog(LOC, "SecureFMI_Offline_Bench - Finished");
-    Logger::ExportLogList("./data/logs/sfmi/secure_fmi_offline");
+    Logger::InfoLog(LOC, "OFMI_Offline_Bench - Finished");
+    Logger::ExportLogList("./data/logs/ofmi/ofmi_offline");
 }
 
-void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
-    Logger::InfoLog(LOC, "SecureFMI_Online_Bench...");
+void OFMI_Online_Bench(const osuCrypto::CLP &cmd) {
+    Logger::InfoLog(LOC, "OFMI_Online_Bench...");
     int         party_id = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     uint64_t    iter     = cmd.isSet("iter") ? cmd.get<uint64_t>("iter") : kIterDefault;
     std::string network  = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
@@ -313,30 +313,30 @@ void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
         return [=](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
             for (auto text_bitsize : text_bitsizes) {
                 for (auto query_size : query_sizes) {
-                    SecureFMIParameters params(text_bitsize, query_size);
-                    uint64_t            d  = params.GetDatabaseBitSize();
-                    uint64_t            qs = params.GetQuerySize();
-                    uint64_t            nu = params.GetSecureWMParameters().GetOaParameters().GetParameters().GetTerminateBitsize();
+                    OFMIParameters params(text_bitsize, query_size);
+                    uint64_t       d  = params.GetDatabaseBitSize();
+                    uint64_t       qs = params.GetQuerySize();
+                    uint64_t       nu = params.GetOWMParameters().GetOaParameters().GetParameters().GetTerminateBitsize();
 
-                    std::string key_path   = kBenchSecureFMIPath + "sfmikey_d" + ToString(d) + "_qs" + ToString(qs);
-                    std::string db_path    = kBenchSecureFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
-                    std::string query_path = kBenchSecureFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string key_path   = kBenchOFMIPath + "ofmikey_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string db_path    = kBenchOFMIPath + "db_d" + ToString(d) + "_qs" + ToString(qs);
+                    std::string query_path = kBenchOFMIPath + "query_d" + ToString(d) + "_qs" + ToString(qs);
 
                     TimerManager timer_mgr;
-                    int32_t      timer_setup = timer_mgr.CreateNewTimer("SecureFMI SetUp");
-                    int32_t      timer_eval  = timer_mgr.CreateNewTimer("SecureFMI Eval");
+                    int32_t      timer_setup = timer_mgr.CreateNewTimer("OFMI SetUp");
+                    int32_t      timer_eval  = timer_mgr.CreateNewTimer("OFMI Eval");
 
                     timer_mgr.SelectTimer(timer_setup);
                     timer_mgr.Start();
                     // Setup
                     ReplicatedSharing3P        rss(d);
                     AdditiveSharing2P          ass_prev(d), ass_next(d);
-                    SecureFMIEvaluator         eval(params, rss, ass_prev, ass_next);
+                    OFMIEvaluator              eval(params, rss, ass_prev, ass_next);
                     Channels                   chls(party_id_inner, chl_prev, chl_next);
                     std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
                     // Load keys
-                    SecureFMIKey key(party_id_inner, params);
-                    KeyIo        key_io;
+                    OFMIKey key(party_id_inner, params);
+                    KeyIo   key_io;
                     key_io.LoadKey(key_path + "_" + ToString(party_id_inner), key);
                     // Load data
                     RepShareMat64 db_sh;
@@ -345,8 +345,8 @@ void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     sh_io.LoadShare(db_path + "_" + ToString(party_id_inner), db_sh);
                     sh_io.LoadShare(query_path + "_" + ToString(party_id_inner), query_sh);
                     // Setup the PRF keys
-                    eval.OnlineSetUp(party_id_inner, kBenchSecureFMIPath);
-                    rss.OnlineSetUp(party_id_inner, kBenchSecureFMIPath + "prf");
+                    eval.OnlineSetUp(party_id_inner, kBenchOFMIPath);
+                    rss.OnlineSetUp(party_id_inner, kBenchOFMIPath + "prf");
                     timer_mgr.Stop("SetUp d=" + ToString(d) + " qs=" + ToString(qs));
 
                     timer_mgr.SelectTimer(timer_eval);
@@ -377,8 +377,8 @@ void SecureFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.AutoConfigure(party_id, task_p0, task_p1, task_p2);
     net_mgr.WaitForCompletion();
 
-    Logger::InfoLog(LOC, "SecureFMI_Online_Bench - Finished");
-    Logger::ExportLogList("./data/logs/sfmi/secure_fmi_online_p" + ToString(party_id) + "_" + network);
+    Logger::InfoLog(LOC, "OFMI_Online_Bench - Finished");
+    Logger::ExportLogList("./data/logs/ofmi/ofmi_online_p" + ToString(party_id) + "_" + network);
 }
 
 }    // namespace bench_ringoa

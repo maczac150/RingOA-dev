@@ -1,10 +1,10 @@
-#include "secure_fmi_test.h"
+#include "ofmi_test.h"
 
 #include <random>
 
 #include <cryptoTools/Common/TestCollection.h>
 
-#include "RingOA/fm_index/secure_fmi.h"
+#include "RingOA/fm_index/ofmi.h"
 #include "RingOA/fm_index/sotfmi.h"
 #include "RingOA/protocol/key_io.h"
 #include "RingOA/sharing/additive_2p.h"
@@ -21,9 +21,9 @@
 
 namespace {
 
-const std::string kCurrentPath       = ringoa::GetCurrentDirectory();
-const std::string kTestSecureFMIPath = kCurrentPath + "/data/test/fmi/";
-const uint64_t    kFixedSeed         = 6;
+const std::string kCurrentPath  = ringoa::GetCurrentDirectory();
+const std::string kTestOFMIPath = kCurrentPath + "/data/test/fmi/";
+const uint64_t    kFixedSeed    = 6;
 
 std::string GenerateRandomString(size_t length, const std::string &charset = "ATGC") {
     if (charset.empty() || length == 0)
@@ -47,10 +47,10 @@ using ringoa::FileIo;
 using ringoa::Logger;
 using ringoa::ThreePartyNetworkManager;
 using ringoa::ToString;
-using ringoa::fm_index::SecureFMIEvaluator;
-using ringoa::fm_index::SecureFMIKey;
-using ringoa::fm_index::SecureFMIKeyGenerator;
-using ringoa::fm_index::SecureFMIParameters;
+using ringoa::fm_index::OFMIEvaluator;
+using ringoa::fm_index::OFMIKey;
+using ringoa::fm_index::OFMIKeyGenerator;
+using ringoa::fm_index::OFMIParameters;
 using ringoa::fm_index::SotFMIEvaluator;
 using ringoa::fm_index::SotFMIKey;
 using ringoa::fm_index::SotFMIKeyGenerator;
@@ -89,7 +89,7 @@ void SotFMI_Offline_Test() {
         std::array<SotFMIKey, 3> keys = gen.GenerateKeys();
 
         // Save keys
-        std::string key_path = kTestSecureFMIPath + "sfmikey_d" + ToString(d);
+        std::string key_path = kTestOFMIPath + "ofmikey_d" + ToString(d);
         key_io.SaveKey(key_path + "_0", keys[0]);
         key_io.SaveKey(key_path + "_1", keys[1]);
         key_io.SaveKey(key_path + "_2", keys[2]);
@@ -109,8 +109,8 @@ void SotFMI_Offline_Test() {
         }
 
         // Save data
-        std::string db_path    = kTestSecureFMIPath + "db_d" + ToString(d);
-        std::string query_path = kTestSecureFMIPath + "query_d" + ToString(d);
+        std::string db_path    = kTestOFMIPath + "db_d" + ToString(d);
+        std::string query_path = kTestOFMIPath + "query_d" + ToString(d);
 
         file_io.WriteBinary(db_path, database);
         file_io.WriteBinary(query_path, query);
@@ -121,7 +121,7 @@ void SotFMI_Offline_Test() {
         }
 
         // Offline setup
-        rss.OfflineSetUp(kTestSecureFMIPath + "prf");
+        rss.OfflineSetUp(kTestOFMIPath + "prf");
     }
     Logger::DebugLog(LOC, "SotFMI_Offline_Test - Passed");
 }
@@ -143,9 +143,9 @@ void SotFMI_Online_Test(const osuCrypto::CLP &cmd) {
         FileIo file_io;
 
         std::vector<uint64_t> result;
-        std::string           key_path   = kTestSecureFMIPath + "sfmikey_d" + ToString(d);
-        std::string           db_path    = kTestSecureFMIPath + "db_d" + ToString(d);
-        std::string           query_path = kTestSecureFMIPath + "query_d" + ToString(d);
+        std::string           key_path   = kTestOFMIPath + "ofmikey_d" + ToString(d);
+        std::string           db_path    = kTestOFMIPath + "db_d" + ToString(d);
+        std::string           query_path = kTestOFMIPath + "query_d" + ToString(d);
 
         std::string database;
         std::string query;
@@ -174,7 +174,7 @@ void SotFMI_Online_Test(const osuCrypto::CLP &cmd) {
                 sh_io.LoadShare(query_path + "_" + ToString(party_id), query_sh);
 
                 // Perform the PRF setup step
-                rss.OnlineSetUp(party_id, kTestSecureFMIPath + "prf");
+                rss.OnlineSetUp(party_id, kTestOFMIPath + "prf");
 
                 // Evaluate the longest-prefix-match operation
                 RepShareVec64         result_sh(qs);
@@ -221,32 +221,32 @@ void SotFMI_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "SotFMI_Online_Test - Passed");
 }
 
-void SecureFMI_Offline_Test() {
-    Logger::DebugLog(LOC, "SecureFMI_Offline_Test...");
-    std::vector<SecureFMIParameters> params_list = {
-        SecureFMIParameters(10, 10),
-        // SecureFMIParameters(10),
-        // SecureFMIParameters(15),
-        // SecureFMIParameters(20),
+void OFMI_Offline_Test() {
+    Logger::DebugLog(LOC, "OFMI_Offline_Test...");
+    std::vector<OFMIParameters> params_list = {
+        OFMIParameters(10, 10),
+        // OFMIParameters(10),
+        // OFMIParameters(15),
+        // OFMIParameters(20),
     };
 
     for (const auto &params : params_list) {
         params.PrintParameters();
-        uint64_t              d  = params.GetDatabaseBitSize();
-        uint64_t              ds = params.GetDatabaseSize();
-        uint64_t              qs = params.GetQuerySize();
-        AdditiveSharing2P     ass(d);
-        ReplicatedSharing3P   rss(d);
-        SecureFMIKeyGenerator gen(params, ass, rss);
-        FileIo                file_io;
-        ShareIo               sh_io;
-        KeyIo                 key_io;
+        uint64_t            d  = params.GetDatabaseBitSize();
+        uint64_t            ds = params.GetDatabaseSize();
+        uint64_t            qs = params.GetQuerySize();
+        AdditiveSharing2P   ass(d);
+        ReplicatedSharing3P rss(d);
+        OFMIKeyGenerator    gen(params, ass, rss);
+        FileIo              file_io;
+        ShareIo             sh_io;
+        KeyIo               key_io;
 
         // Generate keys
-        std::array<SecureFMIKey, 3> keys = gen.GenerateKeys();
+        std::array<OFMIKey, 3> keys = gen.GenerateKeys();
 
         // Save keys
-        std::string key_path = kTestSecureFMIPath + "sfmikey_d" + ToString(d);
+        std::string key_path = kTestOFMIPath + "ofmikey_d" + ToString(d);
         key_io.SaveKey(key_path + "_0", keys[0]);
         key_io.SaveKey(key_path + "_1", keys[1]);
         key_io.SaveKey(key_path + "_2", keys[2]);
@@ -266,8 +266,8 @@ void SecureFMI_Offline_Test() {
         }
 
         // Save data
-        std::string db_path    = kTestSecureFMIPath + "db_d" + ToString(d);
-        std::string query_path = kTestSecureFMIPath + "query_d" + ToString(d);
+        std::string db_path    = kTestOFMIPath + "db_d" + ToString(d);
+        std::string query_path = kTestOFMIPath + "query_d" + ToString(d);
 
         file_io.WriteBinary(db_path, database);
         file_io.WriteBinary(query_path, query);
@@ -278,33 +278,33 @@ void SecureFMI_Offline_Test() {
         }
 
         // Offline setup
-        gen.OfflineSetUp(kTestSecureFMIPath);
-        rss.OfflineSetUp(kTestSecureFMIPath + "prf");
+        gen.OfflineSetUp(kTestOFMIPath);
+        rss.OfflineSetUp(kTestOFMIPath + "prf");
     }
-    Logger::DebugLog(LOC, "SecureFMI_Offline_Test - Passed");
+    Logger::DebugLog(LOC, "OFMI_Offline_Test - Passed");
 }
 
-void SecureFMI_Online_Test(const osuCrypto::CLP &cmd) {
-    Logger::DebugLog(LOC, "SecureFMI_Online_Test...");
-    std::vector<SecureFMIParameters> params_list = {
-        SecureFMIParameters(10, 10),
-        // SecureFMIParameters(10),
-        // SecureFMIParameters(15),
-        // SecureFMIParameters(20),
+void OFMI_Online_Test(const osuCrypto::CLP &cmd) {
+    Logger::DebugLog(LOC, "OFMI_Online_Test...");
+    std::vector<OFMIParameters> params_list = {
+        OFMIParameters(10, 10),
+        // OFMIParameters(10),
+        // OFMIParameters(15),
+        // OFMIParameters(20),
     };
 
     for (const auto &params : params_list) {
         params.PrintParameters();
         uint64_t d  = params.GetDatabaseBitSize();
         uint64_t qs = params.GetQuerySize();
-        uint64_t nu = params.GetSecureWMParameters().GetOaParameters().GetParameters().GetTerminateBitsize();
+        uint64_t nu = params.GetOWMParameters().GetOaParameters().GetParameters().GetTerminateBitsize();
 
         FileIo file_io;
 
         std::vector<uint64_t> result;
-        std::string           key_path   = kTestSecureFMIPath + "sfmikey_d" + ToString(d);
-        std::string           db_path    = kTestSecureFMIPath + "db_d" + ToString(d);
-        std::string           query_path = kTestSecureFMIPath + "query_d" + ToString(d);
+        std::string           key_path   = kTestOFMIPath + "ofmikey_d" + ToString(d);
+        std::string           db_path    = kTestOFMIPath + "db_d" + ToString(d);
+        std::string           query_path = kTestOFMIPath + "query_d" + ToString(d);
 
         std::string database;
         std::string query;
@@ -317,12 +317,12 @@ void SecureFMI_Online_Test(const osuCrypto::CLP &cmd) {
                 // Set up replicated sharing and evaluator
                 ReplicatedSharing3P rss(d);
                 AdditiveSharing2P   ass_prev(d), ass_next(d);
-                SecureFMIEvaluator  eval(params, rss, ass_prev, ass_next);
+                OFMIEvaluator       eval(params, rss, ass_prev, ass_next);
                 Channels            chls(party_id, chl_prev, chl_next);
 
                 // Load this party's key
-                SecureFMIKey key(party_id, params);
-                KeyIo        key_io_local;
+                OFMIKey key(party_id, params);
+                KeyIo   key_io_local;
                 key_io_local.LoadKey(key_path + "_" + ToString(party_id), key);
 
                 // Load this party's shares of the database and query
@@ -333,8 +333,8 @@ void SecureFMI_Online_Test(const osuCrypto::CLP &cmd) {
                 sh_io.LoadShare(query_path + "_" + ToString(party_id), query_sh);
 
                 // Perform the PRF setup step
-                eval.OnlineSetUp(party_id, kTestSecureFMIPath);
-                rss.OnlineSetUp(party_id, kTestSecureFMIPath + "prf");
+                eval.OnlineSetUp(party_id, kTestOFMIPath);
+                rss.OnlineSetUp(party_id, kTestOFMIPath + "prf");
 
                 // Evaluate the longest-prefix-match operation
                 RepShareVec64              result_sh(qs);
@@ -373,12 +373,12 @@ void SecureFMI_Online_Test(const osuCrypto::CLP &cmd) {
 
         if (match_len != expected_result) {
             throw osuCrypto::UnitTestFail(
-                "SecureFMI_Online_Test failed: result = " + ToString(match_len) +
+                "OFMI_Online_Test failed: result = " + ToString(match_len) +
                 ", expected = " + ToString(expected_result));
         }
     }
 
-    Logger::DebugLog(LOC, "SecureFMI_Online_Test - Passed");
+    Logger::DebugLog(LOC, "OFMI_Online_Test - Passed");
 }
 
 }    // namespace test_ringoa

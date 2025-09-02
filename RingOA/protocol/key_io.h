@@ -15,9 +15,9 @@ enum class KeyType
 {
     kDpfKey,
     kOblivSelectKey,
-    kSecureWMKey,
+    kOWMKey,
     kZeroTestKey,
-    kSecureFMIKey,
+    kOFMIKey,
 };
 
 class KeyIo {

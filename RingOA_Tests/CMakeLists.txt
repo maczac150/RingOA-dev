@@ -25,8 +25,8 @@ set(TEST_SOURCES
     protocol/obliv_access_test.cpp
     protocol/ddcf_test.cpp
     wm/wm_test.cpp
-    wm/secure_wm_test.cpp
-    fm_index/secure_fmi_test.cpp
+    wm/owm_test.cpp
+    fm_index/ofmi_test.cpp
     test_main.cpp
 )
 
