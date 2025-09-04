@@ -7,6 +7,21 @@
 #include "RingOA/utils/to_string.h"
 #include "RingOA/utils/utils.h"
 
+namespace {
+
+std::string GetBuildOrderString(ringoa::wm::BuildOrder order) {
+    switch (order) {
+        case ringoa::wm::BuildOrder::MSBFirst:
+            return "MSB -> LSB";
+        case ringoa::wm::BuildOrder::LSBFirst:
+            return "LSB -> MSB";
+        default:
+            return "Unknown";
+    }
+}
+
+}    // namespace
+
 namespace ringoa {
 namespace wm {
 
@@ -113,24 +128,26 @@ std::string CharMapper::MapToString() const {
     return result;
 }
 
-WaveletMatrix::WaveletMatrix(const std::string &data, const CharType type)
-    : length_(0), sigma_(0), mapper_(type) {
+WaveletMatrix::WaveletMatrix(const std::string &data, const CharType type, const BuildOrder order)
+    : length_(0), sigma_(0), order_(order), mapper_(type) {
     data_  = mapper_.ToIds(data);
     sigma_ = mapper_.GetSigma();
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma_));
     Logger::DebugLog(LOC, "Mapping: " + mapper_.MapToString());
+    Logger::DebugLog(LOC, "Order: " + GetBuildOrderString(order_));
     Logger::DebugLog(LOC, "Data: " + ToString(data_));
     Logger::DebugLog(LOC, "Length: " + ToString(data.size()));
 #endif
     Build(data_);
 }
 
-WaveletMatrix::WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma)
-    : length_(0), sigma_(sigma) {
+WaveletMatrix::WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma, const BuildOrder order)
+    : length_(0), sigma_(sigma), order_(order) {
     data_ = data;
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma_));
+    Logger::DebugLog(LOC, "Order: " + GetBuildOrderString(order_));
     Logger::DebugLog(LOC, "Data: " + ToString(data_));
     Logger::DebugLog(LOC, "Length: " + ToString(data.size()));
 #endif
@@ -161,8 +178,8 @@ const std::vector<uint64_t> &WaveletMatrix::GetRank0Tables() const {
     return rank0_tables_;
 }
 
-const std::vector<uint64_t> &WaveletMatrix::GetRank1Tables() const {
-    return rank1_tables_;
+BuildOrder WaveletMatrix::GetBuildOrder() const {
+    return order_;
 }
 
 void WaveletMatrix::PrintRank0Tables() const {
@@ -179,67 +196,54 @@ void WaveletMatrix::PrintRank0Tables() const {
 #endif
 }
 
-void WaveletMatrix::PrintRank1Tables() const {
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+uint64_t WaveletMatrix::Access(size_t i) const {
+    if (i >= length_)
+        throw std::out_of_range("Access index out of range");
     const size_t stride = length_ + 1;
-    for (size_t bit = 0; bit < sigma_; ++bit) {
-        size_t                    off = bit * stride;
-        std::span<const uint64_t> tbl(&rank1_tables_[off], stride);
-        Logger::DebugLog(
-            LOC,
-            "Rank1 Table[" + ToString(bit) + "]: " +
-                ToString(tbl));
-    }
-#endif
-}
-
-uint64_t WaveletMatrix::RankCF(uint64_t c, size_t position) const {
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "RankCF(" + ToString(c) + ", " + ToString(position) + ")");
-#endif
-
-    // for level ℓ, the offset into each flat table is ℓ*(length_+1)
-    const size_t stride = length_ + 1;
-
-    // Traverse from the LSB to the MSB
-    for (size_t bit = 0; bit < sigma_; ++bit) {
-        size_t off = bit * stride;
-        bool   b   = (c >> bit) & 1;
-        // if zero‐bit, jump to rank0; else jump to rank1
-        position = b ? rank1_tables_[off + position]
-                     : rank0_tables_[off + position];
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Logger::DebugLog(LOC, "(" + ToString(bit) + ") bit: " + ToString(b) + " -> RankCF: " + ToString(position));
-#endif
-    }
-    return position;
-}
-
-uint64_t WaveletMatrix::kthSmallest(size_t l, size_t r, size_t k) const {
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "kthSmallest(" + ToString(l) + ", " + ToString(r) + ", " + ToString(k) + ")");
-#endif
-
     uint64_t     result = 0;
-    size_t       left   = l;
-    size_t       right  = r;
-    const size_t stride = length_ + 1;
 
-    // Traverse from most significant bit (sigma_-1) down to 0
+    // Traverse from MSB to LSB
     for (size_t lvl = sigma_; lvl > 0; --lvl) {
-        size_t bit = lvl - 1;
-        size_t off = bit * stride;
+        const size_t bit = lvl - 1;
+        const size_t off = bit * stride;
 
-        // count zeros in [left, right)
+        const size_t z_before = rank0_tables_[off + i];
+        const size_t z_after  = rank0_tables_[off + i + 1];    // safe: i < length_
+        const bool   is_zero  = (z_after - z_before) == 1;
+
+        if (is_zero) {
+            // current bit is 0
+            i = z_before;    // number of zeros before i
+            // result bit stays 0
+        } else {
+            // current bit is 1
+            const size_t total_zeros = rank0_tables_[off + length_];
+            const size_t ones_before = i - z_before;                 // #ones in [0,i)
+            i                        = total_zeros + ones_before;    // map into 1-bucket
+            result |= (1ULL << bit);
+        }
+    }
+    return result;
+}
+
+uint64_t WaveletMatrix::Quantile(size_t l, size_t r, size_t k) const {
+    if (l >= r)
+        throw std::invalid_argument("Quantile: empty range");
+    if (k >= r - l)
+        throw std::out_of_range("Quantile: k out of range");
+
+    const size_t stride = length_ + 1;
+    uint64_t     result = 0;
+    size_t       left = l, right = r;
+
+    // Traverse from MSB to LSB
+    for (size_t lvl = sigma_; lvl > 0; --lvl) {
+        const size_t bit = lvl - 1;
+        const size_t off = bit * stride;
+
         size_t z_left     = rank0_tables_[off + left];
         size_t z_right    = rank0_tables_[off + right];
         size_t zero_count = z_right - z_left;
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Logger::DebugLog(LOC, "Level " + ToString(lvl) + " (bit: " + ToString(bit) + ") - "
-                                                                                     "z_left: " +
-                                  ToString(z_left) + ", z_right: " + ToString(z_right) +
-                                  ", zero_count: " + ToString(zero_count));
-#endif
 
         if (k < zero_count) {
             // k-th lies in the 0-bucket
@@ -248,22 +252,196 @@ uint64_t WaveletMatrix::kthSmallest(size_t l, size_t r, size_t k) const {
         } else {
             // k-th lies in the 1-bucket
             k -= zero_count;
-
-            // total number of zeros across the entire level
-            size_t total_zeros = rank0_tables_[off + length_ - 1];
-            // number of ones before left/right
-            size_t o_left  = (left - z_left);
-            size_t o_right = (right - z_right);
-
-            left  = total_zeros + o_left;
-            right = total_zeros + o_right;
-
-            // set this bit in the result
+            size_t total_zeros = rank0_tables_[off + length_];
+            size_t o_left      = left - z_left;
+            size_t o_right     = right - z_right;
+            left               = total_zeros + o_left;
+            right              = total_zeros + o_right;
             result |= (1ULL << bit);
         }
     }
-
     return result;
+}
+
+uint64_t WaveletMatrix::RangeMin(size_t l, size_t r) const {
+    if (l >= r)
+        throw std::invalid_argument("RangeMin: empty range");
+    return Quantile(l, r, 0);
+}
+
+uint64_t WaveletMatrix::RangeMax(size_t l, size_t r) const {
+    if (l >= r)
+        throw std::invalid_argument("RangeMax: empty range");
+    return Quantile(l, r, (r - l) - 1);
+}
+
+uint64_t WaveletMatrix::RangeFreq(size_t l, size_t r,
+                                  uint64_t x, uint64_t y) const {
+    if (l >= r || x >= y)
+        return 0;
+
+    struct Node {
+        size_t   left, right;
+        size_t   lvl;
+        uint64_t prefix;
+    };
+    std::stack<Node> st;
+    st.push({l, r, sigma_, 0});
+    uint64_t     count  = 0;
+    const size_t stride = length_ + 1;
+
+    while (!st.empty()) {
+        auto [left, right, lvl, prefix] = st.top();
+        st.pop();
+        if (left >= right)
+            continue;
+
+        if (lvl == 0) {
+            if (x <= prefix && prefix < y)
+                count += (right - left);
+            continue;
+        }
+
+        size_t bit = lvl - 1;
+        size_t off = bit * stride;
+
+        size_t z_left  = rank0_tables_[off + left];
+        size_t z_right = rank0_tables_[off + right];
+        size_t nl0 = z_left, nr0 = z_right;
+
+        size_t total_zeros = rank0_tables_[off + length_];
+        size_t o_left      = left - z_left;
+        size_t o_right     = right - z_right;
+        size_t nl1         = total_zeros + o_left;
+        size_t nr1         = total_zeros + o_right;
+
+        uint64_t low0  = prefix;
+        uint64_t high0 = prefix + (1ULL << bit);
+        uint64_t low1  = prefix | (1ULL << bit);
+        uint64_t high1 = prefix + (1ULL << (bit + 1));
+
+        if (!(high0 <= x || y <= low0)) {
+            st.push({nl0, nr0, bit, low0});
+        }
+        if (!(high1 <= x || y <= low1)) {
+            st.push({nl1, nr1, bit, low1});
+        }
+    }
+    return count;
+}
+
+void WaveletMatrix::RangeList(size_t l, size_t r,
+                              uint64_t x, uint64_t y,
+                              std::vector<std::pair<uint64_t, size_t>> &out) const {
+    out.clear();
+    if (l >= r || x >= y)
+        return;
+
+    struct Node {
+        size_t   left, right;
+        size_t   lvl;
+        uint64_t prefix;
+    };
+    std::stack<Node> st;
+    st.push({l, r, sigma_, 0});
+    const size_t stride = length_ + 1;
+
+    while (!st.empty()) {
+        auto [left, right, lvl, prefix] = st.top();
+        st.pop();
+        if (left >= right)
+            continue;
+
+        if (lvl == 0) {
+            if (x <= prefix && prefix < y) {
+                out.emplace_back(prefix, right - left);
+            }
+            continue;
+        }
+
+        size_t bit = lvl - 1;
+        size_t off = bit * stride;
+
+        size_t z_left  = rank0_tables_[off + left];
+        size_t z_right = rank0_tables_[off + right];
+        size_t nl0 = z_left, nr0 = z_right;
+
+        size_t total_zeros = rank0_tables_[off + length_];
+        size_t o_left      = left - z_left;
+        size_t o_right     = right - z_right;
+        size_t nl1         = total_zeros + o_left;
+        size_t nr1         = total_zeros + o_right;
+
+        uint64_t low0  = prefix;
+        uint64_t high0 = prefix + (1ULL << bit);
+        uint64_t low1  = prefix | (1ULL << bit);
+        uint64_t high1 = prefix + (1ULL << (bit + 1));
+
+        if (!(high0 <= x || y <= low0)) {
+            st.push({nl0, nr0, bit, low0});
+        }
+        if (!(high1 <= x || y <= low1)) {
+            st.push({nl1, nr1, bit, low1});
+        }
+    }
+}
+
+std::vector<std::pair<uint64_t, size_t>>
+WaveletMatrix::TopK(size_t l, size_t r, size_t k) const {
+    std::vector<std::pair<uint64_t, size_t>> freq;
+    RangeList(l, r, 0, (1ULL << sigma_), freq);
+
+    if (freq.size() <= k) {
+        std::sort(freq.begin(), freq.end(),
+                  [](auto &a, auto &b) { return a.second > b.second; });
+        return freq;
+    }
+
+    std::partial_sort(freq.begin(), freq.begin() + k, freq.end(),
+                      [](auto &a, auto &b) { return a.second > b.second; });
+    freq.resize(k);
+    return freq;
+}
+
+uint64_t WaveletMatrix::RankCF(uint64_t c, size_t position) const {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "RankCF(" + ToString(c) + ", " + ToString(position) + ")");
+#endif
+    if (order_ != BuildOrder::LSBFirst) {
+        Logger::ErrorLog(LOC, "RankCF is only implemented for LSB -> MSB order");
+        return 0;
+    }
+    if (length_ == 0)
+        return 0;
+
+    const size_t stride = length_ + 1;
+
+    // Traverse from LSB to MSB
+    for (size_t bit = 0; bit < sigma_; ++bit) {
+        const size_t off = bit * stride;
+        const bool   b   = (c >> bit) & 1ULL;
+
+        // zeros prefix in [0, position)
+        const size_t zpos = rank0_tables_[off + position];
+
+        if (!b) {
+            // 0-bit: jump to 0-bucket
+            position = zpos;
+        } else {
+            // 1-bit: jump to 1-bucket = totalZeros + ones_prefix
+            const size_t total_zeros = rank0_tables_[off + length_];
+            const size_t ones_prefix = position - zpos;
+            position                 = total_zeros + ones_prefix;
+        }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC,
+                         "(" + ToString(bit) + ") bit=" + ToString(b) +
+                             " zpos=" + ToString(zpos) +
+                             " -> pos=" + ToString(position));
+#endif
+    }
+    return position;    // == C[c] + rank(c, position) under LSB->MSB build
 }
 
 void WaveletMatrix::Build(const std::vector<uint64_t> &data) {
@@ -278,53 +456,95 @@ void WaveletMatrix::Build(const std::vector<uint64_t> &data) {
 
     const size_t stride = length_ + 1;
     rank0_tables_.assign(sigma_ * stride, 0);
-    rank1_tables_.assign(sigma_ * stride, 0);
 
     std::vector<uint64_t> current = data;
+    if (order_ == BuildOrder::MSBFirst) {
+        BuildMsbFirst(std::move(current));
+    } else {
+        BuildLsbFirst(std::move(current));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    PrintRank0Tables();
+    Logger::DebugLog(LOC, "WaveletMatrix Build - Done");
+#endif
+}
+
+void WaveletMatrix::BuildMsbFirst(std::vector<uint64_t> current) {
+    const size_t          stride = length_ + 1;
     std::vector<uint64_t> zero_bucket(length_), one_bucket(length_);
 
-    // Build from the LSB to the MSB
-    for (size_t bit = 0; bit < sigma_; ++bit) {
-        size_t zeros = 0, ones = 0;
-        size_t off = bit * stride;
+    for (size_t lvl = sigma_; lvl > 0; --lvl) {
+        const size_t bit   = lvl - 1;
+        const size_t off   = bit * stride;
+        size_t       zeros = 0, ones = 0;
+
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        std::string bit_str = "";
+        std::string bit_str;
+        bit_str.reserve(length_);
 #endif
 
-        // 1) build rank0 counts and separate into buckets
         for (size_t i = 0; i < length_; ++i) {
-            bool is_one = (current[i] >> bit) & 1U;
+            const bool is_one = (current[i] >> bit) & 1U;
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-            bit_str += ToString(is_one);
+            bit_str.push_back(is_one ? '1' : '0');
 #endif
             if (is_one) {
                 one_bucket[ones++] = current[i];
             } else {
                 zero_bucket[zeros++] = current[i];
-                ++rank0_tables_[off + i + 1];    // Increment the count of zeros
+                ++rank0_tables_[off + i + 1];
             }
-            rank0_tables_[off + i + 1] += rank0_tables_[off + i];    // Carry forward the count of zeros
+            rank0_tables_[off + i + 1] += rank0_tables_[off + i];
         }
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Logger::DebugLog(LOC, "Bit Vector  [" + ToString(bit) + "]: " + bit_str +
-                                  " (0: " + ToString(zeros) + ", 1: " + ToString(ones) + ")");
-#endif
 
-        // 2) build rank1 as (i – rank0) + totalZeros
-        uint64_t total_zeros = rank0_tables_[off + length_];
-        for (size_t i = 0; i < length_ + 1; ++i) {
-            rank1_tables_[off + i] = (i - rank0_tables_[off + i]) + total_zeros;
-        }
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Bit Vector [" + ToString(bit) + "]: " + bit_str +
+                                  " (0: " + ToString(zeros) +
+                                  ", 1: " + ToString(ones) + ")");
+#endif
 
         std::copy(zero_bucket.begin(), zero_bucket.begin() + zeros, current.begin());
         std::copy(one_bucket.begin(), one_bucket.begin() + ones, current.begin() + zeros);
     }
+}
+
+void WaveletMatrix::BuildLsbFirst(std::vector<uint64_t> current) {
+    const size_t          stride = length_ + 1;
+    std::vector<uint64_t> zero_bucket(length_), one_bucket(length_);
+
+    for (size_t bit = 0; bit < sigma_; ++bit) {
+        const size_t off   = bit * stride;
+        size_t       zeros = 0, ones = 0;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    PrintRank0Tables();
-    PrintRank1Tables();
-    Logger::DebugLog(LOC, "WaveletMatrix Build - Done");
+        std::string bit_str;
+        bit_str.reserve(length_);
 #endif
+
+        for (size_t i = 0; i < length_; ++i) {
+            const bool is_one = (current[i] >> bit) & 1U;
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            bit_str.push_back(is_one ? '1' : '0');
+#endif
+            if (is_one) {
+                one_bucket[ones++] = current[i];
+            } else {
+                zero_bucket[zeros++] = current[i];
+                ++rank0_tables_[off + i + 1];
+            }
+            rank0_tables_[off + i + 1] += rank0_tables_[off + i];
+        }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Bit Vector [" + ToString(bit) + "]: " + bit_str +
+                                  " (0: " + ToString(zeros) +
+                                  ", 1: " + ToString(ones) + ")");
+#endif
+
+        std::copy(zero_bucket.begin(), zero_bucket.begin() + zeros, current.begin());
+        std::copy(one_bucket.begin(), one_bucket.begin() + ones, current.begin() + zeros);
+    }
 }
 
 FMIndex::FMIndex(const std::string &text, const CharType type) {
@@ -336,7 +556,7 @@ FMIndex::FMIndex(const std::string &text, const CharType type) {
     BuildBwt();
 
     // 3) Convert bwt_str_ to integers
-    wm_ = WaveletMatrix(bwt_str_, type);
+    wm_ = WaveletMatrix(bwt_str_, type, BuildOrder::LSBFirst);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, kDash);
@@ -346,7 +566,6 @@ FMIndex::FMIndex(const std::string &text, const CharType type) {
     Logger::DebugLog(LOC, "BWT             : " + bwt_str_);
     Logger::DebugLog(LOC, "BWT as integers : " + ToString(wm_.GetData()));
     wm_.PrintRank0Tables();
-    wm_.PrintRank1Tables();
     Logger::DebugLog(LOC, kDash);
 #endif
 }
@@ -357,10 +576,6 @@ const WaveletMatrix &FMIndex::GetWaveletMatrix() const {
 
 const std::vector<uint64_t> &FMIndex::GetRank0Tables() const {
     return wm_.GetRank0Tables();
-}
-
-const std::vector<uint64_t> &FMIndex::GetRank1Tables() const {
-    return wm_.GetRank1Tables();
 }
 
 std::vector<uint64_t> FMIndex::ConvertToBitMatrix(const std::string &query) const {

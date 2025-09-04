@@ -21,6 +21,17 @@ enum class CharType
 };
 
 /**
+ * @brief Build order enumeration
+ * This enum is used to specify the build order of the wavelet matrix.
+ * It can be either MSBFirst (Most Significant Bit First) or LSBFirst (Least Significant Bit First).
+ */
+enum class BuildOrder
+{
+    MSBFirst,
+    LSBFirst,
+};
+
+/**
  * @brief CharMapper class for character mapping
  */
 class CharMapper {
@@ -52,31 +63,47 @@ class WaveletMatrix {
 public:
     WaveletMatrix() = default;
 
-    explicit WaveletMatrix(const std::string &data, const CharType type = CharType::DNA);
-    explicit WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma);
+    explicit WaveletMatrix(const std::string &data, const CharType type = CharType::DNA, const BuildOrder order = BuildOrder::MSBFirst);
+    explicit WaveletMatrix(const std::vector<uint64_t> &data, const size_t sigma, const BuildOrder order = BuildOrder::MSBFirst);
 
+    // --- Basic info ---
     size_t                       GetLength() const;
     size_t                       GetSigma() const;
+    BuildOrder                   GetBuildOrder() const;
     const CharMapper            &GetMapper() const;
     std::string                  GetMapString() const;
     const std::vector<uint64_t> &GetData() const;
     const std::vector<uint64_t> &GetRank0Tables() const;
-    const std::vector<uint64_t> &GetRank1Tables() const;
-    void                         PrintRank0Tables() const;
-    void                         PrintRank1Tables() const;
 
+    // --- Debugging ---
+    void PrintRank0Tables() const;
+
+    // --- Core queries ---
+    uint64_t Access(size_t i) const;                                         ///< Return T[i]
+    uint64_t Quantile(size_t l, size_t r, size_t k) const;                   ///< k-th smallest in [l,r)
+    uint64_t RangeMin(size_t l, size_t r) const;                             ///< min in [l,r)
+    uint64_t RangeMax(size_t l, size_t r) const;                             ///< max in [l,r)
+    uint64_t RangeFreq(size_t l, size_t r, uint64_t x, uint64_t y) const;    ///< count of x ≤ v < y in [l,r)
+    void     RangeList(size_t l, size_t r, uint64_t x, uint64_t y,
+                       std::vector<std::pair<uint64_t, size_t>> &out) const;
+
+    std::vector<std::pair<uint64_t, size_t>> TopK(size_t l, size_t r, size_t k) const;    ///< top-k frequent in [l,r)
+
+    // --- FM-index style (valid only if built LSB→MSB) ---
     uint64_t RankCF(uint64_t c, size_t position) const;
-    uint64_t kthSmallest(size_t l, size_t r, size_t k) const;
 
 private:
     size_t                length_;
     size_t                sigma_;
+    BuildOrder            order_;
     CharMapper            mapper_;
     std::vector<uint64_t> data_;
     std::vector<uint64_t> rank0_tables_;
-    std::vector<uint64_t> rank1_tables_;
 
+    // --- Build routines ---
     void Build(const std::vector<uint64_t> &data);
+    void BuildMsbFirst(std::vector<uint64_t> current);
+    void BuildLsbFirst(std::vector<uint64_t> current);
 };
 
 class FMIndex {
@@ -89,7 +116,6 @@ public:
 
     const WaveletMatrix         &GetWaveletMatrix() const;
     const std::vector<uint64_t> &GetRank0Tables() const;
-    const std::vector<uint64_t> &GetRank1Tables() const;
 
     std::vector<uint64_t> ConvertToBitMatrix(const std::string &query) const;
 
