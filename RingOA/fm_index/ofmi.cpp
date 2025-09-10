@@ -262,7 +262,7 @@ void OFMIEvaluator::EvaluateLPM(Channels                     &chls,
     rss_.Rand(r_sh);
     if (party_id == 1) {
         for (uint64_t i = 0; i < qs; ++i) {
-            uint64_t interval_0 = Mod(interval_sh.data[0][i] + interval_sh.data[1][i] + r_sh.data[1], d);
+            uint64_t interval_0 = Mod2N(interval_sh.data[0][i] + interval_sh.data[1][i] + r_sh.data[1], d);
             uint64_t masked_interval_0;
             ass_next_.EvaluateAdd(interval_0, key.zt_keys[i].shr_in, masked_interval_0);
             masked_intervals_0[i] = masked_interval_0;
@@ -277,7 +277,7 @@ void OFMIEvaluator::EvaluateLPM(Channels                     &chls,
 #endif
     } else if (party_id == 2) {
         for (uint64_t i = 0; i < qs; ++i) {
-            uint64_t interval_1 = Mod(interval_sh.data[0][i] - r_sh.data[0], d);
+            uint64_t interval_1 = Mod2N(interval_sh.data[0][i] - r_sh.data[0], d);
             uint64_t masked_interval_1;
             ass_prev_.EvaluateAdd(interval_1, key.zt_keys[i].shr_in, masked_interval_1);
             masked_intervals_1[i] = masked_interval_1;
@@ -296,17 +296,17 @@ void OFMIEvaluator::EvaluateLPM(Channels                     &chls,
     if (party_id == 0) {
         for (uint64_t i = 0; i < qs; ++i) {
             rss_.Rand(r_sh);
-            result[0][i] = Mod(r_sh.data[1] - r_sh.data[0], d);
+            result[0][i] = Mod2N(r_sh.data[1] - r_sh.data[0], d);
         }
     } else if (party_id == 1) {
         for (uint64_t i = 0; i < qs; ++i) {
             rss_.Rand(r_sh);
-            result[0][i] = Mod(zt_0[i] + r_sh.data[1] - r_sh.data[0], d);
+            result[0][i] = Mod2N(zt_0[i] + r_sh.data[1] - r_sh.data[0], d);
         }
     } else {
         for (uint64_t i = 0; i < qs; ++i) {
             rss_.Rand(r_sh);
-            result[0][i] = Mod(zt_1[i] + r_sh.data[1] - r_sh.data[0], d);
+            result[0][i] = Mod2N(zt_1[i] + r_sh.data[1] - r_sh.data[0], d);
         }
     }
     chls.next.send(result[0]);
@@ -375,7 +375,7 @@ void OFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
     rss_.Rand(r_sh);
     if (party_id == 1) {
         for (uint64_t i = 0; i < qs; ++i) {
-            uint64_t interval_0 = Mod(interval_sh.data[0][i] + interval_sh.data[1][i] + r_sh.data[1], d);
+            uint64_t interval_0 = Mod2N(interval_sh.data[0][i] + interval_sh.data[1][i] + r_sh.data[1], d);
             uint64_t masked_interval_0;
             ass_next_.EvaluateAdd(interval_0, key.zt_keys[i].shr_in, masked_interval_0);
             masked_intervals_0[i] = masked_interval_0;
@@ -390,7 +390,7 @@ void OFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
 #endif
     } else if (party_id == 2) {
         for (uint64_t i = 0; i < qs; ++i) {
-            uint64_t interval_1 = Mod(interval_sh.data[0][i] - r_sh.data[0], d);
+            uint64_t interval_1 = Mod2N(interval_sh.data[0][i] - r_sh.data[0], d);
             uint64_t masked_interval_1;
             ass_prev_.EvaluateAdd(interval_1, key.zt_keys[i].shr_in, masked_interval_1);
             masked_intervals_1[i] = masked_interval_1;
@@ -409,17 +409,17 @@ void OFMIEvaluator::EvaluateLPM_Parallel(Channels                     &chls,
     if (party_id == 0) {
         for (uint64_t i = 0; i < qs; ++i) {
             rss_.Rand(r_sh);
-            result[0][i] = Mod(r_sh.data[1] - r_sh.data[0], d);
+            result[0][i] = Mod2N(r_sh.data[1] - r_sh.data[0], d);
         }
     } else if (party_id == 1) {
         for (uint64_t i = 0; i < qs; ++i) {
             rss_.Rand(r_sh);
-            result[0][i] = Mod(zt_0[i] + r_sh.data[1] - r_sh.data[0], d);
+            result[0][i] = Mod2N(zt_0[i] + r_sh.data[1] - r_sh.data[0], d);
         }
     } else {
         for (uint64_t i = 0; i < qs; ++i) {
             rss_.Rand(r_sh);
-            result[0][i] = Mod(zt_1[i] + r_sh.data[1] - r_sh.data[0], d);
+            result[0][i] = Mod2N(zt_1[i] + r_sh.data[1] - r_sh.data[0], d);
         }
     }
     chls.next.send(result[0]);

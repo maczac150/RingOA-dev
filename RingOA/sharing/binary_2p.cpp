@@ -356,7 +356,7 @@ void BinarySharing2P::EvaluateAnd(const uint64_t party_id, osuCrypto::Channel &c
 }
 
 uint64_t BinarySharing2P::GenerateRandomValue() const {
-    return Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    return Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
 }
 
 void BinarySharing2P::PrintTriples(const size_t limit) const {

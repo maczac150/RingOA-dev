@@ -244,11 +244,21 @@ uint64_t WaveletMatrix::Quantile(size_t l, size_t r, size_t k) const {
         size_t z_left     = rank0_tables_[off + left];
         size_t z_right    = rank0_tables_[off + right];
         size_t zero_count = z_right - z_left;
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Bit " + ToString(bit) + ", k = " + ToString(k));
+        Logger::DebugLog(LOC, "Left: " + ToString(left) + ", Right: " + ToString(right));
+        Logger::DebugLog(LOC, "Z_Left: " + ToString(z_left) + ", Z_Right: " + ToString(z_right));
+        Logger::DebugLog(LOC, "Zero_Count: " + ToString(zero_count));
+#endif
 
         if (k < zero_count) {
             // k-th lies in the 0-bucket
             left  = z_left;
             right = z_right;
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::DebugLog(LOC, "Update to 0-bucket: Left=" + ToString(left) + ", Right=" + ToString(right));
+            Logger::DebugLog(LOC, "Result so far: " + ToString(result));
+#endif
         } else {
             // k-th lies in the 1-bucket
             k -= zero_count;
@@ -258,6 +268,10 @@ uint64_t WaveletMatrix::Quantile(size_t l, size_t r, size_t k) const {
             left               = total_zeros + o_left;
             right              = total_zeros + o_right;
             result |= (1ULL << bit);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::DebugLog(LOC, "Update to 1-bucket: Left=" + ToString(left) + ", Right=" + ToString(right));
+            Logger::DebugLog(LOC, "Result so far: " + ToString(result));
+#endif
         }
     }
     return result;

@@ -8,39 +8,23 @@ namespace ringoa {
 using block = osuCrypto::block;
 
 /**
- * @brief Create a block from two 64-bit integers.
- * @param high The higher 64-bit integer.
- * @param low The lower 64-bit integer.
- * @return The block created from the two integers.
+ * Small helpers around osuCrypto::block (128-bit).
+ * - Portable fallbacks where SSE4.1 might be unavailable.
  */
 inline block MakeBlock(uint64_t high, uint64_t low) {
     return osuCrypto::toBlock(high, low);
 }
 
-/**
- * @brief Get the least significant bit of a block.
- * @param x The block to be checked.
- * @return The least significant bit of the block.
- */
 inline bool GetLsb(const block &x) {
     // Extract low 64 bits then check bit-0
     return (_mm_extract_epi64(x.mData, 0) & 1) != 0;
 }
 
-/**
- * @brief Set the least significant bit of a block to zero.
- * @param x The block to be modified.
- */
 inline void SetLsbZero(block &x) {
-    // Set the least significant bit to zero
+    // Clear bit 0 of the low 64-bit lane.
     x.mData = _mm_andnot_si128(_mm_set_epi64x(0, 1), x.mData);
 }
-/**
- * @brief Get the bit at a specific position in a block.
- * @param block The block to be checked.
- * @param bit_position The position of the bit to be checked (0-127).
- * @return True if the bit is set, false otherwise.
- */
+
 inline bool GetBit(block &block, uint64_t bit_position) {
     if (bit_position < 64) {
         return (block.get<uint64_t>()[0] >> bit_position) & 1;
@@ -49,13 +33,13 @@ inline bool GetBit(block &block, uint64_t bit_position) {
     }
 }
 
-// Predefined constants
-static const block                zero_block         = MakeBlock(0, 0);
-static const block                one_block          = MakeBlock(0, 1);
-static const block                not_one_block      = MakeBlock(uint64_t(-1), uint64_t(-2));
-static const block                all_one_block      = MakeBlock(uint64_t(-1), uint64_t(-1));
-static const std::array<block, 2> zero_and_all_one   = {zero_block, all_one_block};
-static const block                all_bytes_one_mask = _mm_set1_epi8(0x01);
+// inline variables (ODR-safe single definition across TUs)
+inline const block                zero_block         = MakeBlock(0, 0);
+inline const block                one_block          = MakeBlock(0, 1);
+inline const block                not_one_block      = MakeBlock(~0ull, ~1ull);
+inline const block                all_one_block      = MakeBlock(~0ull, ~0ull);
+inline const std::array<block, 2> zero_and_all_one   = {zero_block, all_one_block};
+inline const block                all_bytes_one_mask = block{_mm_set1_epi8(0x01)};
 
 }    // namespace ringoa
 

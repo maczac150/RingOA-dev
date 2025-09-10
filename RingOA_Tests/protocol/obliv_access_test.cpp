@@ -28,7 +28,7 @@ namespace test_ringoa {
 using ringoa::Channels;
 using ringoa::FileIo;
 using ringoa::Logger;
-using ringoa::Mod;
+using ringoa::Mod2N;
 using ringoa::ThreePartyNetworkManager;
 using ringoa::ToString, ringoa::Format;
 using ringoa::fss::EvalType;

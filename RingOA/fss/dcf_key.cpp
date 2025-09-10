@@ -68,6 +68,29 @@ DcfKey::DcfKey(const uint64_t id, const DcfParameters &params)
     std::fill(cw_value.get(), cw_value.get() + cw_length, 0);
 }
 
+bool DcfKey::operator==(const DcfKey &rhs) const {
+    if (party_id != rhs.party_id)
+        return false;
+    if (init_seed != rhs.init_seed)
+        return false;
+    if (cw_length != rhs.cw_length)
+        return false;
+    if (output != rhs.output)
+        return false;
+
+    for (uint64_t i = 0; i < cw_length; ++i) {
+        if (cw_seed[i] != rhs.cw_seed[i])
+            return false;
+        if (cw_control_left[i] != rhs.cw_control_left[i])
+            return false;
+        if (cw_control_right[i] != rhs.cw_control_right[i])
+            return false;
+        if (cw_value[i] != rhs.cw_value[i])
+            return false;
+    }
+    return true;
+}
+
 size_t DcfKey::CalculateSerializedSize() const {
     size_t size = 0;
 

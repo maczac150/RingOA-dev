@@ -10,49 +10,42 @@
 namespace ringoa {
 
 /**
- * @brief Two-Party Network Manager
+ * TwoPartyNetworkManager
+ *
+ * Usage:
+ *   TwoPartyNetworkManager nm("chan");
+ *   nm.AutoConfigure(party_id,
+ *     [](osuCrypto::Channel& chl){ ** server task ** },
+ *     [](osuCrypto::Channel& chl){ ** client task ** });
+ *   nm.WaitForCompletion();
+ *
+ * Notes:
+ *   - Not thread-safe across methods. Call from a single thread per instance.
+ *   - Destructor joins threads and stops IO service if still running.
  */
 class TwoPartyNetworkManager {
 public:
-    // Default IP address and port
     static constexpr const char *DEFAULT_IP   = "127.0.0.1";
     static constexpr uint16_t    DEFAULT_PORT = 54321;
 
-    /**
-     * @brief Constructor: Sets default or user-specified values
-     * @param channel_name Channel name for communication
-     * @param ip_address IP address for communication (default: 127.0.0.1)
-     * @param port Port number for communication (default: 54321)
-     */
     TwoPartyNetworkManager(const std::string &channel_name,
                            const std::string &ip_address = DEFAULT_IP,
                            uint16_t           port       = DEFAULT_PORT);
 
-    /**
-     * @brief Start the server
-     * @param server_task Task to execute on the server
-     */
-    void StartServer(std::function<void(osuCrypto::Channel &)> server_task);
+    // Non-copyable, movable
+    TwoPartyNetworkManager(const TwoPartyNetworkManager &)                = delete;
+    TwoPartyNetworkManager &operator=(const TwoPartyNetworkManager &)     = delete;
+    TwoPartyNetworkManager(TwoPartyNetworkManager &&) noexcept            = default;
+    TwoPartyNetworkManager &operator=(TwoPartyNetworkManager &&) noexcept = default;
 
-    /**
-     * @brief Start the client
-     * @param client_task Task to execute on the client
-     */
+    void StartServer(std::function<void(osuCrypto::Channel &)> server_task);
     void StartClient(std::function<void(osuCrypto::Channel &)> client_task);
 
-    /**
-     * @brief Automatically configure server and client based on party ID.
-     * @param party_id Party ID (0 for server, 1 for client). If unspecified, run both.
-     * @param server_task Task to execute on the server
-     * @param client_task Task to execute on the client
-     */
+    // party_id: 0 -> server, 1 -> client, others -> both
     void AutoConfigure(int                                       party_id,
                        std::function<void(osuCrypto::Channel &)> server_task,
                        std::function<void(osuCrypto::Channel &)> client_task);
 
-    /**
-     * @brief Wait for both server and client threads to complete
-     */
     void WaitForCompletion();
 
 private:
@@ -65,21 +58,30 @@ private:
 };
 
 /**
- * @brief Three-Party Network Manager
+ * ThreePartyNetworkManager
+ *
+ * Usage:
+ *   ThreePartyNetworkManager nm;
+ *   nm.AutoConfigure(party_id, task0, task1, task2);
+ *   nm.WaitForCompletion();
+ *
+ * Notes:
+ *   - Each party connects to prev/next neighbors: ids (i-1) mod 3, (i+1) mod 3.
+ *   - Destructor joins threads and stops IO service if still running.
  */
 class ThreePartyNetworkManager {
 public:
-    // Default IP address and port
     static constexpr const char *DEFAULT_IP   = "127.0.0.1";
     static constexpr uint16_t    DEFAULT_PORT = 55555;
 
-    /**
-     * @brief Constructor: Sets default or user-specified values
-     * @param ip_address IP address for communication (default: 127.0.0.1)
-     * @param port Port number for communication (default: 54321)
-     */
     ThreePartyNetworkManager(const std::string &ip_address = DEFAULT_IP,
                              uint16_t           port       = DEFAULT_PORT);
+
+    // Non-copyable, movable
+    ThreePartyNetworkManager(const ThreePartyNetworkManager &)                = delete;
+    ThreePartyNetworkManager &operator=(const ThreePartyNetworkManager &)     = delete;
+    ThreePartyNetworkManager(ThreePartyNetworkManager &&) noexcept            = default;
+    ThreePartyNetworkManager &operator=(ThreePartyNetworkManager &&) noexcept = default;
 
     void Start(const uint32_t party_id, std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> task);
 
@@ -99,9 +101,7 @@ private:
     std::thread          party2_thread_;
 };
 
-/**
- * @brief Channels structure for managing three-party communication
- */
+// Channels structure for managing three-party communication
 struct Channels {
     uint32_t           party_id;
     osuCrypto::Channel prev;

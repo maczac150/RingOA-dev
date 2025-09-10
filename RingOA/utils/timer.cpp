@@ -32,8 +32,15 @@ void TimerManager::Stop(const std::string &msg) {
         Logger::ErrorLog(LOC, "No timer selected.");
         return;
     }
-    auto &timer     = timers_[current_timer_id_];
-    auto  stop_time = std::chrono::high_resolution_clock::now();
+
+    auto &timer = timers_[current_timer_id_];
+
+    if (timer.start_times.empty()) {
+        Logger::ErrorLog(LOC, "Timer has not been started.");
+        return;
+    }
+
+    auto stop_time = std::chrono::high_resolution_clock::now();
     timer.end_times.push_back(stop_time);
 
     // Record elapsed time in nanoseconds (base unit)
@@ -67,7 +74,13 @@ void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit un
         return;
     }
 
-    const auto &timer    = timers_.at(current_timer_id_);
+    const auto it = timers_.find(current_timer_id_);
+    if (it == timers_.end()) {
+        Logger::ErrorLog(LOC, "Invalid timer selected.");
+        return;
+    }
+
+    const auto &timer    = it->second;
     std::string unit_str = GetUnitString(unit);
 
     std::ostringstream header_message;
@@ -77,77 +90,98 @@ void TimerManager::PrintCurrentResults(const std::string &msg, const TimeUnit un
                    << " Count=" << timer.elapsed_times.size();
     Logger::InfoLog("", header_message.str());
 
-    double total_time = 0.0;
-    double max_time   = 0.0;
-    double min_time   = std::numeric_limits<double>::max();
+    if (timer.elapsed_times.empty()) {
+        Logger::InfoLog("", "[Summary] Name=\"" + timer.name + "\" Unit=" + unit_str +
+                                " Message=\"" + msg + "\" No entries.");
+        return;
+    }
 
-    std::vector<double> elapsed_converted;
+    double total = 0.0;
+    double max_v = std::numeric_limits<double>::lowest();
+    double min_v = std::numeric_limits<double>::max();
+
+    std::vector<double> converted;
+    converted.reserve(timer.elapsed_times.size());
+
     for (size_t i = 0; i < timer.elapsed_times.size(); ++i) {
-        double elapsed = ConvertElapsedTime(timer.elapsed_times[i], NANOSECONDS, unit);
-        elapsed_converted.push_back(elapsed);
-        total_time += elapsed;
-        max_time = std::max(max_time, elapsed);
-        min_time = std::min(min_time, elapsed);
+        const double elapsed = ConvertElapsedTime(timer.elapsed_times[i], NANOSECONDS, unit);
+        converted.push_back(elapsed);
+        total += elapsed;
+        max_v = std::max(max_v, elapsed);
+        min_v = std::min(min_v, elapsed);
 
-        std::ostringstream log_message;
-        log_message << "TimerName=\"" << timer.name << "\""
-                    << " Message=\"" << timer.messages[i] << "\""
-                    << " Elapsed=" << elapsed;
-        Logger::InfoLog("", log_message.str());
+        if (show_details) {
+            std::ostringstream line;
+            line << "TimerName=\"" << timer.name << "\""
+                 << " Message=\"" << timer.messages[i] << "\""
+                 << " Elapsed=" << elapsed;
+            Logger::InfoLog("", line.str());
+        }
     }
 
-    double avg_time = timer.elapsed_times.empty() ? 0.0 : total_time / timer.elapsed_times.size();
+    const double avg = total / static_cast<double>(converted.size());
 
-    // Calculate normalized variance
-    double variance = 0.0;
-    for (const auto &elapsed : elapsed_converted) {
-        variance += (elapsed - avg_time) * (elapsed - avg_time);
+    // Sample variance is not strictly required; here we use population variance for simplicity.
+    double var = 0.0;
+    if (converted.size() > 1) {
+        for (const double v : converted) {
+            const double d = v - avg;
+            var += d * d;
+        }
+        var /= static_cast<double>(converted.size());
     }
-    variance /= elapsed_converted.size();
-    double normalized_variance = variance / (avg_time * avg_time);
+    const double norm_var = (avg != 0.0) ? (var / (avg * avg)) : 0.0;
+
+    std::ostringstream summary;
+    summary << std::fixed << std::setprecision(3);
 
     std::ostringstream summary_header;
     summary_header << "[Summary] Name=\"" << timer.name << "\""
                    << " Unit=" << unit_str
-                   << " Message=\"" << msg << "\"";
+                   << " Message=\"" << msg << "\" ";
 
-    std::ostringstream summary_total;
-    summary_total << std::fixed << std::setprecision(3);
-    summary_total << "Total=" << total_time;
-    Logger::InfoLog("", summary_header.str() + " " + summary_total.str());
+    summary.str("");
+    summary.clear();
+    summary << "Total=" << total;
+    Logger::InfoLog("", summary_header.str() + summary.str());
 
-    std::ostringstream summary_avg;
-    summary_avg << std::fixed << std::setprecision(3);
-    summary_avg << "Avg=" << avg_time;
-    Logger::InfoLog("", summary_header.str() + " " + summary_avg.str());
+    summary.str("");
+    summary.clear();
+    summary << "Avg=" << avg;
+    Logger::InfoLog("", summary_header.str() + summary.str());
 
     if (show_details) {
-        std::ostringstream summary_details;
-        summary_details << std::fixed << std::setprecision(3);
-        summary_details << "Max=" << max_time << " Min=" << min_time << " Var=" << normalized_variance;
-        Logger::InfoLog("", summary_header.str() + " " + summary_details.str());
+        summary.str("");
+        summary.clear();
+        summary << "Max=" << max_v << " Min=" << min_v << " Var=" << norm_var;
+        Logger::InfoLog("", summary_header.str() + summary.str());
     }
 }
 
-void TimerManager::PrintAllResults(const std::string &msg, const TimeUnit unit, const bool show_details) {
-    std::string unit_str = GetUnitString(unit);
-
+void TimerManager::PrintAllResults(const std::string &msg,
+                                   const TimeUnit     unit,
+                                   const bool         show_details) {
+    const int32_t prev = current_timer_id_;    // restore selection afterward
     for (int32_t i = 0; i < timer_count_; ++i) {
+        if (timers_.find(i) == timers_.end())
+            continue;
         SelectTimer(i);
         PrintCurrentResults(msg, unit, show_details);
     }
+    current_timer_id_ = prev;
 }
 
-// Base time unit is nanoseconds
+// Base unit: nanoseconds
 double TimerManager::GetElapsedTime(const TimePoint &start, const TimePoint &end) const {
     using namespace std::chrono;
-    return duration_cast<nanoseconds>(end - start).count();    // 常にナノ秒で返す
+    return duration_cast<nanoseconds>(end - start).count();
 }
 
-// Converts elapsed time between units
+// Convert between (ns, us, ms, s). 'from' is typically NANOSECONDS for this manager.
 double TimerManager::ConvertElapsedTime(double time, TimeUnit from, TimeUnit to) const {
-    static const double conversion[] = {1.0, 1000.0, 1000000.0, 1000000000.0};
-    return time * (conversion[from] / conversion[to]);
+    static const double k      = 1000.0;                        // 1e3 scale between adjacent units
+    static const double conv[] = {1.0, k, k * k, k * k * k};    // ns, us, ms, s
+    return time * (conv[from] / conv[to]);
 }
 
 std::string TimerManager::GetUnitString(TimeUnit unit) const {
@@ -155,7 +189,7 @@ std::string TimerManager::GetUnitString(TimeUnit unit) const {
         case NANOSECONDS:
             return "ns";
         case MICROSECONDS:
-            return "\xC2\xB5s";    // Microseconds symbol
+            return "\xC2\xB5s";    // micro sign
         case MILLISECONDS:
             return "ms";
         case SECONDS:

@@ -9,60 +9,46 @@ namespace ringoa {
 namespace fss {
 namespace prg {
 
-/**
- * @brief Pseudo-random generator class.
- */
+// Clear side selection (avoid bool ambiguity).
+enum class Side : uint8_t
+{
+    kLeft  = 0,
+    kRight = 1
+};
+
+// Pseudo-random generator based on osuCrypto::AES.
+// Usage:
+//   auto& prg = PseudoRandomGenerator::GetInstance();
+//   block out;
+//   prg.Expand(seed, out, Side::Left);   // PRG(seed; key=seed_left)
+// Notes:
+//   - Not thread-safe.
+//   - Keys are fixed for the singleton instance.
+//   - AES backend: osuCrypto::AES.
+
 class PseudoRandomGenerator {
 public:
-    /**
-     * @brief Default constructor for PseudoRandomGenerator.
-     * @param init_seed0 The initial seed for the PRG.
-     * @param init_seed1 The initial seed for the PRG.
-     * @param init_seed2 The initial seed for the PRG.
-     * @param init_seed3 The initial seed for the PRG.
-     */
-    PseudoRandomGenerator(block init_seed0, block init_seed1,
-                          block init_seed2, block init_seed3);
+    PseudoRandomGenerator(block seedL, block seedR, block valueL, block valueR);
 
-    /**
-     * @brief Encrypts the input block using a single AES key.
-     * @param seed_in The input block to be encrypted.
-     * @param seed_out The output block after encryption.
-     * @param key_lr The AES key to be used.
-     */
-    void Expand(block seed_in, block &seed_out, bool key_lr);
+    // PRG for a single block with "seed" keys.
+    void Expand(const block &in, block &out, Side side) noexcept;
 
-    /**
-     * @brief Encrypts the input block using a single AES key.
-     * @param seed_in The input block to be encrypted.
-     * @param seed_out The output block after encryption.
-     * @param key_lr The AES key to be used.
-     */
-    void ExpandValue(block seed_in, block &seed_out, bool key_lr);
+    // PRG for a single block with "value" keys.
+    void ExpandValue(const block &in, block &out, Side side) noexcept;
 
-    /**
-     * @brief Encrypts an array of 8 input blocks using a single AES key.
-     * @param seed_in The input blocks to be encrypted.
-     * @param seed_out The output blocks after encryption.
-     * @param key_lr The AES key to be used.
-     */
-    void Expand(std::array<block, 8> &seed_in, std::array<block, 8> &seed_out, bool key_lr);
+    // PRG for N blocks with "seed" keys.
+    template <size_t N>
+    void Expand(const std::array<block, N> &in,
+                std::array<block, N>       &out,
+                Side                        side) noexcept;
 
-    /**
-     * @brief Encrypts the input block using the PRG.
-     * @param seed_in The input block to be encrypted.
-     * @param seed_out The output block after encryption.
-     */
-    void DoubleExpand(block seed_in, std::array<block, 2> &seed_out);
+    // Expand with both "seed" keys: out[0]=PRG_left(in), out[1]=PRG_right(in).
+    void DoubleExpand(const block &in, std::array<block, 2> &out) noexcept;
 
-    /**
-     * @brief Encrypts the input block using the PRG.
-     * @param seed_in The input block to be encrypted.
-     * @param seed_out The output block after encryption.
-     */
-    void DoubleExpandValue(block seed_in, std::array<block, 2> &seed_out);
+    // Expand with both "value" keys.
+    void DoubleExpandValue(const block &in, std::array<block, 2> &out) noexcept;
 
-    static PseudoRandomGenerator &GetInstance();
+    static PseudoRandomGenerator &GetInstance() noexcept;
 
 private:
     std::array<osuCrypto::AES, 2> aes_seed_;  /**< AES instances for the PRG from osuCrypto. */

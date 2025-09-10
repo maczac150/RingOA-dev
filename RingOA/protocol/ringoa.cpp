@@ -162,7 +162,7 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
             if (fs0) {
                 w[i] = 1;
             } else {
-                w[i] = Mod(-1, d);
+                w[i] = Mod2N(-1, d);
             }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             Logger::DebugLog(LOC, "fs0: " + ToString(fs0) + ", alpha_hat: " + ToString(GetLowerNBits(rands[i], remaining_bit)));
@@ -171,7 +171,7 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
         } else {
             uint64_t fs1 = GetBit(final_seed_1, GetLowerNBits(rands[i], remaining_bit));
             if (fs1) {
-                w[i] = Mod(-1, d);
+                w[i] = Mod2N(-1, d);
             } else {
                 w[i] = 1;
             }
@@ -282,10 +282,10 @@ void RingOaEvaluator::Evaluate(Channels                      &chls,
     Logger::DebugLog(LOC, party_str + "ext_dp_prev: " + ToString(ext_dp_prev) + ", ext_dp_next: " + ToString(ext_dp_next));
 #endif
 
-    uint64_t            selected_sh = Mod(ext_dp_prev + ext_dp_next, d);
+    uint64_t            selected_sh = Mod2N(ext_dp_prev + ext_dp_next, d);
     sharing::RepShare64 r_sh;
     rss_.Rand(r_sh);
-    result[0] = Mod(selected_sh + r_sh[0] - r_sh[1], d);
+    result[0] = Mod2N(selected_sh + r_sh[0] - r_sh[1], d);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -358,13 +358,13 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
                               ", ext_dp_next1: " + ToString(ext_dp_next[0]) + ", ext_dp_next2: " + ToString(ext_dp_next[1]));
 #endif
 
-    uint64_t            selected1_sh = Mod(ext_dp_prev[0] + ext_dp_next[0], d);
-    uint64_t            selected2_sh = Mod(ext_dp_prev[1] + ext_dp_next[1], d);
+    uint64_t            selected1_sh = Mod2N(ext_dp_prev[0] + ext_dp_next[0], d);
+    uint64_t            selected2_sh = Mod2N(ext_dp_prev[1] + ext_dp_next[1], d);
     sharing::RepShare64 r1_sh, r2_sh;
     rss_.Rand(r1_sh);
     rss_.Rand(r2_sh);
-    result[0][0] = Mod(selected1_sh + r1_sh[0] - r1_sh[1], d);
-    result[0][1] = Mod(selected2_sh + r2_sh[0] - r2_sh[1], d);
+    result[0][0] = Mod2N(selected1_sh + r1_sh[0] - r1_sh[1], d);
+    result[0][1] = Mod2N(selected2_sh + r2_sh[0] - r2_sh[1], d);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -403,14 +403,14 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
         for (int j = 0; j < 64; ++j) {
             const uint64_t mask_prev = 0ULL - ((low_prev >> j) & 1ULL);
             const uint64_t mask_next = 0ULL - ((low_next >> j) & 1ULL);
-            dp_prev                  = Mod(dp_prev + Sign(key_from_next.party_id) * (database.share1[Mod((i * 128 + j) + pr_prev, d)] & mask_prev), d);
-            dp_next                  = Mod(dp_next + Sign(key_from_prev.party_id) * (database.share0[Mod((i * 128 + j) + pr_next, d)] & mask_next), d);
+            dp_prev                  = Mod2N(dp_prev + Sign(key_from_next.party_id) * (database.share1[Mod2N((i * 128 + j) + pr_prev, d)] & mask_prev), d);
+            dp_next                  = Mod2N(dp_next + Sign(key_from_prev.party_id) * (database.share0[Mod2N((i * 128 + j) + pr_next, d)] & mask_next), d);
         }
         for (int j = 0; j < 64; ++j) {
             const uint64_t mask_prev = 0ULL - ((high_prev >> j) & 1ULL);
             const uint64_t mask_next = 0ULL - ((high_next >> j) & 1ULL);
-            dp_prev                  = Mod(dp_prev + Sign(key_from_next.party_id) * (database.share1[Mod((i * 128 + 64 + j) + pr_prev, d)] & mask_prev), d);
-            dp_next                  = Mod(dp_next + Sign(key_from_prev.party_id) * (database.share0[Mod((i * 128 + 64 + j) + pr_next, d)] & mask_next), d);
+            dp_prev                  = Mod2N(dp_prev + Sign(key_from_next.party_id) * (database.share1[Mod2N((i * 128 + 64 + j) + pr_prev, d)] & mask_prev), d);
+            dp_next                  = Mod2N(dp_next + Sign(key_from_prev.party_id) * (database.share0[Mod2N((i * 128 + 64 + j) + pr_next, d)] & mask_next), d);
         }
     }
     return std::make_pair(dp_prev, dp_next);
@@ -442,8 +442,8 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
         chls.next.send(pr_01_sh[1]);
         chls.next.recv(pr_01);
         chls.prev.recv(pr_20);
-        pr_prev = Mod(pr_20 + pr_20_sh[0] + pr_20_sh[1], d);
-        pr_next = Mod(pr_01_sh[0] + pr_01_sh[1] + pr_01, d);
+        pr_prev = Mod2N(pr_20 + pr_20_sh[0] + pr_20_sh[1], d);
+        pr_next = Mod2N(pr_01_sh[0] + pr_01_sh[1] + pr_01, d);
 
     } else if (chls.party_id == 1) {
         sharing::RepShare64 r_0_sh(0, key.rsh_from_prev);
@@ -458,8 +458,8 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
         chls.prev.send(pr_01_sh[0]);
         chls.prev.recv(pr_01);
         chls.next.recv(pr_12);
-        pr_prev = Mod(pr_01 + pr_01_sh[0] + pr_01_sh[1], d);
-        pr_next = Mod(pr_12_sh[0] + pr_12_sh[1] + pr_12, d);
+        pr_prev = Mod2N(pr_01 + pr_01_sh[0] + pr_01_sh[1], d);
+        pr_next = Mod2N(pr_12_sh[0] + pr_12_sh[1] + pr_12, d);
 
     } else {
         sharing::RepShare64 r_0_sh(key.rsh_from_next, 0);
@@ -474,8 +474,8 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
         chls.next.send(pr_20_sh[1]);
         chls.prev.recv(pr_12);
         chls.next.recv(pr_20);
-        pr_prev = Mod(pr_12 + pr_12_sh[0] + pr_12_sh[1], d);
-        pr_next = Mod(pr_20_sh[0] + pr_20_sh[1] + pr_20, d);
+        pr_prev = Mod2N(pr_12 + pr_12_sh[0] + pr_12_sh[1], d);
+        pr_next = Mod2N(pr_20_sh[0] + pr_20_sh[1] + pr_20, d);
     }
     return std::make_pair(pr_prev, pr_next);
 }
@@ -510,10 +510,10 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
         chls.next.send(pr_01_sh[1]);
         chls.next.recv(pr_01);
         chls.prev.recv(pr_20);
-        pr_prev1 = Mod(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], d);
-        pr_next1 = Mod(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], d);
-        pr_prev2 = Mod(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], d);
-        pr_next2 = Mod(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], d);
+        pr_prev1 = Mod2N(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], d);
+        pr_next1 = Mod2N(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], d);
+        pr_prev2 = Mod2N(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], d);
+        pr_next2 = Mod2N(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], d);
 
     } else if (chls.party_id == 1) {
         r_0_sh.Set(0, sharing::RepShare64(0, key1.rsh_from_prev));
@@ -530,10 +530,10 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
         chls.prev.send(pr_01_sh[0]);
         chls.prev.recv(pr_01);
         chls.next.recv(pr_12);
-        pr_prev1 = Mod(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], d);
-        pr_next1 = Mod(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], d);
-        pr_prev2 = Mod(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], d);
-        pr_next2 = Mod(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], d);
+        pr_prev1 = Mod2N(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], d);
+        pr_next1 = Mod2N(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], d);
+        pr_prev2 = Mod2N(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], d);
+        pr_next2 = Mod2N(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], d);
 
     } else {
         r_0_sh.Set(0, sharing::RepShare64(key1.rsh_from_next, 0));
@@ -550,10 +550,10 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
         chls.next.send(pr_20_sh[1]);
         chls.prev.recv(pr_12);
         chls.next.recv(pr_20);
-        pr_prev1 = Mod(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], d);
-        pr_next1 = Mod(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], d);
-        pr_prev2 = Mod(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], d);
-        pr_next2 = Mod(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], d);
+        pr_prev1 = Mod2N(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], d);
+        pr_next1 = Mod2N(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], d);
+        pr_prev2 = Mod2N(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], d);
+        pr_next2 = Mod2N(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], d);
     }
     return std::array<uint64_t, 4>{pr_prev1, pr_next1, pr_prev2, pr_next2};
 }

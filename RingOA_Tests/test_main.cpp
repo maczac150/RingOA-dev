@@ -24,6 +24,7 @@
 #include "RingOA_Tests/utils/timer_test.h"
 #include "RingOA_Tests/utils/utils_test.h"
 #include "RingOA_Tests/wm/owm_test.h"
+#include "RingOA_Tests/wm/oquantile_test.h"
 #include "RingOA_Tests/wm/wm_test.h"
 
 namespace test_ringoa {
@@ -84,6 +85,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("FMIndex_Test", FMIndex_Test);
     t.add("OWM_Offline_Test", OWM_Offline_Test);
     t.add("OWM_Online_Test", OWM_Online_Test);
+    t.add("OQuantile_Offline_Test", OQuantile_Offline_Test);
+    t.add("OQuantile_Online_Test", OQuantile_Online_Test);
     t.add("SotFMI_Offline_Test", SotFMI_Offline_Test);
     t.add("SotFMI_Online_Test", SotFMI_Online_Test);
     t.add("OFMI_Offline_Test", OFMI_Offline_Test);

@@ -4,6 +4,8 @@
 
 namespace ringoa {
 
+// ===== TwoPartyNetworkManager =====
+
 TwoPartyNetworkManager::TwoPartyNetworkManager(const std::string &channel_name,
                                                const std::string &ip_address,
                                                uint16_t           port)
@@ -50,9 +52,10 @@ void TwoPartyNetworkManager::StartClient(std::function<void(osuCrypto::Channel &
     });
 }
 
-void TwoPartyNetworkManager::AutoConfigure(int                                       party_id,
-                                           std::function<void(osuCrypto::Channel &)> server_task,
-                                           std::function<void(osuCrypto::Channel &)> client_task) {
+void TwoPartyNetworkManager::AutoConfigure(
+    int                                       party_id,
+    std::function<void(osuCrypto::Channel &)> server_task,
+    std::function<void(osuCrypto::Channel &)> client_task) {
     if (party_id == 0) {
         StartServer(server_task);
     } else if (party_id == 1) {
@@ -71,6 +74,8 @@ void TwoPartyNetworkManager::WaitForCompletion() {
         client_thread_.join();
     ios_.stop();
 }
+
+// ===== ThreePartyNetworkManager =====
 
 ThreePartyNetworkManager::ThreePartyNetworkManager(const std::string &ip_address,
                                                    uint16_t           port)
@@ -156,10 +161,11 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
     });
 }
 
-void ThreePartyNetworkManager::AutoConfigure(int                                                             party_id,
-                                             std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party0_task,
-                                             std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party1_task,
-                                             std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party2_task) {
+void ThreePartyNetworkManager::AutoConfigure(
+    int                                                             party_id,
+    std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party0_task,
+    std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party1_task,
+    std::function<void(osuCrypto::Channel &, osuCrypto::Channel &)> party2_task) {
     if (party_id == 0) {
         Start(0, party0_task);
     } else if (party_id == 1) {

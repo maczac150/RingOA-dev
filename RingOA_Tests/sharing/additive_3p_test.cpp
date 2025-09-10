@@ -349,9 +349,9 @@ void Additive3P_EvaluateInnerProduct_Online_Test() {
         Logger::DebugLog(LOC, "open_z: " + ToString(open_z));
 
         // Validate the opened value
-        if (open_z != ringoa::Mod(35, bitsize))
+        if (open_z != ringoa::Mod2N(35, bitsize))
             throw osuCrypto::UnitTestFail(
-                "Additive protocol failed: open_z != Mod(35, " + ToString(bitsize) + ")");
+                "Additive protocol failed: open_z != Mod2N(35, " + ToString(bitsize) + ")");
     }
 
     Logger::DebugLog(LOC, "Additive3P_EvaluateInnerProduct_Online_Test - Passed");

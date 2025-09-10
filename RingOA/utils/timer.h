@@ -25,62 +25,59 @@ enum TimeUnit
 typedef std::chrono::high_resolution_clock::time_point TimePoint;
 
 /**
- * @brief Timer Manager to handle multiple timers.
+ * TimerManager provides simple measurement utilities.
+ *
+ * Usage flow:
+ *   1. CreateNewTimer("name") -> returns timer ID
+ *   2. SelectTimer(id)
+ *   3. Start() ... Stop("msg")   // measure interval
+ *   4. Mark("msg")               // checkpoint without stopping
+ *   5. PrintCurrentResults() or PrintAllResults()
+ *
+ * Features:
+ *   - Multiple timers can be created and managed by ID.
+ *   - Results can be printed in ns/us/ms/s.
+ *   - Each Start/Stop pair records one elapsed time.
+ *
+ * Notes:
+ *   - Not thread-safe.
+ *   - Start/Stop calls should be balanced.
+ *   - Results accumulate until TimerManager is destroyed.
+ *
+ * Example:
+ *   ringoa::TimerManager tm;
+ *   int id = tm.CreateNewTimer("exp1");
+ *   tm.SelectTimer(id);
+ *   tm.Start();
+ *   // ... computation ...
+ *   tm.Mark("after step1");
+ *   // ... computation ...
+ *   tm.Stop("finished");
+ *   tm.PrintCurrentResults("Experiment 1", ringoa::MILLISECONDS, true);
  */
 class TimerManager {
 public:
-    /**
-     * @brief Construct a new Timer Manager object.
-     */
-    TimerManager() {};
+    TimerManager() {
+    }
 
-    /**
-     * @brief Create a new timer.
-     * @param name
-     * @return int
-     */
     int32_t CreateNewTimer(const std::string &name = "");
-
+    void    SelectTimer(int32_t timer_id);
+    void    Start();
+    void    Stop(const std::string &msg = "");
     /**
-     * @brief Select a timer by ID.
-     * @param timer_id
-     */
-    void SelectTimer(int32_t timer_id);
-
-    /**
-     * @brief Start the selected timer.
-     */
-    void Start();
-
-    /**
-     * @brief Stop the selected timer.
-     * @param msg The message to record.
-     */
-    void Stop(const std::string &msg = "");
-
-    /**
-     * @brief Mark the current time.
-     * @param msg The message to record.
+     * Mark(): checkpoints the time since the last Start() without stopping the timer.
+     * Note: If you call Mark() multiple times after one Start(), each mark grows cumulatively.
+     * Summaries sum all recorded entries (including marks).
      */
     void Mark(const std::string &msg = "");
-
-    /**
-     * @brief Print the results of the current timer.
-     * @param msg The message to print.
-     * @param unit The time unit to print.
-     */
-    void PrintCurrentResults(const std::string &msg = "", const TimeUnit unit = MILLISECONDS, const bool show_details = false) const;
-
-    /**
-     * @brief Print all results of the timers.
-     * @param unit The time unit to print.
-     */
-    void PrintAllResults(const std::string &msg = "", const TimeUnit unit = MILLISECONDS, const bool show_details = false);
+    void PrintCurrentResults(const std::string &msg          = "",
+                             TimeUnit           unit         = MILLISECONDS,
+                             bool               show_details = false) const;
+    void PrintAllResults(const std::string &msg          = "",
+                         TimeUnit           unit         = MILLISECONDS,
+                         bool               show_details = false);
 
 private:
-    /**
-     * @brief Timer structure to store timer data.
-     */
     struct Timer {
         std::string              name;
         std::vector<TimePoint>   start_times;
@@ -89,32 +86,12 @@ private:
         std::vector<std::string> messages;
     };
 
-    std::map<int, Timer> timers_;                /**< Map of timers with IDs */
-    int32_t              current_timer_id_ = -1; /**< ID of the selected timer */
-    int32_t              timer_count_      = 0;  /**< Timer count */
+    std::map<int, Timer> timers_;
+    int32_t              current_timer_id_ = -1;
+    int32_t              timer_count_      = 0;
 
-    /**
-     * @brief Get the elapsed time between two time points.
-     * @param start The start time point.
-     * @param end The end time point.
-     * @return double The elapsed time between the two time points.
-     */
-    double GetElapsedTime(const TimePoint &start, const TimePoint &end) const;
-
-    /**
-     * @brief Convert elapsed time between units.
-     * @param time The elapsed time.
-     * @param from The source time unit.
-     * @param to The target time unit.
-     * @return double The converted elapsed time.
-     */
-    double ConvertElapsedTime(double time, TimeUnit from, TimeUnit to) const;
-
-    /**
-     * @brief Get the string representation of a time unit.
-     * @param unit The time unit.
-     * @return std::string The string representation of the time unit.
-     */
+    double      GetElapsedTime(const TimePoint &start, const TimePoint &end) const;
+    double      ConvertElapsedTime(double time, TimeUnit from, TimeUnit to) const;
     std::string GetUnitString(TimeUnit unit) const;
 };
 

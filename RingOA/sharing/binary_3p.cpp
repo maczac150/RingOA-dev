@@ -341,7 +341,7 @@ void BinaryReplicatedSharing3P::Rand(RepShareBlock &x) {
 }
 
 uint64_t BinaryReplicatedSharing3P::GenerateRandomValue() const {
-    return Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    return Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
 }
 
 void BinaryReplicatedSharing3P::EvaluateXor(const RepShare64 &x_sh, const RepShare64 &y_sh, RepShare64 &z_sh) const {

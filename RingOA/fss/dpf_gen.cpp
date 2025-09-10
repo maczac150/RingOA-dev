@@ -106,11 +106,11 @@ void DpfKeyGenerator::GenerateKeysNaive(const uint64_t alpha, const uint64_t bet
     }
 
     // Set the output
-    G_.Expand(seed_0, final_seed_0, true);
-    G_.Expand(seed_1, final_seed_1, true);
+    G_.Expand(seed_0, final_seed_0, prg::Side::kLeft);
+    G_.Expand(seed_1, final_seed_1, prg::Side::kLeft);
     final_control_bit_1 = control_bit_1;
 
-    uint64_t result        = Mod(Sign(final_control_bit_1) * (beta - Convert(final_seed_0, e) + Convert(final_seed_1, e)), e);
+    uint64_t result        = Mod2N(Sign(final_control_bit_1) * (beta - Convert(final_seed_0, e) + Convert(final_seed_1, e)), e);
     block    output        = MakeBlock(0, result);
     key_pair.first.output  = output;
     key_pair.second.output = output;
@@ -264,8 +264,8 @@ void DpfKeyGenerator::ComputeAdditiveShiftedOutput(uint64_t alpha, uint64_t beta
     block    output        = zero_block;
 
     // Seed expansion for the final output
-    G_.Expand(final_seed_0, final_seed_0, true);
-    G_.Expand(final_seed_1, final_seed_1, true);
+    G_.Expand(final_seed_0, final_seed_0, prg::Side::kLeft);
+    G_.Expand(final_seed_1, final_seed_1, prg::Side::kLeft);
 
     block beta_block = MakeBlock(0, beta);
 
@@ -320,8 +320,8 @@ void DpfKeyGenerator::ComputeSingleBitMaskOutput(uint64_t alpha, block &final_se
     block    output        = zero_block;
 
     // Seed expansion for the final output
-    G_.Expand(final_seed_0, final_seed_0, true);
-    G_.Expand(final_seed_1, final_seed_1, true);
+    G_.Expand(final_seed_0, final_seed_0, prg::Side::kLeft);
+    G_.Expand(final_seed_1, final_seed_1, prg::Side::kLeft);
 
     final_seed_0 ^= final_seed_1;    // XOR the final seeds for 7 bits
 

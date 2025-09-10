@@ -374,7 +374,13 @@ block OblivSelectEvaluator::ComputeDotProductBlockSIMD(const fss::dpf::DpfKey   
             uint64_t mask        = (current_idx >> (last_depth - 1U - current_level));
             bool     current_bit = mask & 1U;
 
-            G_.Expand(prev_seeds[current_level], expanded_seeds, current_bit);
+            fss::prg::Side side;
+            if (current_bit) {
+                side = fss::prg::Side::kRight;
+            } else {
+                side = fss::prg::Side::kLeft;
+            }
+            G_.Expand(prev_seeds[current_level], expanded_seeds, side);
             for (uint64_t i = 0; i < 8; ++i) {
                 expanded_control_bits[i] = GetLsb(expanded_seeds[i]);
                 SetLsbZero(expanded_seeds[i]);
@@ -408,7 +414,7 @@ block OblivSelectEvaluator::ComputeDotProductBlockSIMD(const fss::dpf::DpfKey   
         }
 
         // Seed expansion for the final output
-        G_.Expand(prev_seeds[current_level], prev_seeds[current_level], true);
+        G_.Expand(prev_seeds[current_level], prev_seeds[current_level], fss::prg::Side::kLeft);
 
         for (uint64_t j = 0; j < 8; ++j) {
             output_seeds[j] = prev_seeds[current_level][j] ^ (zero_and_all_one[prev_control_bits[current_level][j]] & key.output);
@@ -469,7 +475,7 @@ block OblivSelectEvaluator::ComputeDotProductBlockSIMD(const fss::dpf::DpfKey   
 
         // Update the current index
         int shift = (current_idx + 1U) ^ current_idx;
-        current_level -= log2floor(shift) + 1;
+        current_level -= Log2Floor(shift) + 1;
         current_idx++;
     }
 

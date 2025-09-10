@@ -106,7 +106,7 @@ std::pair<EqualityKey, EqualityKey> EqualityKeyGenerator::GenerateKeys() const {
     uint64_t r2_in = ss_in_.GenerateRandomValue();
 
     // Generate DPF keys
-    uint64_t                                      alpha    = Mod(r1_in - r2_in, n);
+    uint64_t                                      alpha    = Mod2N(r1_in - r2_in, n);
     std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey> dpf_keys = gen_.GenerateKeys(alpha, 1);
 
     // Set DPF keys for each party
@@ -185,7 +185,7 @@ uint64_t EqualityEvaluator::EvaluateMaskedInput(const EqualityKey &key, const ui
     Logger::DebugLog(LOC, party_str + " x1: " + ToString(x1) + ", x2: " + ToString(x2));
 #endif
 
-    uint64_t alpha  = Mod(x1 - x2, n);
+    uint64_t alpha  = Mod2N(x1 - x2, n);
     uint64_t output = eval_.EvaluateAt(key.dpf_key, alpha);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

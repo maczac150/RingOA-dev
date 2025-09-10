@@ -98,7 +98,7 @@ std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint6
     std::pair<DdcfKey, DdcfKey> key_pair = std::make_pair(std::move(keys[0]), std::move(keys[1]));
 
     // Calculate beta
-    uint64_t                                      beta     = Mod(beta_1 - beta_2, e);
+    uint64_t                                      beta     = Mod2N(beta_1 - beta_2, e);
     std::pair<fss::dcf::DcfKey, fss::dcf::DcfKey> dcf_keys = gen_.GenerateKeys(alpha, beta);
 
     // Set DDCF keys for each party
@@ -106,8 +106,8 @@ std::pair<DdcfKey, DdcfKey> DdcfKeyGenerator::GenerateKeys(uint64_t alpha, uint6
     key_pair.second.dcf_key = std::move(dcf_keys.second);
 
     // Generate share of beta_2
-    key_pair.first.mask  = Mod(GlobalRng::Rand<uint64_t>(), e);
-    key_pair.second.mask = Mod(beta_2 - key_pair.first.mask, e);
+    key_pair.first.mask  = Mod2N(GlobalRng::Rand<uint64_t>(), e);
+    key_pair.second.mask = Mod2N(beta_2 - key_pair.first.mask, e);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     key_pair.first.PrintKey();
@@ -137,7 +137,7 @@ uint64_t DdcfEvaluator::EvaluateAt(const DdcfKey &key, uint64_t x) const {
     Logger::DebugLog(LOC, party_str + " Output: " + ToString(output));
 #endif
 
-    output = Mod(output + key.mask, params_.GetOutputBitsize());
+    output = Mod2N(output + key.mask, params_.GetOutputBitsize());
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + " Output after mask: " + ToString(output));
 #endif

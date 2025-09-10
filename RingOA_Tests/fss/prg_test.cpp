@@ -12,6 +12,7 @@ namespace test_ringoa {
 using ringoa::block;
 using ringoa::Logger;
 using ringoa::ToString, ringoa::Format;
+using ringoa::fss::prg::Side;
 
 void Prg_Test() {
     Logger::DebugLog(LOC, "Prg_Test...");
@@ -28,14 +29,12 @@ void Prg_Test() {
     Logger::DebugLog(LOC, "seed_out[1]: " + Format(seed_out[1]));
 
     block expanded_seed;
-    bool  bit = false;
-    prg.Expand(seed_in, expanded_seed, bit);
+    prg.Expand(seed_in, expanded_seed, Side::kLeft);
 
     Logger::DebugLog(LOC, "expanded_seed: " + Format(expanded_seed));
     Logger::DebugLog(LOC, "Equal(seed_out[0], expanded_seed): " + ToString(seed_out[0] == expanded_seed));
 
-    bit = true;
-    prg.Expand(seed_in, expanded_seed, bit);
+    prg.Expand(seed_in, expanded_seed, Side::kRight);
 
     Logger::DebugLog(LOC, "expanded_seed: " + Format(expanded_seed));
     Logger::DebugLog(LOC, "Equal(seed_out[1], expanded_seed): " + ToString(seed_out[1] == expanded_seed));

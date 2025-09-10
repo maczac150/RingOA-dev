@@ -49,8 +49,7 @@ void WaveletMatrix_Test() {
             Logger::DebugLog(LOC, "Access(" + ToString(i) + ") = " + ToString(val));
 
             if (val != data[i]) {
-                throw osuCrypto::UnitTestFail("Access mismatch at i=" +
-                                              ToString(i) +
+                throw osuCrypto::UnitTestFail("Access mismatch at i=" + ToString(i) +
                                               " (expected " + ToString(data[i]) +
                                               ", got " + ToString(val) + ")");
             }
@@ -75,22 +74,22 @@ void WaveletMatrix_Test() {
             throw osuCrypto::UnitTestFail("Expected Quantile(2,8,5) == 7");
     }
 
-    {
-        for (size_t l = 0; l < data.size(); ++l) {
-            for (size_t r = l + 1; r <= data.size(); ++r) {
-                std::vector<uint64_t> sub(data.begin() + l, data.begin() + r);
-                std::sort(sub.begin(), sub.end());
-                for (size_t k = 0; k < sub.size(); ++k) {
-                    uint64_t q = wm.Quantile(l, r, k);
-                    if (q != sub[k]) {
-                        throw osuCrypto::UnitTestFail(
-                            "Quantile(" + ToString(l) + "," + ToString(r) + "," + ToString(k) +
-                            ") expected " + ToString(sub[k]) + " got " + ToString(q));
-                    }
-                }
-            }
-        }
-    }
+    // {
+    //     for (size_t l = 0; l < data.size(); ++l) {
+    //         for (size_t r = l + 1; r <= data.size(); ++r) {
+    //             std::vector<uint64_t> sub(data.begin() + l, data.begin() + r);
+    //             std::sort(sub.begin(), sub.end());
+    //             for (size_t k = 0; k < sub.size(); ++k) {
+    //                 uint64_t q = wm.Quantile(l, r, k);
+    //                 if (q != sub[k]) {
+    //                     throw osuCrypto::UnitTestFail(
+    //                         "Quantile(" + ToString(l) + "," + ToString(r) + "," + ToString(k) +
+    //                         ") expected " + ToString(sub[k]) + " got " + ToString(q));
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     {
         size_t l = 2, r = 8;

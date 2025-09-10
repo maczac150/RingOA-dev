@@ -47,25 +47,25 @@ void AdditiveSharing2P::OnlineSetUp(const uint64_t party_id, const std::string &
 }
 
 std::pair<uint64_t, uint64_t> AdditiveSharing2P::Share(const uint64_t &x) const {
-    uint64_t x_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    uint64_t x_1 = Mod(x - x_0, bitsize_);
+    uint64_t x_0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+    uint64_t x_1 = Mod2N(x - x_0, bitsize_);
     return std::make_pair(x_0, x_1);
 }
 
 std::pair<std::array<uint64_t, 2>, std::array<uint64_t, 2>> AdditiveSharing2P::Share(const std::array<uint64_t, 2> &x) const {
     std::array<uint64_t, 2> x_0, x_1;
-    x_0[0] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    x_0[1] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    x_1[0] = Mod(x[0] - x_0[0], bitsize_);
-    x_1[1] = Mod(x[1] - x_0[1], bitsize_);
+    x_0[0] = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+    x_0[1] = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+    x_1[0] = Mod2N(x[0] - x_0[0], bitsize_);
+    x_1[1] = Mod2N(x[1] - x_0[1], bitsize_);
     return {std::move(x_0), std::move(x_1)};
 }
 
 std::pair<std::vector<uint64_t>, std::vector<uint64_t>> AdditiveSharing2P::Share(const std::vector<uint64_t> &x) const {
     std::vector<uint64_t> x_0(x.size()), x_1(x.size());
     for (size_t i = 0; i < x.size(); ++i) {
-        x_0[i] = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        x_1[i] = Mod(x[i] - x_0[i], bitsize_);
+        x_0[i] = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        x_1[i] = Mod2N(x[i] - x_0[i], bitsize_);
     }
     return {std::move(x_0), std::move(x_1)};
 }
@@ -75,13 +75,13 @@ std::pair<BeaverTriples, BeaverTriples> AdditiveSharing2P::Share(const BeaverTri
     BeaverTriples triples_0(num_triples), triples_1(num_triples);
 
     for (uint64_t i = 0; i < num_triples; ++i) {
-        uint64_t a_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t b_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t c_0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t a_0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t b_0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t c_0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
 
-        uint64_t a_1 = Mod(triples.triples[i].a - a_0, bitsize_);
-        uint64_t b_1 = Mod(triples.triples[i].b - b_0, bitsize_);
-        uint64_t c_1 = Mod(triples.triples[i].c - c_0, bitsize_);
+        uint64_t a_1 = Mod2N(triples.triples[i].a - a_0, bitsize_);
+        uint64_t b_1 = Mod2N(triples.triples[i].b - b_0, bitsize_);
+        uint64_t c_1 = Mod2N(triples.triples[i].c - c_0, bitsize_);
 
         triples_0.triples[i] = {a_0, b_0, c_0};
         triples_1.triples[i] = {a_1, b_1, c_1};
@@ -91,12 +91,12 @@ std::pair<BeaverTriples, BeaverTriples> AdditiveSharing2P::Share(const BeaverTri
 }
 
 void AdditiveSharing2P::ReconstLocal(const uint64_t &x_0, const uint64_t &x_1, uint64_t &x) const {
-    x = Mod(x_0 + x_1, bitsize_);
+    x = Mod2N(x_0 + x_1, bitsize_);
 }
 
 void AdditiveSharing2P::ReconstLocal(const std::array<uint64_t, 2> &x_0, const std::array<uint64_t, 2> &x_1, std::array<uint64_t, 2> &x) const {
-    x[0] = Mod(x_0[0] + x_1[0], bitsize_);
-    x[1] = Mod(x_0[1] + x_1[1], bitsize_);
+    x[0] = Mod2N(x_0[0] + x_1[0], bitsize_);
+    x[1] = Mod2N(x_0[1] + x_1[1], bitsize_);
 }
 
 void AdditiveSharing2P::ReconstLocal(const std::vector<uint64_t> &x_0, const std::vector<uint64_t> &x_1, std::vector<uint64_t> &x) const {
@@ -109,7 +109,7 @@ void AdditiveSharing2P::ReconstLocal(const std::vector<uint64_t> &x_0, const std
         x.resize(x_0.size());
     }
     for (size_t i = 0; i < x.size(); ++i) {
-        x[i] = Mod(x_0[i] + x_1[i], bitsize_);
+        x[i] = Mod2N(x_0[i] + x_1[i], bitsize_);
     }
 }
 
@@ -124,7 +124,7 @@ void AdditiveSharing2P::ReconstLocal(const BeaverTriples &triples_0, const Beave
     }
     triples.num_triples = triples_0.num_triples;
 
-    auto add_mod = [this](uint64_t a, uint64_t b) { return Mod(a + b, bitsize_); };
+    auto add_mod = [this](uint64_t a, uint64_t b) { return Mod2N(a + b, bitsize_); };
 
     for (size_t i = 0; i < triples.num_triples; ++i) {
         triples.triples[i].a = add_mod(triples_0.triples[i].a, triples_1.triples[i].a);
@@ -141,7 +141,7 @@ void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl
         chl.recv(x_0);
         chl.send(x_1);
     }
-    x = Mod(x_0 + x_1, bitsize_);
+    x = Mod2N(x_0 + x_1, bitsize_);
 }
 
 void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 2> &x_0, std::array<uint64_t, 2> &x_1, std::array<uint64_t, 2> &x) const {
@@ -152,8 +152,8 @@ void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl
         chl.recv(x_0);
         chl.send(x_1);
     }
-    x[0] = Mod(x_0[0] + x_1[0], bitsize_);
-    x[1] = Mod(x_0[1] + x_1[1], bitsize_);
+    x[0] = Mod2N(x_0[0] + x_1[0], bitsize_);
+    x[1] = Mod2N(x_0[1] + x_1[1], bitsize_);
 }
 
 void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 4> &x_0, std::array<uint64_t, 4> &x_1, std::array<uint64_t, 4> &x) const {
@@ -164,10 +164,10 @@ void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl
         chl.recv(x_0);
         chl.send(x_1);
     }
-    x[0] = Mod(x_0[0] + x_1[0], bitsize_);
-    x[1] = Mod(x_0[1] + x_1[1], bitsize_);
-    x[2] = Mod(x_0[2] + x_1[2], bitsize_);
-    x[3] = Mod(x_0[3] + x_1[3], bitsize_);
+    x[0] = Mod2N(x_0[0] + x_1[0], bitsize_);
+    x[1] = Mod2N(x_0[1] + x_1[1], bitsize_);
+    x[2] = Mod2N(x_0[2] + x_1[2], bitsize_);
+    x[3] = Mod2N(x_0[3] + x_1[3], bitsize_);
 }
 
 void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::vector<uint64_t> &x_0, std::vector<uint64_t> &x_1, std::vector<uint64_t> &x) const {
@@ -182,7 +182,7 @@ void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl
         x.resize(x_0.size());
     }
     for (size_t i = 0; i < x.size(); ++i) {
-        x[i] = Mod(x_0[i] + x_1[i], bitsize_);
+        x[i] = Mod2N(x_0[i] + x_1[i], bitsize_);
     }
 }
 
@@ -208,18 +208,18 @@ void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl
         x[1].resize(x_0[1].size());
     }
     for (size_t i = 0; i < x[0].size(); ++i) {
-        x[0][i] = Mod(x_0[0][i] + x_1[0][i], bitsize_);
-        x[1][i] = Mod(x_0[1][i] + x_1[1][i], bitsize_);
+        x[0][i] = Mod2N(x_0[0][i] + x_1[0][i], bitsize_);
+        x[1][i] = Mod2N(x_0[1][i] + x_1[1][i], bitsize_);
     }
 }
 
 void AdditiveSharing2P::EvaluateAdd(const uint64_t &x, const uint64_t &y, uint64_t &z) const {
-    z = Mod(x + y, bitsize_);
+    z = Mod2N(x + y, bitsize_);
 }
 
 void AdditiveSharing2P::EvaluateAdd(const std::array<uint64_t, 2> &x, const std::array<uint64_t, 2> &y, std::array<uint64_t, 2> &z) const {
-    z[0] = Mod(x[0] + y[0], bitsize_);
-    z[1] = Mod(x[1] + y[1], bitsize_);
+    z[0] = Mod2N(x[0] + y[0], bitsize_);
+    z[1] = Mod2N(x[1] + y[1], bitsize_);
 }
 
 void AdditiveSharing2P::EvaluateAdd(const std::vector<uint64_t> &x, const std::vector<uint64_t> &y, std::vector<uint64_t> &z) const {
@@ -231,17 +231,17 @@ void AdditiveSharing2P::EvaluateAdd(const std::vector<uint64_t> &x, const std::v
         z.resize(x.size());
     }
     for (size_t i = 0; i < x.size(); ++i) {
-        z[i] = Mod(x[i] + y[i], bitsize_);
+        z[i] = Mod2N(x[i] + y[i], bitsize_);
     }
 }
 
 void AdditiveSharing2P::EvaluateSub(const uint64_t &x, const uint64_t &y, uint64_t &z) const {
-    z = Mod(x - y, bitsize_);
+    z = Mod2N(x - y, bitsize_);
 }
 
 void AdditiveSharing2P::EvaluateSub(const std::array<uint64_t, 2> &x, const std::array<uint64_t, 2> &y, std::array<uint64_t, 2> &z) const {
-    z[0] = Mod(x[0] - y[0], bitsize_);
-    z[1] = Mod(x[1] - y[1], bitsize_);
+    z[0] = Mod2N(x[0] - y[0], bitsize_);
+    z[1] = Mod2N(x[1] - y[1], bitsize_);
 }
 
 void AdditiveSharing2P::EvaluateSub(const std::vector<uint64_t> &x, const std::vector<uint64_t> &y, std::vector<uint64_t> &z) const {
@@ -253,7 +253,7 @@ void AdditiveSharing2P::EvaluateSub(const std::vector<uint64_t> &x, const std::v
         z.resize(x.size());
     }
     for (size_t i = 0; i < x.size(); ++i) {
-        z[i] = Mod(x[i] - y[i], bitsize_);
+        z[i] = Mod2N(x[i] - y[i], bitsize_);
     }
 }
 
@@ -281,11 +281,11 @@ void AdditiveSharing2P::EvaluateMult(const uint64_t party_id, osuCrypto::Channel
     std::array<uint64_t, 2> de_0, de_1;
 
     if (party_id == 0) {
-        de_0[0] = Mod(x - triple.a, bitsize_);    // d
-        de_0[1] = Mod(y - triple.b, bitsize_);    // e
+        de_0[0] = Mod2N(x - triple.a, bitsize_);    // d
+        de_0[1] = Mod2N(y - triple.b, bitsize_);    // e
     } else {
-        de_1[0] = Mod(x - triple.a, bitsize_);    // d
-        de_1[1] = Mod(y - triple.b, bitsize_);    // e
+        de_1[0] = Mod2N(x - triple.a, bitsize_);    // d
+        de_1[1] = Mod2N(y - triple.b, bitsize_);    // e
     }
 
     // -------------------------------------------------------
@@ -301,16 +301,16 @@ void AdditiveSharing2P::EvaluateMult(const uint64_t party_id, osuCrypto::Channel
     //    Beaver formula: z = a*e + b*d + c (+ d*e for party 0)
     // -------------------------------------------------------
     if (party_id == 0) {
-        z = Mod((de[1] * triple.a) +        // a * e
-                    (de[0] * triple.b) +    // b * d
-                    triple.c +              // c
-                    (de[0] * de[1]),        // d * e
-                bitsize_);
+        z = Mod2N((de[1] * triple.a) +        // a * e
+                      (de[0] * triple.b) +    // b * d
+                      triple.c +              // c
+                      (de[0] * de[1]),        // d * e
+                  bitsize_);
     } else {
-        z = Mod((de[1] * triple.a) +
-                    (de[0] * triple.b) +
-                    triple.c,
-                bitsize_);
+        z = Mod2N((de[1] * triple.a) +
+                      (de[0] * triple.b) +
+                      triple.c,
+                  bitsize_);
     }
 }
 
@@ -340,15 +340,15 @@ void AdditiveSharing2P::EvaluateMult(const uint64_t party_id, osuCrypto::Channel
     std::array<uint64_t, 4> de_0, de_1;
 
     if (party_id == 0) {
-        de_0[0] = Mod(x[0] - triple_0.a, bitsize_);    // d0
-        de_0[1] = Mod(y[0] - triple_0.b, bitsize_);    // e0
-        de_0[2] = Mod(x[1] - triple_1.a, bitsize_);    // d1
-        de_0[3] = Mod(y[1] - triple_1.b, bitsize_);    // e1
+        de_0[0] = Mod2N(x[0] - triple_0.a, bitsize_);    // d0
+        de_0[1] = Mod2N(y[0] - triple_0.b, bitsize_);    // e0
+        de_0[2] = Mod2N(x[1] - triple_1.a, bitsize_);    // d1
+        de_0[3] = Mod2N(y[1] - triple_1.b, bitsize_);    // e1
     } else {
-        de_1[0] = Mod(x[0] - triple_0.a, bitsize_);    // d0
-        de_1[1] = Mod(y[0] - triple_0.b, bitsize_);    // e0
-        de_1[2] = Mod(x[1] - triple_1.a, bitsize_);    // d1
-        de_1[3] = Mod(y[1] - triple_1.b, bitsize_);    // e1
+        de_1[0] = Mod2N(x[0] - triple_0.a, bitsize_);    // d0
+        de_1[1] = Mod2N(y[0] - triple_0.b, bitsize_);    // e0
+        de_1[2] = Mod2N(x[1] - triple_1.a, bitsize_);    // d1
+        de_1[3] = Mod2N(y[1] - triple_1.b, bitsize_);    // e1
     }
 
     // -------------------------------------------------------
@@ -363,25 +363,25 @@ void AdditiveSharing2P::EvaluateMult(const uint64_t party_id, osuCrypto::Channel
     //    Beaver formula: z = a*e + b*d + c (+ d*e for party 0)
     // -------------------------------------------------------
     if (party_id == 0) {
-        z[0] = Mod((de[1] * triple_0.a) +        // a * e0
-                       (de[0] * triple_0.b) +    // b * d0
-                       triple_0.c +              // c0
-                       (de[0] * de[1]),          // d0 * e0
-                   bitsize_);
-        z[1] = Mod((de[3] * triple_1.a) +        // a * e1
-                       (de[2] * triple_1.b) +    // b * d1
-                       triple_1.c +              // c1
-                       (de[2] * de[3]),          // d1 * e1
-                   bitsize_);
+        z[0] = Mod2N((de[1] * triple_0.a) +        // a * e0
+                         (de[0] * triple_0.b) +    // b * d0
+                         triple_0.c +              // c0
+                         (de[0] * de[1]),          // d0 * e0
+                     bitsize_);
+        z[1] = Mod2N((de[3] * triple_1.a) +        // a * e1
+                         (de[2] * triple_1.b) +    // b * d1
+                         triple_1.c +              // c1
+                         (de[2] * de[3]),          // d1 * e1
+                     bitsize_);
     } else {
-        z[0] = Mod((de[1] * triple_0.a) +
-                       (de[0] * triple_0.b) +
-                       triple_0.c,
-                   bitsize_);
-        z[1] = Mod((de[3] * triple_1.a) +
-                       (de[2] * triple_1.b) +
-                       triple_1.c,
-                   bitsize_);
+        z[0] = Mod2N((de[1] * triple_0.a) +
+                         (de[0] * triple_0.b) +
+                         triple_0.c,
+                     bitsize_);
+        z[1] = Mod2N((de[3] * triple_1.a) +
+                         (de[2] * triple_1.b) +
+                         triple_1.c,
+                     bitsize_);
     }
 }
 
@@ -414,7 +414,7 @@ void AdditiveSharing2P::EvaluateSelect(const uint64_t party_id, osuCrypto::Chann
 }
 
 uint64_t AdditiveSharing2P::GenerateRandomValue() const {
-    return Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    return Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
 }
 
 void AdditiveSharing2P::PrintTriples(const size_t limit) const {
@@ -454,9 +454,9 @@ void AdditiveSharing2P::GenerateBeaverTriples(const uint64_t num_triples, const 
         triples.triples.resize(num_triples);
     }
     for (uint64_t i = 0; i < num_triples; ++i) {
-        uint64_t a         = Mod(GlobalRng::Rand<uint64_t>(), bitsize);
-        uint64_t b         = Mod(GlobalRng::Rand<uint64_t>(), bitsize);
-        uint64_t c         = Mod(a * b, bitsize);
+        uint64_t a         = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize);
+        uint64_t b         = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize);
+        uint64_t c         = Mod2N(a * b, bitsize);
         triples.triples[i] = {a, b, c};
     }
 }

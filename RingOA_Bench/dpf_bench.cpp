@@ -19,7 +19,7 @@ using ringoa::block;
 using ringoa::FileIo;
 using ringoa::GlobalRng;
 using ringoa::Logger;
-using ringoa::Mod;
+using ringoa::Mod2N;
 using ringoa::TimerManager;
 using ringoa::ToString;
 using ringoa::fss::EvalType, ringoa::fss::OutputType;
@@ -44,8 +44,8 @@ void Dpf_Fde_Bench() {
             uint64_t        e = params.GetOutputBitsize();
             DpfKeyGenerator gen(params);
             DpfEvaluator    eval(params);
-            uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-            uint64_t        beta  = Mod(GlobalRng::Rand<uint64_t>(), e);
+            uint64_t        alpha = Mod2N(GlobalRng::Rand<uint64_t>(), n);
+            uint64_t        beta  = Mod2N(GlobalRng::Rand<uint64_t>(), e);
 
             TimerManager timer_mgr;
             int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetEvalType()));
@@ -85,8 +85,8 @@ void Dpf_Fde_Convert_Bench() {
             uint64_t        e = params.GetOutputBitsize();
             DpfKeyGenerator gen(params);
             DpfEvaluator    eval(params);
-            uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-            uint64_t        beta  = Mod(GlobalRng::Rand<uint64_t>(), e);
+            uint64_t        alpha = Mod2N(GlobalRng::Rand<uint64_t>(), n);
+            uint64_t        beta  = Mod2N(GlobalRng::Rand<uint64_t>(), e);
 
             TimerManager timer_mgr;
             int32_t      timer_id = timer_mgr.CreateNewTimer("FDE Benchmark:" + GetEvalTypeString(params.GetEvalType()));
@@ -124,7 +124,7 @@ void Dpf_Fde_One_Bench() {
             uint64_t        n = params.GetInputBitsize();
             DpfKeyGenerator gen(params);
             DpfEvaluator    eval(params);
-            uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
+            uint64_t        alpha = Mod2N(GlobalRng::Rand<uint64_t>(), n);
             uint64_t        beta  = 1;
 
             TimerManager timer_mgr;

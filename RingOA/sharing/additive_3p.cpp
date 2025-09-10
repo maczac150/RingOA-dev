@@ -30,9 +30,9 @@ void ReplicatedSharing3P::OnlineSetUp(const uint64_t party_id, const std::string
 }
 
 std::array<RepShare64, kThreeParties> ReplicatedSharing3P::ShareLocal(const uint64_t &x) const {
-    uint64_t x0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    uint64_t x1 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-    uint64_t x2 = Mod(x - x0 - x1, bitsize_);
+    uint64_t x0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+    uint64_t x1 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+    uint64_t x2 = Mod2N(x - x0 - x1, bitsize_);
 
     std::array<RepShare64, kThreeParties> all_shares;
     all_shares[0].data = {x0, x2};
@@ -51,9 +51,9 @@ std::array<RepShareVec64, kThreeParties> ReplicatedSharing3P::ShareLocal(const s
 
     for (size_t i = 0; i < n; ++i) {
         uint64_t x  = x_vec[i];
-        uint64_t r0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r1 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r2 = Mod(x - r0 - r1, bitsize_);
+        uint64_t r0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t r1 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t r2 = Mod2N(x - r0 - r1, bitsize_);
 
         // P0: (r0, r2)
         p0_0[i] = r0;
@@ -80,9 +80,9 @@ std::array<RepShareMat64, kThreeParties> ReplicatedSharing3P::ShareLocal(const s
 
     for (size_t i = 0; i < n; ++i) {
         uint64_t x  = x_flat[i];
-        uint64_t r0 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r1 = Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
-        uint64_t r2 = Mod(x - r0 - r1, bitsize_);
+        uint64_t r0 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t r1 = Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
+        uint64_t r2 = Mod2N(x - r0 - r1, bitsize_);
 
         // P0: (r0, r2)
         p0_0[i] = r0;
@@ -110,7 +110,7 @@ void ReplicatedSharing3P::Open(Channels &chls, const RepShare64 &x_sh, uint64_t 
     chls.next.recv(x_next);
 
     // Sum the shares and compute the open value
-    open_x = Mod(x_sh[0] + x_sh[1] + x_next, bitsize_);
+    open_x = Mod2N(x_sh[0] + x_sh[1] + x_next, bitsize_);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToString(x_sh[0]));
@@ -132,7 +132,7 @@ void ReplicatedSharing3P::Open(Channels &chls, const RepShareVec64 &x_vec_sh, st
         open_x_vec.resize(x_vec_sh.num_shares);
     }
     for (uint64_t i = 0; i < open_x_vec.size(); ++i) {
-        open_x_vec[i] = Mod(x_vec_sh[0][i] + x_vec_sh[1][i] + x_vec_next[i], bitsize_);
+        open_x_vec[i] = Mod2N(x_vec_sh[0][i] + x_vec_sh[1][i] + x_vec_next[i], bitsize_);
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -158,7 +158,7 @@ void ReplicatedSharing3P::Open(Channels &chls, const RepShareMat64 &x_mat_sh, st
         open_x_flat.resize(n);
     }
     for (size_t i = 0; i < n; ++i) {
-        open_x_flat[i] = Mod(x_mat_sh[0][i] + x_mat_sh[1][i] + x_mat_next[i], bitsize_);
+        open_x_flat[i] = Mod2N(x_mat_sh[0][i] + x_mat_sh[1][i] + x_mat_next[i], bitsize_);
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "[P" + ToString(chls.party_id) + "] Sent first share to the previous party: " + ToStringMatrix(x_mat_sh[0], rows, cols));
@@ -172,18 +172,18 @@ void ReplicatedSharing3P::Rand(RepShare64 &x) {
     if (prf_idx_ + sizeof(uint64_t) > prf_buff_[0].size() * sizeof(block)) {
         RefillBuffer();
     }
-    x.data[0] = Mod(*(uint64_t *)((uint8_t *)prf_buff_[0].data() + prf_idx_), bitsize_);
-    x.data[1] = Mod(*(uint64_t *)((uint8_t *)prf_buff_[1].data() + prf_idx_), bitsize_);
+    x.data[0] = Mod2N(*(uint64_t *)((uint8_t *)prf_buff_[0].data() + prf_idx_), bitsize_);
+    x.data[1] = Mod2N(*(uint64_t *)((uint8_t *)prf_buff_[1].data() + prf_idx_), bitsize_);
     prf_idx_ += sizeof(uint64_t);
 }
 
 uint64_t ReplicatedSharing3P::GenerateRandomValue() const {
-    return Mod(GlobalRng::Rand<uint64_t>(), bitsize_);
+    return Mod2N(GlobalRng::Rand<uint64_t>(), bitsize_);
 }
 
 void ReplicatedSharing3P::EvaluateAdd(const RepShare64 &x_sh, const RepShare64 &y_sh, RepShare64 &z_sh) const {
-    z_sh.data[0] = Mod(x_sh.data[0] + y_sh.data[0], bitsize_);
-    z_sh.data[1] = Mod(x_sh.data[1] + y_sh.data[1], bitsize_);
+    z_sh.data[0] = Mod2N(x_sh.data[0] + y_sh.data[0], bitsize_);
+    z_sh.data[1] = Mod2N(x_sh.data[1] + y_sh.data[1], bitsize_);
 }
 
 void ReplicatedSharing3P::EvaluateAdd(const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, RepShareVec64 &z_vec_sh) const {
@@ -199,14 +199,14 @@ void ReplicatedSharing3P::EvaluateAdd(const RepShareVec64 &x_vec_sh, const RepSh
     }
 
     for (uint64_t i = 0; i < x_vec_sh.num_shares; ++i) {
-        z_vec_sh.data[0][i] = Mod(x_vec_sh.data[0][i] + y_vec_sh.data[0][i], bitsize_);
-        z_vec_sh.data[1][i] = Mod(x_vec_sh.data[1][i] + y_vec_sh.data[1][i], bitsize_);
+        z_vec_sh.data[0][i] = Mod2N(x_vec_sh.data[0][i] + y_vec_sh.data[0][i], bitsize_);
+        z_vec_sh.data[1][i] = Mod2N(x_vec_sh.data[1][i] + y_vec_sh.data[1][i], bitsize_);
     }
 }
 
 void ReplicatedSharing3P::EvaluateSub(const RepShare64 &x_sh, const RepShare64 &y_sh, RepShare64 &z_sh) const {
-    z_sh.data[0] = Mod(x_sh.data[0] - y_sh.data[0], bitsize_);
-    z_sh.data[1] = Mod(x_sh.data[1] - y_sh.data[1], bitsize_);
+    z_sh.data[0] = Mod2N(x_sh.data[0] - y_sh.data[0], bitsize_);
+    z_sh.data[1] = Mod2N(x_sh.data[1] - y_sh.data[1], bitsize_);
 }
 
 void ReplicatedSharing3P::EvaluateSub(const RepShareVec64 &x_vec_sh, const RepShareVec64 &y_vec_sh, RepShareVec64 &z_vec_sh) const {
@@ -222,17 +222,17 @@ void ReplicatedSharing3P::EvaluateSub(const RepShareVec64 &x_vec_sh, const RepSh
     }
 
     for (uint64_t i = 0; i < x_vec_sh.num_shares; ++i) {
-        z_vec_sh.data[0][i] = Mod(x_vec_sh.data[0][i] - y_vec_sh.data[0][i], bitsize_);
-        z_vec_sh.data[1][i] = Mod(x_vec_sh.data[1][i] - y_vec_sh.data[1][i], bitsize_);
+        z_vec_sh.data[0][i] = Mod2N(x_vec_sh.data[0][i] - y_vec_sh.data[0][i], bitsize_);
+        z_vec_sh.data[1][i] = Mod2N(x_vec_sh.data[1][i] - y_vec_sh.data[1][i], bitsize_);
     }
 }
 
 void ReplicatedSharing3P::EvaluateMult(Channels &chls, const RepShare64 &x_sh, const RepShare64 &y_sh, RepShare64 &z_sh) {
     // (t_0, t_1, t_2) forms a (3, 3)-sharing of t = x * y
-    uint64_t   t_sh = Mod(x_sh.data[0] * y_sh.data[0] + x_sh.data[1] * y_sh.data[0] + x_sh.data[0] * y_sh.data[1], bitsize_);
+    uint64_t   t_sh = Mod2N(x_sh.data[0] * y_sh.data[0] + x_sh.data[1] * y_sh.data[0] + x_sh.data[0] * y_sh.data[1], bitsize_);
     RepShare64 r_sh;
     Rand(r_sh);
-    z_sh.data[0] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+    z_sh.data[0] = Mod2N(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     chls.next.send(z_sh.data[0]);
     chls.prev.recv(z_sh.data[1]);
 }
@@ -251,10 +251,10 @@ void ReplicatedSharing3P::EvaluateMult(Channels &chls, const RepShareVec64 &x_ve
 
     for (uint64_t i = 0; i < x_vec_sh.num_shares; ++i) {
         // (t_0, t_1, t_2) forms a (3, 3)-sharing of t = x * y
-        uint64_t   t_sh = Mod(x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
+        uint64_t   t_sh = Mod2N(x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
         RepShare64 r_sh;
         Rand(r_sh);
-        z_vec_sh.data[0][i] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+        z_vec_sh.data[0][i] = Mod2N(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     }
 
     chls.next.send(z_vec_sh.data[0]);
@@ -306,10 +306,10 @@ void ReplicatedSharing3P::EvaluateSelect(Channels &chls, const RepShareVec64 &x_
     // ----------------------------------------------------
     RepShareVec64 c_mul_y_sub_x(n);
     for (uint64_t i = 0; i < n; ++i) {
-        uint64_t   t_sh = Mod(y_sub_x.data[0][i] * c_sh.data[0] + y_sub_x.data[1][i] * c_sh.data[0] + y_sub_x.data[0][i] * c_sh.data[1], bitsize_);
+        uint64_t   t_sh = Mod2N(y_sub_x.data[0][i] * c_sh.data[0] + y_sub_x.data[1][i] * c_sh.data[0] + y_sub_x.data[0][i] * c_sh.data[1], bitsize_);
         RepShare64 r_sh;
         Rand(r_sh);
-        c_mul_y_sub_x.data[0][i] = Mod(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+        c_mul_y_sub_x.data[0][i] = Mod2N(t_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     }
     chls.next.send(c_mul_y_sub_x.data[0]);
     chls.prev.recv(c_mul_y_sub_x.data[1]);
@@ -327,11 +327,11 @@ void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const RepShareVec
 
     uint64_t s_sh = 0;
     for (uint64_t i = 0; i < x_vec_sh.num_shares; ++i) {
-        s_sh = Mod(s_sh + x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
+        s_sh = Mod2N(s_sh + x_vec_sh.data[0][i] * y_vec_sh.data[0][i] + x_vec_sh.data[1][i] * y_vec_sh.data[0][i] + x_vec_sh.data[0][i] * y_vec_sh.data[1][i], bitsize_);
     }
     RepShare64 r_sh;
     Rand(r_sh);
-    z.data[0] = Mod(s_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
+    z.data[0] = Mod2N(s_sh + r_sh.data[0] - r_sh.data[1], bitsize_);
     chls.next.send(z.data[0]);
     chls.prev.recv(z.data[1]);
 }

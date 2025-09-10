@@ -47,7 +47,7 @@ uint64_t DcfEvaluator::EvaluateAt(const DcfKey &key, uint64_t x) const {
 
         // Update the seed and control bit based on the current bit
         bool current_bit = (x & (1U << (n - i - 1))) != 0;
-        value            = Mod(Sign(key.party_id != 0) * (Convert(expanded_values[current_bit], e) + (control_bit * key.cw_value[i])) + value, e);
+        value            = Mod2N(Sign(key.party_id != 0) * (Convert(expanded_values[current_bit], e) + (control_bit * key.cw_value[i])) + value, e);
         seed             = expanded_seeds[current_bit];
         control_bit      = expanded_control_bits[current_bit];
 
@@ -60,9 +60,9 @@ uint64_t DcfEvaluator::EvaluateAt(const DcfKey &key, uint64_t x) const {
 #endif
     }
     // Compute the final output
-    G_.Expand(seed, seed, true);
+    G_.Expand(seed, seed, prg::Side::kLeft);
     uint64_t output = Sign(key.party_id != 0) * (Convert(seed, e) + (control_bit * key.output)) + value;
-    return Mod(output, e);
+    return Mod2N(output, e);
 }
 
 bool DcfEvaluator::ValidateInput(const uint64_t x) const {

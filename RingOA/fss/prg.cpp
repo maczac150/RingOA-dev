@@ -3,89 +3,79 @@
 #include "RingOA/utils/block.h"
 
 namespace {
+using ringoa::block;
+using ringoa::MakeBlock;
+using ringoa::fss::prg::Side;
 
-const ringoa::block kPrgKeySeedLeft   = ringoa::MakeBlock(0x00, 0x00);
-const ringoa::block kPrgKeySeedRight  = ringoa::MakeBlock(0x00, 0x01);
-const ringoa::block kPrgKeyValueRight = ringoa::MakeBlock(0x01, 0x00);
-const ringoa::block kPrgKeyValueLeft  = ringoa::MakeBlock(0x01, 0x01);
+// Fixed keys for the singleton instance.
+const block kSeedLeft   = MakeBlock(0x00, 0x00);
+const block kSeedRight  = MakeBlock(0x00, 0x01);
+const block kValueLeft  = MakeBlock(0x01, 0x01);
+const block kValueRight = MakeBlock(0x01, 0x00);
 
+size_t idx(Side s) noexcept {
+    return static_cast<size_t>(s);
+}
 }    // namespace
 
 namespace ringoa {
 namespace fss {
 namespace prg {
 
-PseudoRandomGenerator::PseudoRandomGenerator(block init_seed0, block init_seed1,
-                                             block init_seed2, block init_seed3) {
-    aes_seed_[0].setKey(init_seed0);
-    aes_seed_[1].setKey(init_seed1);
-    aes_value_[0].setKey(init_seed2);
-    aes_value_[1].setKey(init_seed3);
+PseudoRandomGenerator::PseudoRandomGenerator(block seedL, block seedR,
+                                             block valueL, block valueR) {
+    aes_seed_[0].setKey(seedL);
+    aes_seed_[1].setKey(seedR);
+    aes_value_[0].setKey(valueL);
+    aes_value_[1].setKey(valueR);
 }
 
-void PseudoRandomGenerator::Expand(block seed_in, block &seed_out, bool key_lr) {
-    block tmp = seed_in;
-    aes_seed_[key_lr].ecbEncBlock(tmp, tmp);
-    seed_out = seed_in ^ tmp;
+void PseudoRandomGenerator::Expand(const block &in, block &out, Side side) noexcept {
+    block tmp = in;
+    aes_seed_[idx(side)].ecbEncBlock(tmp, tmp);
+    out = in ^ tmp;
 }
 
-void PseudoRandomGenerator::ExpandValue(block seed_in, block &seed_out, bool key_lr) {
-    block tmp = seed_in;
-    aes_value_[key_lr].ecbEncBlock(tmp, tmp);
-    seed_out = seed_in ^ tmp;
+void PseudoRandomGenerator::ExpandValue(const block &in, block &out, Side side) noexcept {
+    block tmp = in;
+    aes_value_[idx(side)].ecbEncBlock(tmp, tmp);
+    out = in ^ tmp;
 }
 
-void PseudoRandomGenerator::Expand(std::array<block, 8> &seed_in, std::array<block, 8> &seed_out, bool key_lr) {
-    std::array<block, 8> tmp;
-
-    tmp[0] = seed_in[0];
-    tmp[1] = seed_in[1];
-    tmp[2] = seed_in[2];
-    tmp[3] = seed_in[3];
-    tmp[4] = seed_in[4];
-    tmp[5] = seed_in[5];
-    tmp[6] = seed_in[6];
-    tmp[7] = seed_in[7];
-
-    aes_seed_[key_lr].ecbEncBlocks<8>(tmp.data(), tmp.data());
-
-    seed_out[0] = seed_in[0] ^ tmp[0];
-    seed_out[1] = seed_in[1] ^ tmp[1];
-    seed_out[2] = seed_in[2] ^ tmp[2];
-    seed_out[3] = seed_in[3] ^ tmp[3];
-    seed_out[4] = seed_in[4] ^ tmp[4];
-    seed_out[5] = seed_in[5] ^ tmp[5];
-    seed_out[6] = seed_in[6] ^ tmp[6];
-    seed_out[7] = seed_in[7] ^ tmp[7];
+template <size_t N>
+void PseudoRandomGenerator::Expand(const std::array<block, N> &in,
+                                   std::array<block, N>       &out,
+                                   Side                        side) noexcept {
+    std::array<block, N> tmp = in;
+    // osuCrypto provides templated batch encrypt; fall back to loop if unavailable.
+    aes_seed_[idx(side)].ecbEncBlocks<N>(tmp.data(), tmp.data());
+    for (size_t i = 0; i < N; ++i)
+        out[i] = in[i] ^ tmp[i];
 }
 
-void PseudoRandomGenerator::DoubleExpand(block seed_in, std::array<block, 2> &seed_out) {
-    block tmp[2];
-    tmp[0] = seed_out[0] = seed_in;
-    tmp[1] = seed_out[1] = seed_in;
+// Explicit instantiations you actively use (keep or extend as needed):
+template void PseudoRandomGenerator::Expand<8>(const std::array<block, 8> &,
+                                               std::array<block, 8> &,
+                                               Side) noexcept;
 
-    aes_seed_[0].ecbEncBlock(tmp[0], tmp[0]);
-    aes_seed_[1].ecbEncBlock(tmp[1], tmp[1]);
-
-    seed_out[0] = seed_out[0] ^ tmp[0];
-    seed_out[1] = seed_out[1] ^ tmp[1];
+void PseudoRandomGenerator::DoubleExpand(const block &in, std::array<block, 2> &out) noexcept {
+    block l = in, r = in;
+    aes_seed_[0].ecbEncBlock(l, l);
+    aes_seed_[1].ecbEncBlock(r, r);
+    out[0] = in ^ l;    // Left
+    out[1] = in ^ r;    // Right
 }
 
-void PseudoRandomGenerator::DoubleExpandValue(block seed_in, std::array<block, 2> &seed_out) {
-    block tmp[2];
-    tmp[0] = seed_out[0] = seed_in;
-    tmp[1] = seed_out[1] = seed_in;
-
-    aes_value_[0].ecbEncBlock(tmp[0], tmp[0]);
-    aes_value_[1].ecbEncBlock(tmp[1], tmp[1]);
-
-    seed_out[0] = seed_out[0] ^ tmp[0];
-    seed_out[1] = seed_out[1] ^ tmp[1];
+void PseudoRandomGenerator::DoubleExpandValue(const block &in, std::array<block, 2> &out) noexcept {
+    block l = in, r = in;
+    aes_value_[0].ecbEncBlock(l, l);
+    aes_value_[1].ecbEncBlock(r, r);
+    out[0] = in ^ l;    // Left
+    out[1] = in ^ r;    // Right
 }
 
-PseudoRandomGenerator &PseudoRandomGenerator::GetInstance() {
-    static PseudoRandomGenerator instance(
-        kPrgKeySeedLeft, kPrgKeySeedRight, kPrgKeyValueLeft, kPrgKeyValueRight);
+PseudoRandomGenerator &PseudoRandomGenerator::GetInstance() noexcept {
+    static PseudoRandomGenerator instance(kSeedLeft, kSeedRight, kValueLeft, kValueRight);
     return instance;
 }
 

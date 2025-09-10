@@ -32,7 +32,7 @@ using ringoa::FileIo;
 using ringoa::FormatType;
 using ringoa::GlobalRng;
 using ringoa::Logger;
-using ringoa::Mod;
+using ringoa::Mod2N;
 using ringoa::TimerManager;
 using ringoa::ToString, ringoa::Format;
 using ringoa::TwoPartyNetworkManager;

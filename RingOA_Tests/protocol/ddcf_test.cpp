@@ -33,7 +33,7 @@ using ringoa::block;
 using ringoa::FormatType;
 using ringoa::GlobalRng;
 using ringoa::Logger;
-using ringoa::Mod;
+using ringoa::Mod2N;
 using ringoa::TimerManager;
 using ringoa::ToString, ringoa::Format;
 using ringoa::fss::EvalType, ringoa::fss::OutputType;
@@ -66,7 +66,7 @@ void Ddcf_EvalAt_Test() {
         uint64_t x   = 3;
         uint64_t y_0 = eval.EvaluateAt(keys.first, x);
         uint64_t y_1 = eval.EvaluateAt(keys.second, x);
-        uint64_t y   = Mod(y_0 + y_1, e);
+        uint64_t y   = Mod2N(y_0 + y_1, e);
 
         if (y != beta_1)
             throw osuCrypto::UnitTestFail("y is not equal to beta_1");
@@ -74,7 +74,7 @@ void Ddcf_EvalAt_Test() {
         x   = 7;
         y_0 = eval.EvaluateAt(keys.first, x);
         y_1 = eval.EvaluateAt(keys.second, x);
-        y   = Mod(y_0 + y_1, e);
+        y   = Mod2N(y_0 + y_1, e);
 
         if (y != beta_2)
             throw osuCrypto::UnitTestFail("y is not equal to beta_2");
@@ -113,7 +113,7 @@ void Ddcf_Fde_Test() {
 
         std::vector<uint64_t> outputs(outputs_0.size());
         for (uint64_t i = 0; i < outputs_0.size(); ++i) {
-            outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
+            outputs[i] = Mod2N(outputs_0[i] + outputs_1[i], e);
         }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

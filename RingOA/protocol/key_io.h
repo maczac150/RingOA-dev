@@ -14,25 +14,21 @@ namespace proto {
 enum class KeyType
 {
     kDpfKey,
-    kOblivSelectKey,
-    kOWMKey,
+    kDcfKey,
+    kDdcfKey,
+    kEqualityKey,
     kZeroTestKey,
+    kIntegerComparisonKey,
+    kOblivSelectKey,
+    kRingOaKey,
+    kOWMKey,
     kOFMIKey,
 };
 
 class KeyIo {
 public:
-    /**
-     * @brief Default constructor for KeyIo.
-     */
     KeyIo() = default;
 
-    /**
-     * @brief Save the key to a file.
-     * @tparam KeyType The type of key to save.
-     * @param file_path The file path to save the key.
-     * @param key The key to save.
-     */
     template <typename KeyType>
     void SaveKey(const std::string &file_path, const KeyType &key) {
         std::vector<uint8_t> buffer;
@@ -44,12 +40,6 @@ public:
 #endif
     }
 
-    /**
-     * @brief Load the key from a file.
-     * @tparam KeyType The type of key to load.
-     * @param file_path The file path to load the key.
-     * @param key The key to load.
-     */
     template <typename KeyType>
     void LoadKey(const std::string &file_path, KeyType &key) {
         std::vector<uint8_t> buffer;

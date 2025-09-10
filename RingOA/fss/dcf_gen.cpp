@@ -98,9 +98,9 @@ std::pair<DcfKey, DcfKey> DcfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t
         seed_correction = expanded_seed_0[lose] ^ expanded_seed_1[lose];
 
         // Value correction
-        value_correction = Mod(Sign(control_bit_1) * (Convert(expanded_value_1[lose], e) - Convert(expanded_value_0[lose], e) - value), e);
+        value_correction = Mod2N(Sign(control_bit_1) * (Convert(expanded_value_1[lose], e) - Convert(expanded_value_0[lose], e) - value), e);
         if (lose == kLeft) {
-            value_correction = Mod(value_correction + Sign(control_bit_1) * beta, e);
+            value_correction = Mod2N(value_correction + Sign(control_bit_1) * beta, e);
         }
 
         // Compute control bit correction
@@ -125,7 +125,7 @@ std::pair<DcfKey, DcfKey> DcfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t
         key_pair.second.cw_value[i]         = value_correction;
 
         // Update seed and control bits
-        value         = Mod(value - Convert(expanded_value_1[keep], e) + Convert(expanded_value_0[keep], e) + (Sign(control_bit_1) * value_correction), e);
+        value         = Mod2N(value - Convert(expanded_value_1[keep], e) + Convert(expanded_value_0[keep], e) + (Sign(control_bit_1) * value_correction), e);
         seed_0        = expanded_seed_0[keep] ^ (seed_correction & zero_and_all_one[control_bit_0]);
         seed_1        = expanded_seed_1[keep] ^ (seed_correction & zero_and_all_one[control_bit_1]);
         control_bit_0 = expanded_control_bit_0[keep] ^ (control_bit_0 & control_bit_correction[keep]);
@@ -141,10 +141,10 @@ std::pair<DcfKey, DcfKey> DcfKeyGenerator::GenerateKeys(uint64_t alpha, uint64_t
     }
 
     // Set the output
-    G_.Expand(seed_0, seed_0, true);
-    G_.Expand(seed_1, seed_1, true);
+    G_.Expand(seed_0, seed_0, prg::Side::kLeft);
+    G_.Expand(seed_1, seed_1, prg::Side::kLeft);
 
-    uint64_t output        = Mod(Sign(control_bit_1) * (Convert(seed_1, e) - Convert(seed_0, e) - value), e);
+    uint64_t output        = Mod2N(Sign(control_bit_1) * (Convert(seed_1, e) - Convert(seed_0, e) - value), e);
     key_pair.first.output  = output;
     key_pair.second.output = output;
 

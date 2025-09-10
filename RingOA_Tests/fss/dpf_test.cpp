@@ -78,7 +78,7 @@ using ringoa::block;
 using ringoa::FormatType;
 using ringoa::GlobalRng;
 using ringoa::Logger;
-using ringoa::Mod;
+using ringoa::Mod2N;
 using ringoa::TimerManager;
 using ringoa::ToString, ringoa::Format;
 using ringoa::fss::EvalType, ringoa::fss::OutputType;
@@ -151,7 +151,7 @@ void Dpf_EvalAt_Test() {
             uint64_t x   = 5;
             uint64_t y_0 = eval.EvaluateAt(keys.first, x);
             uint64_t y_1 = eval.EvaluateAt(keys.second, x);
-            uint64_t y   = Mod(y_0 + y_1, e);
+            uint64_t y   = Mod2N(y_0 + y_1, e);
 
             if (y != beta)
                 throw osuCrypto::UnitTestFail("y is not equal to beta");
@@ -159,7 +159,7 @@ void Dpf_EvalAt_Test() {
             x   = 7;
             y_0 = eval.EvaluateAt(keys.first, x);
             y_1 = eval.EvaluateAt(keys.second, x);
-            y   = Mod(y_0 + y_1, e);
+            y   = Mod2N(y_0 + y_1, e);
 
             if (y != 0)
                 throw osuCrypto::UnitTestFail("y is not equal to 0");
@@ -188,8 +188,8 @@ void Dpf_Fde_Test() {
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
-        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
-        uint64_t        beta  = Mod(GlobalRng::Rand<uint64_t>(), e);
+        uint64_t        alpha = Mod2N(GlobalRng::Rand<uint64_t>(), n);
+        uint64_t        beta  = Mod2N(GlobalRng::Rand<uint64_t>(), e);
 
         // Generate keys
         Logger::DebugLog(LOC, "alpha=" + ToString(alpha) + ", beta=" + ToString(beta));
@@ -202,7 +202,7 @@ void Dpf_Fde_Test() {
 
         std::vector<uint64_t> outputs(outputs_0.size());
         for (uint64_t i = 0; i < outputs_0.size(); ++i) {
-            outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
+            outputs[i] = Mod2N(outputs_0[i] + outputs_1[i], e);
         }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -229,7 +229,7 @@ void Dpf_Fde_One_Test() {
         param.PrintParameters();
         DpfKeyGenerator gen(param);
         DpfEvaluator    eval(param);
-        uint64_t        alpha = Mod(GlobalRng::Rand<uint64_t>(), n);
+        uint64_t        alpha = Mod2N(GlobalRng::Rand<uint64_t>(), n);
         uint64_t        beta  = 1;
 
         // Generate keys
@@ -243,7 +243,7 @@ void Dpf_Fde_One_Test() {
             eval.EvaluateFullDomain(keys.second, outputs_1);
             std::vector<uint64_t> outputs(outputs_0.size());
             for (uint64_t i = 0; i < outputs_0.size(); ++i) {
-                outputs[i] = Mod(outputs_0[i] + outputs_1[i], e);
+                outputs[i] = Mod2N(outputs_0[i] + outputs_1[i], e);
             }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG

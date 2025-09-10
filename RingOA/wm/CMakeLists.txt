@@ -7,6 +7,7 @@ add_library(wm
     plain_wm.cpp
     sotwm.cpp
     owm.cpp
+    oquantile.cpp
 )
 
 # Include directories

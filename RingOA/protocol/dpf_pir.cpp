@@ -124,7 +124,7 @@ std::pair<DpfPirKey, DpfPirKey> DpfPirKeyGenerator::GenerateKeys() const {
         if (fs0) {
             w = 1;
         } else {
-            w = Mod(-1, d);
+            w = Mod2N(-1, d);
         }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         Logger::DebugLog(LOC, "fs0: " + ToString(fs0) + ", alpha_hat: " + ToString(GetLowerNBits(r, remaining_bit)));
@@ -133,7 +133,7 @@ std::pair<DpfPirKey, DpfPirKey> DpfPirKeyGenerator::GenerateKeys() const {
     } else {
         uint64_t fs1 = GetBit(final_seed_1, GetLowerNBits(r, remaining_bit));
         if (fs1) {
-            w = Mod(-1, d);
+            w = Mod2N(-1, d);
         } else {
             w = 1;
         }
@@ -285,7 +285,7 @@ uint64_t DpfPirEvaluator::EvaluateNaive(osuCrypto::Channel          &chl,
     uint64_t db_sum = 0;
 
     for (size_t i = 0; i < uv.size(); ++i) {
-        db_sum = Mod(db_sum + (database[Mod(i + pr, d)]) * uv[i], d);
+        db_sum = Mod2N(db_sum + (database[Mod2N(i + pr, d)]) * uv[i], d);
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -313,11 +313,11 @@ uint64_t DpfPirEvaluator::EvaluateFullDomainThenDotProduct(const fss::dpf::DpfKe
 
         for (int j = 0; j < 64; ++j) {
             const uint64_t mask = 0ULL - ((low >> j) & 1ULL);
-            db_sum              = Mod(db_sum + Sign(party_id) * (database[Mod((i * 128 + j) + masked_idx, d)] & mask), d);
+            db_sum              = Mod2N(db_sum + Sign(party_id) * (database[Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
         }
         for (int j = 0; j < 64; ++j) {
             const uint64_t mask = 0ULL - ((high >> j) & 1ULL);
-            db_sum              = Mod(db_sum + Sign(party_id) * (database[Mod((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+            db_sum              = Mod2N(db_sum + Sign(party_id) * (database[Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
         }
     }
 

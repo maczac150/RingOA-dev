@@ -15,7 +15,6 @@ DpfParameters::DpfParameters(const uint64_t n, const uint64_t e, EvalType eval_t
       enable_et_(true),
       fde_type_(eval_type),
       output_mode_(output_mode) {
-
     Resolve_();
     ValidateOrThrow_();
 }
@@ -26,7 +25,6 @@ void DpfParameters::ReconfigureParameters(const uint64_t n, const uint64_t e, Ev
     enable_et_       = true;
     fde_type_        = eval_type;
     output_mode_     = output_mode;
-
     Resolve_();
     ValidateOrThrow_();
 }
@@ -126,16 +124,37 @@ DpfKey::DpfKey(const uint64_t id, const DpfParameters &params)
     std::fill(cw_control_right.get(), cw_control_right.get() + cw_length, false);
 }
 
-size_t DpfKey::CalculateSerializedSize() const {
-    size_t size = 0;
+bool DpfKey::operator==(const DpfKey &rhs) const {
+    if (party_id != rhs.party_id)
+        return false;
+    if (init_seed != rhs.init_seed)
+        return false;
+    if (cw_length != rhs.cw_length)
+        return false;
+    if (output != rhs.output)
+        return false;
 
+    for (uint64_t i = 0; i < cw_length; ++i) {
+        if (cw_seed[i] != rhs.cw_seed[i])
+            return false;
+        if (cw_control_left[i] != rhs.cw_control_left[i])
+            return false;
+        if (cw_control_right[i] != rhs.cw_control_right[i])
+            return false;
+    }
+    return true;
+}
+
+size_t DpfKey::CalculateSerializedSize() const {
+    // Fix bool serialization to 1 byte per element for portability.
+    size_t size = 0;
     size += sizeof(party_id);
     size += sizeof(init_seed);
     size += sizeof(cw_length);
     size += sizeof(block) * cw_length;
-    size += sizeof(bool) * cw_length * 2;
+    size += cw_length;    // left controls (bytes)
+    size += cw_length;    // right controls (bytes)
     size += sizeof(output);
-
     return size;
 }
 

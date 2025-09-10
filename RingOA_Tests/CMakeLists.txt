@@ -26,6 +26,7 @@ set(TEST_SOURCES
     protocol/ddcf_test.cpp
     wm/wm_test.cpp
     wm/owm_test.cpp
+    wm/oquantile_test.cpp
     fm_index/ofmi_test.cpp
     test_main.cpp
 )

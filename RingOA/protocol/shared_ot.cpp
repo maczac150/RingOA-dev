@@ -196,10 +196,10 @@ void SharedOtEvaluator::Evaluate(Channels                      &chls,
     Logger::DebugLog(LOC, party_str + "dp_prev: " + ToString(dp_prev) + ", dp_next: " + ToString(dp_next));
 #endif
 
-    uint64_t            selected_sh = Mod(dp_prev + dp_next, d);
+    uint64_t            selected_sh = Mod2N(dp_prev + dp_next, d);
     sharing::RepShare64 r_sh;
     rss_.Rand(r_sh);
-    result[0] = Mod(selected_sh + r_sh[0] - r_sh[1], d);
+    result[0] = Mod2N(selected_sh + r_sh[0] - r_sh[1], d);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -255,13 +255,13 @@ void SharedOtEvaluator::Evaluate_Parallel(Channels                      &chls,
     Logger::DebugLog(LOC, party_str + "dp_prev2: " + ToString(dp_prev2) + ", dp_next2: " + ToString(dp_next2));
 #endif
 
-    uint64_t            selected1_sh = Mod(dp_prev1 + dp_next1, d);
-    uint64_t            selected2_sh = Mod(dp_prev2 + dp_next2, d);
+    uint64_t            selected1_sh = Mod2N(dp_prev1 + dp_next1, d);
+    uint64_t            selected2_sh = Mod2N(dp_prev2 + dp_next2, d);
     sharing::RepShare64 r1_sh, r2_sh;
     rss_.Rand(r1_sh);
     rss_.Rand(r2_sh);
-    result[0][0] = Mod(selected1_sh + r1_sh[0] - r1_sh[1], d);
-    result[0][1] = Mod(selected2_sh + r2_sh[0] - r2_sh[1], d);
+    result[0][0] = Mod2N(selected1_sh + r1_sh[0] - r1_sh[1], d);
+    result[0][1] = Mod2N(selected2_sh + r2_sh[0] - r2_sh[1], d);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -292,8 +292,8 @@ std::pair<uint64_t, uint64_t> SharedOtEvaluator::EvaluateFullDomainThenDotProduc
     uint64_t dp_prev = 0, dp_next = 0;
 
     for (size_t i = 0; i < uv_prev.size(); ++i) {
-        dp_prev = Mod(dp_prev + database.share1[Mod(i + pr_prev, d)] * uv_prev[i], d);
-        dp_next = Mod(dp_next + database.share0[Mod(i + pr_next, d)] * uv_next[i], d);
+        dp_prev = Mod2N(dp_prev + database.share1[Mod2N(i + pr_prev, d)] * uv_prev[i], d);
+        dp_next = Mod2N(dp_next + database.share0[Mod2N(i + pr_next, d)] * uv_next[i], d);
     }
     return std::make_pair(dp_prev, dp_next);
 }
@@ -324,8 +324,8 @@ std::pair<uint64_t, uint64_t> SharedOtEvaluator::ReconstructMaskedValue(Channels
         chls.next.send(pr_01_sh[1]);
         chls.next.recv(pr_01);
         chls.prev.recv(pr_20);
-        pr_prev = Mod(pr_20 + pr_20_sh[0] + pr_20_sh[1], d);
-        pr_next = Mod(pr_01_sh[0] + pr_01_sh[1] + pr_01, d);
+        pr_prev = Mod2N(pr_20 + pr_20_sh[0] + pr_20_sh[1], d);
+        pr_next = Mod2N(pr_01_sh[0] + pr_01_sh[1] + pr_01, d);
 
     } else if (chls.party_id == 1) {
         sharing::RepShare64 r_0_sh(0, key.rsh_from_prev);
@@ -340,8 +340,8 @@ std::pair<uint64_t, uint64_t> SharedOtEvaluator::ReconstructMaskedValue(Channels
         chls.prev.send(pr_01_sh[0]);
         chls.prev.recv(pr_01);
         chls.next.recv(pr_12);
-        pr_prev = Mod(pr_01 + pr_01_sh[0] + pr_01_sh[1], d);
-        pr_next = Mod(pr_12_sh[0] + pr_12_sh[1] + pr_12, d);
+        pr_prev = Mod2N(pr_01 + pr_01_sh[0] + pr_01_sh[1], d);
+        pr_next = Mod2N(pr_12_sh[0] + pr_12_sh[1] + pr_12, d);
 
     } else {
         sharing::RepShare64 r_0_sh(key.rsh_from_next, 0);
@@ -356,8 +356,8 @@ std::pair<uint64_t, uint64_t> SharedOtEvaluator::ReconstructMaskedValue(Channels
         chls.next.send(pr_20_sh[1]);
         chls.prev.recv(pr_12);
         chls.next.recv(pr_20);
-        pr_prev = Mod(pr_12 + pr_12_sh[0] + pr_12_sh[1], d);
-        pr_next = Mod(pr_20_sh[0] + pr_20_sh[1] + pr_20, d);
+        pr_prev = Mod2N(pr_12 + pr_12_sh[0] + pr_12_sh[1], d);
+        pr_next = Mod2N(pr_20_sh[0] + pr_20_sh[1] + pr_20, d);
     }
     return std::make_pair(pr_prev, pr_next);
 }
@@ -392,10 +392,10 @@ std::array<uint64_t, 4> SharedOtEvaluator::ReconstructMaskedValue(Channels      
         chls.next.send(pr_01_sh[1]);
         chls.next.recv(pr_01);
         chls.prev.recv(pr_20);
-        pr_prev1 = Mod(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], d);
-        pr_next1 = Mod(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], d);
-        pr_prev2 = Mod(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], d);
-        pr_next2 = Mod(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], d);
+        pr_prev1 = Mod2N(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], d);
+        pr_next1 = Mod2N(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], d);
+        pr_prev2 = Mod2N(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], d);
+        pr_next2 = Mod2N(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], d);
 
     } else if (chls.party_id == 1) {
         r_0_sh.Set(0, sharing::RepShare64(0, key1.rsh_from_prev));
@@ -412,10 +412,10 @@ std::array<uint64_t, 4> SharedOtEvaluator::ReconstructMaskedValue(Channels      
         chls.prev.send(pr_01_sh[0]);
         chls.prev.recv(pr_01);
         chls.next.recv(pr_12);
-        pr_prev1 = Mod(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], d);
-        pr_next1 = Mod(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], d);
-        pr_prev2 = Mod(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], d);
-        pr_next2 = Mod(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], d);
+        pr_prev1 = Mod2N(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], d);
+        pr_next1 = Mod2N(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], d);
+        pr_prev2 = Mod2N(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], d);
+        pr_next2 = Mod2N(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], d);
 
     } else {
         r_0_sh.Set(0, sharing::RepShare64(key1.rsh_from_next, 0));
@@ -432,10 +432,10 @@ std::array<uint64_t, 4> SharedOtEvaluator::ReconstructMaskedValue(Channels      
         chls.next.send(pr_20_sh[1]);
         chls.prev.recv(pr_12);
         chls.next.recv(pr_20);
-        pr_prev1 = Mod(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], d);
-        pr_next1 = Mod(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], d);
-        pr_prev2 = Mod(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], d);
-        pr_next2 = Mod(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], d);
+        pr_prev1 = Mod2N(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], d);
+        pr_next1 = Mod2N(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], d);
+        pr_prev2 = Mod2N(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], d);
+        pr_next2 = Mod2N(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], d);
     }
     return std::array<uint64_t, 4>{pr_prev1, pr_next1, pr_prev2, pr_next2};
 }
