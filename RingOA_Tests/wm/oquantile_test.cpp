@@ -47,9 +47,7 @@ using ringoa::proto::KeyIo;
 using ringoa::sharing::AdditiveSharing2P;
 using ringoa::sharing::ReplicatedSharing3P;
 using ringoa::sharing::RepShare64, ringoa::sharing::RepShareVec64;
-using ringoa::sharing::RepShareBlock, ringoa::sharing::RepShareVecBlock;
 using ringoa::sharing::RepShareMat64, ringoa::sharing::RepShareView64;
-using ringoa::sharing::RepShareMatBlock, ringoa::sharing::RepShareViewBlock;
 using ringoa::sharing::ShareIo;
 using ringoa::wm::OQuantileEvaluator;
 using ringoa::wm::OQuantileKey;
@@ -68,9 +66,10 @@ void OQuantile_Offline_Test() {
     for (const auto &params : params_list) {
         params.PrintParameters();
         uint64_t              d  = params.GetDatabaseBitSize();
+        uint64_t              s  = params.GetShareSize();
         uint64_t              ds = params.GetDatabaseSize();
-        AdditiveSharing2P     ass(d);
-        ReplicatedSharing3P   rss(d);
+        AdditiveSharing2P     ass(s);
+        ReplicatedSharing3P   rss(s);
         OQuantileKeyGenerator gen(params, ass, rss);
         FileIo                file_io;
         ShareIo               sh_io;
@@ -130,6 +129,7 @@ void OQuantile_Online_Test(const osuCrypto::CLP &cmd) {
     for (const auto &params : params_list) {
         params.PrintParameters();
         uint64_t d  = params.GetDatabaseBitSize();
+        uint64_t s  = params.GetShareSize();
         uint64_t nu = params.GetOaParameters().GetParameters().GetTerminateBitsize();
 
         FileIo file_io;
@@ -149,9 +149,9 @@ void OQuantile_Online_Test(const osuCrypto::CLP &cmd) {
         auto MakeTask = [&](int party_id) {
             return [=, &result](osuCrypto::Channel &chl_next, osuCrypto::Channel &chl_prev) {
                 // Set up replicated sharing and evaluator for this party
-                ReplicatedSharing3P rss(d);
-                AdditiveSharing2P   ass_prev(d), ass_next(d);
-                OQuantileEvaluator  eval(params, rss,  ass_prev, ass_next);
+                ReplicatedSharing3P rss(s);
+                AdditiveSharing2P   ass_prev(s), ass_next(s);
+                OQuantileEvaluator  eval(params, rss, ass_prev, ass_next);
                 Channels            chls(party_id, chl_prev, chl_next);
 
                 // Load this party's key
@@ -174,8 +174,8 @@ void OQuantile_Online_Test(const osuCrypto::CLP &cmd) {
                 RepShare64                 result_sh;
                 RepShare64                 left_sh = q_arg_sh.At(0), right_sh = q_arg_sh.At(1), k_sh = q_arg_sh.At(2);
                 std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
-                eval.EvaluateQuantile(chls, key, uv_prev, uv_next,
-                                      db_sh, left_sh, right_sh, k_sh, result_sh);
+                eval.EvaluateQuantile_Parallel(chls, key, uv_prev, uv_next,
+                                               db_sh, left_sh, right_sh, k_sh, result_sh);
 
                 // Open the resulting share to recover the final value
                 rss.Open(chls, result_sh, result);

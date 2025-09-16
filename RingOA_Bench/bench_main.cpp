@@ -10,6 +10,7 @@
 #include "RingOA_Bench/obliv_access_bench.h"
 #include "RingOA_Bench/obliv_select_bench.h"
 #include "RingOA_Bench/ofmi_bench.h"
+#include "RingOA_Bench/oquantile_bench.h"
 
 namespace bench_ringoa {
 
@@ -33,6 +34,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("SotFMI_Online_Bench", SotFMI_Online_Bench);
     t.add("OFMI_Offline_Bench", OFMI_Offline_Bench);
     t.add("OFMI_Online_Bench", OFMI_Online_Bench);
+    t.add("OQuantile_Offline_Bench", OQuantile_Offline_Bench);
+    t.add("OQuantile_Online_Bench", OQuantile_Online_Bench);
 });
 
 }    // namespace bench_ringoa

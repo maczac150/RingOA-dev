@@ -12,6 +12,7 @@ set(BENCH_SOURCES
     obliv_select_bench.cpp
     obliv_access_bench.cpp
     ofmi_bench.cpp
+    oquantile_bench.cpp
     bench_main.cpp
 )
 

@@ -16,6 +16,7 @@ target_include_directories(wm PRIVATE ${CMAKE_SOURCE_DIR})
 # Link libraries
 target_link_libraries(wm PRIVATE
     utils
+    protocol
     sdsl
     divsufsort
     divsufsort64

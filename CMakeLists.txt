@@ -56,7 +56,10 @@ elseif(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og -g -Wall -Wextra")
     add_compile_definitions(USE_FIXED_RANDOM_SEED)
 elseif(CMAKE_BUILD_TYPE MATCHES Profile)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -flto -fno-omit-frame-pointer")
+    # For gprof or valgrind
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -flto -fno-omit-frame-pointer")
+    # For uProf
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -fno-omit-frame-pointer -march=native")
 endif()
 
 # ############################

@@ -408,7 +408,7 @@ void OblivSelect_Additive_Online_Bench(const osuCrypto::CLP &cmd) {
                 key_io.LoadKey(key_path + "_" + ToString(party_id), key);
 
                 // (5) Load this party’s shares of both databases and the index
-                RepShareVec64              database_sh, _sh;
+                RepShareVec64              database_sh;
                 RepShare64                 index_sh;
                 std::vector<ringoa::block> uv_prev(1U << nu), uv_next(1U << nu);
                 ShareIo                    sh_io;

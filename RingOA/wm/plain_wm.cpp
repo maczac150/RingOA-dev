@@ -304,15 +304,32 @@ uint64_t WaveletMatrix::RangeFreq(size_t l, size_t r,
     uint64_t     count  = 0;
     const size_t stride = length_ + 1;
 
+    Logger::DebugLog(LOC, "RangeFreq begin");
+    Logger::DebugLog(LOC, "Query: l=" + ToString(l) + ", r=" + ToString(r) +
+                              ", x=" + ToString(x) + ", y=" + ToString(y));
+
     while (!st.empty()) {
         auto [left, right, lvl, prefix] = st.top();
         st.pop();
         if (left >= right)
             continue;
 
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "---- Pop node ----");
+        Logger::DebugLog(LOC, "left=" + ToString(left) + ", right=" + ToString(right) +
+                                  ", lvl=" + ToString(lvl) +
+                                  ", prefix=" + ToString(prefix));
+#endif
+
         if (lvl == 0) {
             if (x <= prefix && prefix < y)
                 count += (right - left);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::DebugLog(LOC, "Leaf hits range: prefix in [x,y). "
+                                  "Add count += " +
+                                      ToString(right - left) +
+                                      " -> total=" + ToString(count));
+#endif
             continue;
         }
 
@@ -334,13 +351,43 @@ uint64_t WaveletMatrix::RangeFreq(size_t l, size_t r,
         uint64_t low1  = prefix | (1ULL << bit);
         uint64_t high1 = prefix + (1ULL << (bit + 1));
 
-        if (!(high0 <= x || y <= low0)) {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Level bit=" + ToString(bit));
+        Logger::DebugLog(LOC, "rank0: z_left=" + ToString(z_left) +
+                                  ", z_right=" + ToString(z_right) +
+                                  ", total_zeros=" + ToString(total_zeros));
+        Logger::DebugLog(LOC, "Map to children:");
+        Logger::DebugLog(LOC, "  zeros:  [nl0,nr0)=[" + ToString(nl0) + "," + ToString(nr0) + ")");
+        Logger::DebugLog(LOC, "  ones:   [nl1,nr1)=[" + ToString(nl1) + "," + ToString(nr1) + ")");
+        Logger::DebugLog(LOC, "Value ranges of children:");
+        Logger::DebugLog(LOC, "  zeros:  [" + ToString(low0) + "," + ToString(high0) + ")");
+        Logger::DebugLog(LOC, "  ones:   [" + ToString(low1) + "," + ToString(high1) + ")");
+#endif
+
+        bool inter0 = !(high0 <= x || y <= low0);
+        bool inter1 = !(high1 <= x || y <= low1);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, "Intersect with [x,y): zeros=" + ToString(inter0) +
+                                  ", ones=" + ToString(inter1));
+#endif
+
+        if (inter0) {
             st.push({nl0, nr0, bit, low0});
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::DebugLog(LOC, " -> push zeros child");
+#endif
         }
-        if (!(high1 <= x || y <= low1)) {
+        if (inter1) {
             st.push({nl1, nr1, bit, low1});
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::DebugLog(LOC, " -> push ones child");
+#endif
         }
     }
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "RangeFreq end: total count = " + ToString(count));
+#endif
     return count;
 }
 

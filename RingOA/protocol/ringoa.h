@@ -23,27 +23,46 @@ class RingOaParameters {
 public:
     RingOaParameters() = delete;
     explicit RingOaParameters(const uint64_t d)
-        : params_(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive) {
+        : params_(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive),
+          db_bitsize_(d),
+          share_bitsize_(d) {
+    }
+    explicit RingOaParameters(const uint64_t d, const uint64_t s)
+        : params_(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive),
+          db_bitsize_(d),
+          share_bitsize_(s) {
     }
 
     void ReconfigureParameters(const uint64_t d) {
         params_.ReconfigureParameters(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive);
+        db_bitsize_    = d;
+        share_bitsize_ = d;
+    }
+    void ReconfigureParameters(const uint64_t d, const uint64_t s) {
+        params_.ReconfigureParameters(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive);
+        db_bitsize_    = d;
+        share_bitsize_ = s;
     }
 
     uint64_t GetDatabaseSize() const {
-        return params_.GetInputBitsize();
+        return db_bitsize_;
+    }
+    uint64_t GetShareSize() const {
+        return share_bitsize_;
     }
 
     const fss::dpf::DpfParameters GetParameters() const {
         return params_;
     }
     std::string GetParametersInfo() const {
-        return params_.GetParametersInfo();
+        return params_.GetParametersInfo() + ", DB size: " + std::to_string(db_bitsize_) + ", Share size: " + std::to_string(share_bitsize_);
     }
     void PrintParameters() const;
 
 private:
     fss::dpf::DpfParameters params_;
+    uint64_t                db_bitsize_;
+    uint64_t                share_bitsize_;
 };
 
 struct RingOaKey {

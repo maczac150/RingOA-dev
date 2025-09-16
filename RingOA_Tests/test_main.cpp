@@ -23,18 +23,21 @@
 #include "RingOA_Tests/utils/network_test.h"
 #include "RingOA_Tests/utils/timer_test.h"
 #include "RingOA_Tests/utils/utils_test.h"
-#include "RingOA_Tests/wm/owm_test.h"
 #include "RingOA_Tests/wm/oquantile_test.h"
+#include "RingOA_Tests/wm/owm_test.h"
 #include "RingOA_Tests/wm/wm_test.h"
 
 namespace test_ringoa {
 
-osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
+void RegisterUtilsTests(osuCrypto::TestCollection &t) {
     t.add("Utils_Test", Utils_Test);
     t.add("Timer_Test", Timer_Test);
     t.add("Network_TwoPartyManager_Test", Network_TwoPartyManager_Test);
     t.add("Network_ThreePartyManager_Test", Network_ThreePartyManager_Test);
     t.add("File_Io_Test", File_Io_Test);
+}
+
+void RegisterFssTests(osuCrypto::TestCollection &t) {
     t.add("Prg_Test", Prg_Test);
     t.add("Dpf_Params_Test", Dpf_Params_Test);
     t.add("Dpf_EvalAt_Test", Dpf_EvalAt_Test);
@@ -42,6 +45,9 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_One_Test", Dpf_Fde_One_Test);
     t.add("Dcf_EvalAt_Test", Dcf_EvalAt_Test);
     t.add("Dcf_Fde_Test", Dcf_Fde_Test);
+}
+
+void RegisterSharingTests(osuCrypto::TestCollection &t) {
     t.add("Additive2P_EvaluateAdd_Offline_Test", Additive2P_EvaluateAdd_Offline_Test);
     t.add("Additive2P_EvaluateAdd_Online_Test", Additive2P_EvaluateAdd_Online_Test);
     t.add("Additive2P_EvaluateMult_Offline_Test", Additive2P_EvaluateMult_Offline_Test);
@@ -62,6 +68,9 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Binary3P_EvaluateXor_Online_Test", Binary3P_EvaluateXor_Online_Test);
     t.add("Binary3P_EvaluateAnd_Online_Test", Binary3P_EvaluateAnd_Online_Test);
     t.add("Binary3P_EvaluateSelect_Online_Test", Binary3P_EvaluateSelect_Online_Test);
+}
+
+void RegisterProtocolTests(osuCrypto::TestCollection &t) {
     t.add("Ddcf_EvalAt_Test", Ddcf_EvalAt_Test);
     t.add("Ddcf_Fde_Test", Ddcf_Fde_Test);
     t.add("ZeroTest_Offline_Test", ZeroTest_Offline_Test);
@@ -81,17 +90,27 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("SharedOt_Online_Test", SharedOt_Online_Test);
     t.add("RingOa_Offline_Test", RingOa_Offline_Test);
     t.add("RingOa_Online_Test", RingOa_Online_Test);
-    t.add("WaveletMatrix_Test", WaveletMatrix_Test);
+}
+
+void RegisterWmTests(osuCrypto::TestCollection &t) {
+    t.add("WaveletMatrix_Access_Test", WaveletMatrix_Access_Test);
+    t.add("WaveletMatrix_Quantile_Test", WaveletMatrix_Quantile_Test);
+    t.add("WaveletMatrix_RangeFreqTest", WaveletMatrix_RangeFreqTest);
+    t.add("WaveletMatrix_TopK_Test", WaveletMatrix_TopK_Test);
+    t.add("WaveletMatrix_RankCF_Test", WaveletMatrix_RankCF_Test);
     t.add("FMIndex_Test", FMIndex_Test);
     t.add("OWM_Offline_Test", OWM_Offline_Test);
     t.add("OWM_Online_Test", OWM_Online_Test);
     t.add("OQuantile_Offline_Test", OQuantile_Offline_Test);
     t.add("OQuantile_Online_Test", OQuantile_Online_Test);
+}
+
+void RegisterFmIndexTests(osuCrypto::TestCollection &t) {
     t.add("SotFMI_Offline_Test", SotFMI_Offline_Test);
     t.add("SotFMI_Online_Test", SotFMI_Online_Test);
     t.add("OFMI_Offline_Test", OFMI_Offline_Test);
     t.add("OFMI_Online_Test", OFMI_Online_Test);
-});
+}
 
 }    // namespace test_ringoa
 
@@ -102,6 +121,7 @@ std::vector<std::string>
     listTags{"l", "list"},
     testTags{"t", "test"},
     unitTags{"u", "unitTests"},
+    suiteTags{"s", "suite"},
     repeatTags{"repeat"},
     loopTags{"loop"};
 
@@ -111,6 +131,7 @@ void PrintHelp() {
     std::cout << "  -unit, -u           Run all unit tests.\n";
     std::cout << "  -list, -l           List all available tests.\n";
     std::cout << "  -test=<Index>, -t   Run the specified test by its index.\n";
+    std::cout << "  -suite=<Name>, -s   Run the specified test suite.\n";
     std::cout << "  -repeat=<Count>     Specify the number of repetitions for the test (default: 1).\n";
     std::cout << "  -loop=<Count>       Repeat the entire test execution for the specified number of loops (default: 1).\n";
     std::cout << "  -help, -h           Display this help message.\n";
@@ -130,8 +151,14 @@ int main(int argc, char **argv) {
         ringoa::GlobalRng::Initialize();
 #endif
 
-        osuCrypto::CLP cmd(argc, argv);
-        auto           tests = test_ringoa::Tests;
+        osuCrypto::CLP            cmd(argc, argv);
+        osuCrypto::TestCollection tests;
+        // test_ringoa::RegisterUtilsTests(tests);
+        // test_ringoa::RegisterFssTests(tests);
+        // test_ringoa::RegisterSharingTests(tests);
+        test_ringoa::RegisterProtocolTests(tests);
+        test_ringoa::RegisterWmTests(tests);
+        test_ringoa::RegisterFmIndexTests(tests);
 
         // Display help message
         if (cmd.isSet(helpTags)) {
@@ -164,6 +191,31 @@ int main(int argc, char **argv) {
                 }
             }
             return 0;    // Success
+        }
+
+        if (cmd.hasValue(suiteTags)) {
+            auto prefix = cmd.get<std::string>(suiteTags);
+
+            // search expects a list<string>
+            std::list<std::string> queries = {prefix};
+
+            // this will return all test indices whose name contains prefix
+            auto idxs = tests.search(queries);
+
+            if (idxs.empty()) {
+                std::cerr << "No tests match suite string: " << prefix << "\n";
+                return 1;
+            }
+
+            int rep  = cmd.getOr(repeatTags, 1);
+            int loop = cmd.getOr(loopTags, 1);
+
+            for (int i = 0; i < loop; ++i) {
+                auto r = tests.run(idxs, rep, &cmd);
+                if (r != osuCrypto::TestCollection::Result::passed)
+                    return 1;
+            }
+            return 0;
         }
 
         // Unit test execution

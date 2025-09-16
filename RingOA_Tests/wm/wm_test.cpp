@@ -17,23 +17,8 @@ using ringoa::wm::CharType;
 using ringoa::wm::FMIndex;
 using ringoa::wm::WaveletMatrix;
 
-void WaveletMatrix_Test() {
-    Logger::DebugLog(LOC, "WaveletMatrix_Test...");
-
-    std::string text = "ACGTACGT";
-    Logger::DebugLog(LOC, "Text: " + text);
-
-    WaveletMatrix wm(text, CharType::DNA, BuildOrder::LSBFirst);
-
-    uint64_t cid     = wm.GetMapper().ToId('G');
-    size_t   pos     = 6;    // up to position 6 (exclusive)
-    uint64_t rank_cf = wm.RankCF(cid, pos);
-
-    Logger::DebugLog(LOC, "RankCF('G', " + ToString(pos) + ") = " + ToString(rank_cf));
-
-    if (rank_cf != 5) {
-        throw osuCrypto::UnitTestFail("Expected RankCF('G', 6) == 5");
-    }
+void WaveletMatrix_Access_Test() {
+    Logger::DebugLog(LOC, "WaveletMatrix_Access_Test...");
 
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // idx   |0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15 |
@@ -41,20 +26,30 @@ void WaveletMatrix_Test() {
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     std::vector<uint64_t> data = {0, 3, 7, 1, 4, 6, 3, 7, 2, 5, 6, 0, 3, 5, 2, 4};
-    wm                         = WaveletMatrix(data, 3, BuildOrder::MSBFirst);
+    WaveletMatrix         wm   = WaveletMatrix(data, 3, BuildOrder::MSBFirst);
 
-    {
-        for (size_t i = 0; i < data.size(); ++i) {
-            uint64_t val = wm.Access(i);
-            Logger::DebugLog(LOC, "Access(" + ToString(i) + ") = " + ToString(val));
+    for (size_t i = 0; i < data.size(); ++i) {
+        uint64_t val = wm.Access(i);
+        Logger::DebugLog(LOC, "Access(" + ToString(i) + ") = " + ToString(val));
 
-            if (val != data[i]) {
-                throw osuCrypto::UnitTestFail("Access mismatch at i=" + ToString(i) +
-                                              " (expected " + ToString(data[i]) +
-                                              ", got " + ToString(val) + ")");
-            }
+        if (val != data[i]) {
+            throw osuCrypto::UnitTestFail("Access mismatch at i=" + ToString(i) +
+                                          " (expected " + ToString(data[i]) +
+                                          ", got " + ToString(val) + ")");
         }
     }
+}
+
+void WaveletMatrix_Quantile_Test() {
+    Logger::DebugLog(LOC, "WaveletMatrix_Quantile_Test...");
+
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // idx   |0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15 |
+    //  S    |0   3   7   1   4   6   3   7   2   5   6   0   3   5   2   4  |
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    std::vector<uint64_t> data = {0, 3, 7, 1, 4, 6, 3, 7, 2, 5, 6, 0, 3, 5, 2, 4};
+    WaveletMatrix         wm   = WaveletMatrix(data, 3, BuildOrder::MSBFirst);
 
     {
         size_t l = 2, r = 8;
@@ -74,22 +69,22 @@ void WaveletMatrix_Test() {
             throw osuCrypto::UnitTestFail("Expected Quantile(2,8,5) == 7");
     }
 
-    // {
-    //     for (size_t l = 0; l < data.size(); ++l) {
-    //         for (size_t r = l + 1; r <= data.size(); ++r) {
-    //             std::vector<uint64_t> sub(data.begin() + l, data.begin() + r);
-    //             std::sort(sub.begin(), sub.end());
-    //             for (size_t k = 0; k < sub.size(); ++k) {
-    //                 uint64_t q = wm.Quantile(l, r, k);
-    //                 if (q != sub[k]) {
-    //                     throw osuCrypto::UnitTestFail(
-    //                         "Quantile(" + ToString(l) + "," + ToString(r) + "," + ToString(k) +
-    //                         ") expected " + ToString(sub[k]) + " got " + ToString(q));
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+    {
+        for (size_t l = 0; l < data.size(); ++l) {
+            for (size_t r = l + 1; r <= data.size(); ++r) {
+                std::vector<uint64_t> sub(data.begin() + l, data.begin() + r);
+                std::sort(sub.begin(), sub.end());
+                for (size_t k = 0; k < sub.size(); ++k) {
+                    uint64_t q = wm.Quantile(l, r, k);
+                    if (q != sub[k]) {
+                        throw osuCrypto::UnitTestFail(
+                            "Quantile(" + ToString(l) + "," + ToString(r) + "," + ToString(k) +
+                            ") expected " + ToString(sub[k]) + " got " + ToString(q));
+                    }
+                }
+            }
+        }
+    }
 
     {
         size_t l = 2, r = 8;
@@ -107,6 +102,18 @@ void WaveletMatrix_Test() {
             throw osuCrypto::UnitTestFail("Expected RangeMax(2, 8) == 7");
         }
     }
+}
+
+void WaveletMatrix_RangeFreqTest() {
+    Logger::DebugLog(LOC, "WaveletMatrix_RangeFreqTest...");
+
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // idx   |0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15 |
+    //  S    |0   3   7   1   4   6   3   7   2   5   6   0   3   5   2   4  |
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    std::vector<uint64_t> data = {0, 3, 7, 1, 4, 6, 3, 7, 2, 5, 6, 0, 3, 5, 2, 4};
+    WaveletMatrix         wm   = WaveletMatrix(data, 3, BuildOrder::MSBFirst);
 
     {
         size_t l = 2, r = 8;
@@ -139,6 +146,18 @@ void WaveletMatrix_Test() {
             }
         }
     }
+}
+
+void WaveletMatrix_TopK_Test() {
+    Logger::DebugLog(LOC, "WaveletMatrix_TopK_Test...");
+
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // idx   |0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15 |
+    //  S    |0   3   7   1   4   6   3   7   2   5   6   0   3   5   2   4  |
+    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    std::vector<uint64_t> data = {0, 3, 7, 1, 4, 6, 3, 7, 2, 5, 6, 0, 3, 5, 2, 4};
+    WaveletMatrix         wm   = WaveletMatrix(data, 3, BuildOrder::MSBFirst);
 
     {
         size_t l = 2, r = 8;
@@ -154,8 +173,25 @@ void WaveletMatrix_Test() {
             throw osuCrypto::UnitTestFail("Expected TopK first element to be (7,2)");
         }
     }
+}
 
-    Logger::DebugLog(LOC, "WaveletMatrix_Test - Passed");
+void WaveletMatrix_RankCF_Test() {
+    Logger::DebugLog(LOC, "WaveletMatrix_RankCF_Test...");
+
+    std::string text = "ACGTACGT";
+    Logger::DebugLog(LOC, "Text: " + text);
+
+    WaveletMatrix wm(text, CharType::DNA, BuildOrder::LSBFirst);
+
+    uint64_t cid     = wm.GetMapper().ToId('G');
+    size_t   pos     = 6;    // up to position 6 (exclusive)
+    uint64_t rank_cf = wm.RankCF(cid, pos);
+
+    Logger::DebugLog(LOC, "RankCF('G', " + ToString(pos) + ") = " + ToString(rank_cf));
+
+    if (rank_cf != 5) {
+        throw osuCrypto::UnitTestFail("Expected RankCF('G', 6) == 5");
+    }
 }
 
 void FMIndex_Test() {

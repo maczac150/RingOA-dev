@@ -200,15 +200,13 @@ void OQuantileEvaluator::EvaluateQuantile(Channels                     &chls,
                                           sharing::RepShare64          &k_sh,
                                           sharing::RepShare64          &result) const {
 
-    uint64_t d        = params_.GetDatabaseBitSize();
-    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t s        = params_.GetShareSize();
     uint64_t sigma    = params_.GetSigma();
     uint64_t party_id = chls.party_id;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OQuantile key"));
-    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
-    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Share size: " + ToString(s));
     Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
@@ -232,30 +230,36 @@ void OQuantileEvaluator::EvaluateQuantile(Channels                     &chls,
         rss_.EvaluateSub(zeroright_sh, zeroleft_sh, zerocount_sh);
 
         // Convert RSS to (2, 2)-sharing between P1 and P2 and Evaluate IntegerComparison
-        uint64_t            ic_0, ic_1;
+        uint64_t            ic_0{0}, ic_1{0};
         sharing::RepShare64 r1_sh, r2_sh;
         rss_.Rand(r1_sh);
         rss_.Rand(r2_sh);
         if (party_id == 1) {
-            uint64_t k_0         = Mod2N(k_sh.data[0] + k_sh.data[1] + r1_sh.data[1], d);
-            uint64_t zerocount_0 = Mod2N(zerocount_sh.data[0] + zerocount_sh.data[1] + r2_sh.data[1], d);
-            ic_0                 = ic_eval_.EvaluateSharedInput(chls.next, key.ic_keys[bit], k_0, zerocount_0);
+            uint64_t k_0         = Mod2N(k_sh.data[0] + k_sh.data[1] + r1_sh.data[1], s);
+            uint64_t zerocount_0 = Mod2N(zerocount_sh.data[0] + zerocount_sh.data[1] + r2_sh.data[1], s);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::InfoLog(LOC, party_str + " k_0: " + ToString(k_0) + ", zerocount_0: " + ToString(zerocount_0));
+#endif
+            ic_0 = ic_eval_.EvaluateSharedInput(chls.next, key.ic_keys[bit], k_0, zerocount_0);
         } else if (party_id == 2) {
-            uint64_t k_1         = Mod2N(r1_sh.data[0] - r1_sh.data[0], d);
-            uint64_t zerocount_1 = Mod2N(zerocount_sh.data[0] - r2_sh.data[0], d);
-            ic_1                 = ic_eval_.EvaluateSharedInput(chls.prev, key.ic_keys[bit], k_1, zerocount_1);
+            uint64_t k_1         = Mod2N(k_sh.data[0] - r1_sh.data[0], s);
+            uint64_t zerocount_1 = Mod2N(zerocount_sh.data[0] - r2_sh.data[0], s);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::InfoLog(LOC, party_str + " k_1: " + ToString(k_1) + ", zerocount_1: " + ToString(zerocount_1));
+#endif
+            ic_1 = ic_eval_.EvaluateSharedInput(chls.prev, key.ic_keys[bit], k_1, zerocount_1);
         }
 
         // Convert (2, 2)-sharing to RSS
         if (party_id == 0) {
             rss_.Rand(r1_sh);
-            comp_sh[0] = Mod2N(r1_sh[1] - r1_sh[0], d);
+            comp_sh[0] = Mod2N(r1_sh[1] - r1_sh[0], s);
         } else if (party_id == 1) {
             rss_.Rand(r1_sh);
-            comp_sh[0] = Mod2N(ic_0 + r1_sh[1] - r1_sh[0], d);
+            comp_sh[0] = Mod2N(ic_0 + r1_sh[1] - r1_sh[0], s);
         } else if (party_id == 2) {
             rss_.Rand(r1_sh);
-            comp_sh[0] = Mod2N(ic_1 + r1_sh[1] - r1_sh[0], d);
+            comp_sh[0] = Mod2N(ic_1 + r1_sh[1] - r1_sh[0], s);
         }
         chls.next.send(comp_sh[0]);
         chls.prev.recv(comp_sh[1]);
@@ -276,8 +280,8 @@ void OQuantileEvaluator::EvaluateQuantile(Channels                     &chls,
 
         // Update result
         sharing::RepShare64 cond_sh(0, 0);
-        cond_sh[0] = Mod2N(comp_sh[0] * (1UL << bit), d);
-        cond_sh[1] = Mod2N(comp_sh[1] * (1UL << bit), d);
+        cond_sh[0] = Mod2N(comp_sh[0] * (1UL << bit), s);
+        cond_sh[1] = Mod2N(comp_sh[1] * (1UL << bit), s);
         rss_.EvaluateAdd(result, cond_sh, result);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -289,6 +293,129 @@ void OQuantileEvaluator::EvaluateQuantile(Channels                     &chls,
         rss_.Open(chls, total_zeros, total_zero_rec);
         rss_.Open(chls, zeroleft_sh, zeroleft_rec);
         rss_.Open(chls, zeroright_sh, zeroright_rec);
+        rss_.Open(chls, zerocount_sh, zerocount_rec);
+        rss_.Open(chls, comp_sh, comp_rec);
+        rss_.Open(chls, k_sh, k_rec);
+        rss_.Open(chls, left_sh, left_rec);
+        rss_.Open(chls, right_sh, right_rec);
+        rss_.Open(chls, result, result_rec);
+        Logger::DebugLog(LOC, party_str + "total_zero_rec: " + ToString(total_zero_rec));
+        Logger::DebugLog(LOC, party_str + "zeroleft_rec: " + ToString(zeroleft_rec));
+        Logger::DebugLog(LOC, party_str + "zeroright_rec: " + ToString(zeroright_rec));
+        Logger::DebugLog(LOC, party_str + "zerocount_rec: " + ToString(zerocount_rec));
+        Logger::DebugLog(LOC, party_str + "comp_rec: " + ToString(comp_rec));
+        Logger::DebugLog(LOC, party_str + "k_rec: " + ToString(k_rec));
+        Logger::DebugLog(LOC, party_str + "left_rec: " + ToString(left_rec));
+        Logger::DebugLog(LOC, party_str + "right_rec: " + ToString(right_rec));
+        Logger::DebugLog(LOC, party_str + "result_rec: " + ToString(result_rec));
+#endif
+    }
+}
+
+void OQuantileEvaluator::EvaluateQuantile_Parallel(Channels                     &chls,
+                                                   const OQuantileKey           &key,
+                                                   std::vector<block>           &uv_prev,
+                                                   std::vector<block>           &uv_next,
+                                                   const sharing::RepShareMat64 &wm_tables,
+                                                   sharing::RepShare64          &left_sh,
+                                                   sharing::RepShare64          &right_sh,
+                                                   sharing::RepShare64          &k_sh,
+                                                   sharing::RepShare64          &result) const {
+
+    uint64_t s        = params_.GetShareSize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OQuantile_Parallel key"));
+    Logger::DebugLog(LOC, "Share size: " + ToString(s));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+#endif
+
+    result = sharing::RepShare64(0, 0);
+    sharing::RepShareVec64 lr_sh(2), zerolr_sh(2);
+    sharing::RepShare64    total_zeros(0, 0);
+    sharing::RepShare64    zerocount_sh(0, 0);
+    sharing::RepShare64    comp_sh(0, 0);
+
+    size_t oa_key_idx = 0;
+    for (uint64_t i = sigma; i > 0; --i) {
+        const size_t bit = i - 1;
+        lr_sh.Set(0, left_sh);
+        lr_sh.Set(1, right_sh);
+        oa_eval_.Evaluate_Parallel(chls, key.oa_keys[oa_key_idx], key.oa_keys[oa_key_idx + 1], uv_prev, uv_next, wm_tables.RowView(bit), lr_sh, zerolr_sh);
+        oa_key_idx += 2;
+
+        total_zeros = wm_tables.RowView(bit).At(wm_tables.RowView(bit).Size() - 1);
+        rss_.EvaluateSub(zerolr_sh.At(1), zerolr_sh.At(0), zerocount_sh);
+
+        // Convert RSS to (2, 2)-sharing between P1 and P2 and Evaluate IntegerComparison
+        uint64_t            ic_0{0}, ic_1{0};
+        sharing::RepShare64 r1_sh, r2_sh;
+        rss_.Rand(r1_sh);
+        rss_.Rand(r2_sh);
+        if (party_id == 1) {
+            uint64_t k_0         = Mod2N(k_sh.data[0] + k_sh.data[1] + r1_sh.data[1], s);
+            uint64_t zerocount_0 = Mod2N(zerocount_sh.data[0] + zerocount_sh.data[1] + r2_sh.data[1], s);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::InfoLog(LOC, party_str + " k_0: " + ToString(k_0) + ", zerocount_0: " + ToString(zerocount_0));
+#endif
+            ic_0 = ic_eval_.EvaluateSharedInput(chls.next, key.ic_keys[bit], k_0, zerocount_0);
+        } else if (party_id == 2) {
+            uint64_t k_1         = Mod2N(k_sh.data[0] - r1_sh.data[0], s);
+            uint64_t zerocount_1 = Mod2N(zerocount_sh.data[0] - r2_sh.data[0], s);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            Logger::InfoLog(LOC, party_str + " k_1: " + ToString(k_1) + ", zerocount_1: " + ToString(zerocount_1));
+#endif
+            ic_1 = ic_eval_.EvaluateSharedInput(chls.prev, key.ic_keys[bit], k_1, zerocount_1);
+        }
+
+        // Convert (2, 2)-sharing to RSS
+        if (party_id == 0) {
+            rss_.Rand(r1_sh);
+            comp_sh[0] = Mod2N(r1_sh[1] - r1_sh[0], s);
+        } else if (party_id == 1) {
+            rss_.Rand(r1_sh);
+            comp_sh[0] = Mod2N(ic_0 + r1_sh[1] - r1_sh[0], s);
+        } else if (party_id == 2) {
+            rss_.Rand(r1_sh);
+            comp_sh[0] = Mod2N(ic_1 + r1_sh[1] - r1_sh[0], s);
+        }
+        chls.next.send(comp_sh[0]);
+        chls.prev.recv(comp_sh[1]);
+
+        // Update k_sh
+        sharing::RepShare64 update_sh(0, 0);
+        rss_.EvaluateSub(k_sh, zerocount_sh, update_sh);
+        rss_.EvaluateSelect(chls, k_sh, update_sh, comp_sh, k_sh);
+
+        // Update left_sh and right_sh
+        sharing::RepShare64 oneleft_sh(0, 0), oneright_sh(0, 0);
+        rss_.EvaluateAdd(total_zeros, left_sh, oneleft_sh);
+        rss_.EvaluateSub(oneleft_sh, zerolr_sh.At(0), oneleft_sh);
+        rss_.EvaluateAdd(total_zeros, right_sh, oneright_sh);
+        rss_.EvaluateSub(oneright_sh, zerolr_sh.At(1), oneright_sh);
+        rss_.EvaluateSelect(chls, zerolr_sh.At(0), oneleft_sh, comp_sh, left_sh);
+        rss_.EvaluateSelect(chls, zerolr_sh.At(1), oneright_sh, comp_sh, right_sh);
+
+        // Update result
+        sharing::RepShare64 cond_sh(0, 0);
+        cond_sh[0] = Mod2N(comp_sh[0] * (1UL << bit), s);
+        cond_sh[1] = Mod2N(comp_sh[1] * (1UL << bit), s);
+        rss_.EvaluateAdd(result, cond_sh, result);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        uint64_t total_zero_rec, zeroleft_rec, zeroright_rec, zerocount_rec;
+        uint64_t comp_rec;
+        uint64_t k_rec;
+        uint64_t left_rec, right_rec;
+        uint64_t result_rec;
+        rss_.Open(chls, total_zeros, total_zero_rec);
+        rss_.Open(chls, zerolr_sh.At(0), zeroleft_rec);
+        rss_.Open(chls, zerolr_sh.At(1), zeroright_rec);
         rss_.Open(chls, zerocount_sh, zerocount_rec);
         rss_.Open(chls, comp_sh, comp_rec);
         rss_.Open(chls, k_sh, k_rec);

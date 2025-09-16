@@ -7,6 +7,7 @@
 #include "RingOA/sharing/additive_3p.h"
 #include "RingOA/utils/logger.h"
 #include "RingOA/utils/network.h"
+#include "RingOA/utils/rng.h"
 #include "RingOA/utils/timer.h"
 #include "RingOA/utils/to_string.h"
 #include "RingOA/utils/utils.h"
@@ -15,7 +16,7 @@ namespace ringoa {
 namespace proto {
 
 void RingOaParameters::PrintParameters() const {
-    Logger::DebugLog(LOC, "[Obliv Select Parameters]" + GetParametersInfo());
+    Logger::DebugLog(LOC, "[RingOA Parameters]" + GetParametersInfo());
 }
 
 RingOaKey::RingOaKey(const uint64_t id, const RingOaParameters &params)
@@ -130,6 +131,7 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
         RingOaKey(2, params_),
     };
     uint64_t d             = params_.GetDatabaseSize();
+    uint64_t s             = params_.GetShareSize();
     uint64_t remaining_bit = params_.GetParameters().GetInputBitsize() - params_.GetParameters().GetTerminateBitsize();
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -147,7 +149,7 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
     bool  final_control_bit_1;
 
     for (uint64_t i = 0; i < 3; ++i) {
-        rands[i]    = ass_.GenerateRandomValue();
+        rands[i]    = Mod2N(GlobalRng::Rand<uint64_t>(), d);
         rand_shs[i] = ass_.Share(rands[i]);
         key_pairs.push_back(gen_.GenerateKeys(rands[i], 1, final_seed_0, final_seed_1, final_control_bit_1));
 
@@ -162,7 +164,7 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
             if (fs0) {
                 w[i] = 1;
             } else {
-                w[i] = Mod2N(-1, d);
+                w[i] = Mod2N(-1, s);
             }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
             Logger::DebugLog(LOC, "fs0: " + ToString(fs0) + ", alpha_hat: " + ToString(GetLowerNBits(rands[i], remaining_bit)));
@@ -171,7 +173,7 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
         } else {
             uint64_t fs1 = GetBit(final_seed_1, GetLowerNBits(rands[i], remaining_bit));
             if (fs1) {
-                w[i] = Mod2N(-1, d);
+                w[i] = Mod2N(-1, s);
             } else {
                 w[i] = 1;
             }
@@ -234,6 +236,7 @@ void RingOaEvaluator::Evaluate(Channels                      &chls,
 
     uint64_t party_id = chls.party_id;
     uint64_t d        = params_.GetDatabaseSize();
+    uint64_t s        = params_.GetShareSize();
     uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
 
     if (uv_prev.size() != (1UL << nu) || uv_next.size() != (1UL << nu)) {
@@ -282,10 +285,10 @@ void RingOaEvaluator::Evaluate(Channels                      &chls,
     Logger::DebugLog(LOC, party_str + "ext_dp_prev: " + ToString(ext_dp_prev) + ", ext_dp_next: " + ToString(ext_dp_next));
 #endif
 
-    uint64_t            selected_sh = Mod2N(ext_dp_prev + ext_dp_next, d);
+    uint64_t            selected_sh = Mod2N(ext_dp_prev + ext_dp_next, s);
     sharing::RepShare64 r_sh;
     rss_.Rand(r_sh);
-    result[0] = Mod2N(selected_sh + r_sh[0] - r_sh[1], d);
+    result[0] = Mod2N(selected_sh + r_sh[0] - r_sh[1], s);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -304,6 +307,7 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
 
     uint64_t party_id = chls.party_id;
     uint64_t d        = params_.GetDatabaseSize();
+    uint64_t s        = params_.GetShareSize();
     uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
 
     if (uv_prev.size() != (1UL << nu) || uv_next.size() != (1UL << nu)) {
@@ -358,13 +362,13 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
                               ", ext_dp_next1: " + ToString(ext_dp_next[0]) + ", ext_dp_next2: " + ToString(ext_dp_next[1]));
 #endif
 
-    uint64_t            selected1_sh = Mod2N(ext_dp_prev[0] + ext_dp_next[0], d);
-    uint64_t            selected2_sh = Mod2N(ext_dp_prev[1] + ext_dp_next[1], d);
+    uint64_t            selected1_sh = Mod2N(ext_dp_prev[0] + ext_dp_next[0], s);
+    uint64_t            selected2_sh = Mod2N(ext_dp_prev[1] + ext_dp_next[1], s);
     sharing::RepShare64 r1_sh, r2_sh;
     rss_.Rand(r1_sh);
     rss_.Rand(r2_sh);
-    result[0][0] = Mod2N(selected1_sh + r1_sh[0] - r1_sh[1], d);
-    result[0][1] = Mod2N(selected2_sh + r2_sh[0] - r2_sh[1], d);
+    result[0][0] = Mod2N(selected1_sh + r1_sh[0] - r1_sh[1], s);
+    result[0][1] = Mod2N(selected2_sh + r2_sh[0] - r2_sh[1], s);
     chls.next.send(result[0]);
     chls.prev.recv(result[1]);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -383,6 +387,7 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
     const uint64_t                 pr_next) const {
 
     uint64_t d = params_.GetDatabaseSize();
+    uint64_t s = params_.GetShareSize();
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "[P" + ToString(party_id) + "] key_from_prev ID: " + ToString(key_from_prev.party_id));
@@ -392,7 +397,9 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
     eval_.EvaluateFullDomain(key_from_next, uv_prev);
     eval_.EvaluateFullDomain(key_from_prev, uv_next);
-    uint64_t dp_prev = 0, dp_next = 0;
+    uint64_t      dp_prev = 0, dp_next = 0;
+    const int64_t s_prev = Sign(key_from_prev.party_id);
+    const int64_t s_next = Sign(key_from_next.party_id);
 
     for (size_t i = 0; i < uv_prev.size(); ++i) {
         const uint64_t low_prev  = uv_prev[i].get<uint64_t>()[0];
@@ -403,18 +410,82 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
         for (int j = 0; j < 64; ++j) {
             const uint64_t mask_prev = 0ULL - ((low_prev >> j) & 1ULL);
             const uint64_t mask_next = 0ULL - ((low_next >> j) & 1ULL);
-            dp_prev                  = Mod2N(dp_prev + Sign(key_from_next.party_id) * (database.share1[Mod2N((i * 128 + j) + pr_prev, d)] & mask_prev), d);
-            dp_next                  = Mod2N(dp_next + Sign(key_from_prev.party_id) * (database.share0[Mod2N((i * 128 + j) + pr_next, d)] & mask_next), d);
+            dp_prev                  = Mod2N(dp_prev + s_next * (database.share1[Mod2N((i * 128 + j) + pr_prev, d)] & mask_prev), s);
+            dp_next                  = Mod2N(dp_next + s_prev * (database.share0[Mod2N((i * 128 + j) + pr_next, d)] & mask_next), s);
         }
         for (int j = 0; j < 64; ++j) {
             const uint64_t mask_prev = 0ULL - ((high_prev >> j) & 1ULL);
             const uint64_t mask_next = 0ULL - ((high_next >> j) & 1ULL);
-            dp_prev                  = Mod2N(dp_prev + Sign(key_from_next.party_id) * (database.share1[Mod2N((i * 128 + 64 + j) + pr_prev, d)] & mask_prev), d);
-            dp_next                  = Mod2N(dp_next + Sign(key_from_prev.party_id) * (database.share0[Mod2N((i * 128 + 64 + j) + pr_next, d)] & mask_next), d);
+            dp_prev                  = Mod2N(dp_prev + s_next * (database.share1[Mod2N((i * 128 + 64 + j) + pr_prev, d)] & mask_prev), s);
+            dp_next                  = Mod2N(dp_next + s_prev * (database.share0[Mod2N((i * 128 + 64 + j) + pr_next, d)] & mask_next), s);
         }
     }
     return std::make_pair(dp_prev, dp_next);
 }
+
+// std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
+//     const uint64_t                 party_id,
+//     const fss::dpf::DpfKey        &key_from_prev,
+//     const fss::dpf::DpfKey        &key_from_next,
+//     std::vector<block>            &uv_prev,
+//     std::vector<block>            &uv_next,
+//     const sharing::RepShareView64 &database,
+//     const uint64_t                 pr_prev,
+//     const uint64_t                 pr_next) const {
+
+//     uint64_t       d    = params_.GetDatabaseSize();
+//     const uint64_t mask = (1ULL << d) - 1ULL;
+
+// #if LOG_LEVEL >= LOG_LEVEL_DEBUG
+//     Logger::DebugLog(LOC, "[P" + ToString(party_id) + "] key_from_prev ID: " + ToString(key_from_prev.party_id));
+//     Logger::DebugLog(LOC, "[P" + ToString(party_id) + "] key_from_next ID: " + ToString(key_from_next.party_id));
+// #endif
+
+//     // Evaluate DPF (uv_prev and uv_next are std::vector<block>, where block == __m128i)
+//     eval_.EvaluateFullDomain(key_from_next, uv_prev);
+//     eval_.EvaluateFullDomain(key_from_prev, uv_next);
+
+//     uint64_t      dp_prev = 0, dp_next = 0;
+//     const int64_t s_prev = Sign(key_from_prev.party_id);
+//     const int64_t s_next = Sign(key_from_next.party_id);
+
+//     const uint64_t *__restrict s0 = database.share0.data();
+//     const uint64_t *__restrict s1 = database.share1.data();
+
+//     for (size_t i = 0; i < uv_prev.size(); ++i) {
+//         const uint64_t low_prev  = uv_prev[i].get<uint64_t>()[0];
+//         const uint64_t high_prev = uv_prev[i].get<uint64_t>()[1];
+//         const uint64_t low_next  = uv_next[i].get<uint64_t>()[0];
+//         const uint64_t high_next = uv_next[i].get<uint64_t>()[1];
+
+//         uint64_t idx_prev = ((i << 7) + pr_prev) & mask;
+//         uint64_t idx_next = ((i << 7) + pr_next) & mask;
+//         auto     bump     = [&](uint64_t &x) { x = (x + 1) & mask; };
+
+//         for (int j = 0; j < 64; ++j) {
+//             const uint64_t mask_prev = 0ULL - ((low_prev >> j) & 1ULL);
+//             const uint64_t mask_next = 0ULL - ((low_next >> j) & 1ULL);
+//             const uint64_t a_prev    = s1[idx_prev] & mask_prev;
+//             const uint64_t a_next    = s0[idx_next] & mask_next;
+//             dp_prev += s_next * a_prev;
+//             dp_next += s_prev * a_next;
+//             bump(idx_prev);
+//             bump(idx_next);
+//         }
+
+//         for (int j = 0; j < 64; ++j) {
+//             const uint64_t mask_prev = 0ULL - ((high_prev >> j) & 1ULL);
+//             const uint64_t mask_next = 0ULL - ((high_next >> j) & 1ULL);
+//             const uint64_t a_prev    = s1[idx_prev] & mask_prev;
+//             const uint64_t a_next    = s0[idx_next] & mask_next;
+//             dp_prev += s_next * a_prev;
+//             dp_next += s_prev * a_next;
+//             bump(idx_prev);
+//             bump(idx_next);
+//         }
+//     }
+//     return std::make_pair(Mod2N(dp_prev, d), Mod2N(dp_next, d));
+// }
 
 std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels                  &chls,
                                                                       const RingOaKey           &key,
@@ -425,7 +496,7 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
 #endif
 
     // Set replicated sharing of random value
-    uint64_t d       = params_.GetDatabaseSize();
+    uint64_t s       = params_.GetShareSize();
     uint64_t pr_prev = 0, pr_next = 0;
 
     // Reconstruct p - r_i
@@ -442,8 +513,8 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
         chls.next.send(pr_01_sh[1]);
         chls.next.recv(pr_01);
         chls.prev.recv(pr_20);
-        pr_prev = Mod2N(pr_20 + pr_20_sh[0] + pr_20_sh[1], d);
-        pr_next = Mod2N(pr_01_sh[0] + pr_01_sh[1] + pr_01, d);
+        pr_prev = Mod2N(pr_20 + pr_20_sh[0] + pr_20_sh[1], s);
+        pr_next = Mod2N(pr_01_sh[0] + pr_01_sh[1] + pr_01, s);
 
     } else if (chls.party_id == 1) {
         sharing::RepShare64 r_0_sh(0, key.rsh_from_prev);
@@ -458,8 +529,8 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
         chls.prev.send(pr_01_sh[0]);
         chls.prev.recv(pr_01);
         chls.next.recv(pr_12);
-        pr_prev = Mod2N(pr_01 + pr_01_sh[0] + pr_01_sh[1], d);
-        pr_next = Mod2N(pr_12_sh[0] + pr_12_sh[1] + pr_12, d);
+        pr_prev = Mod2N(pr_01 + pr_01_sh[0] + pr_01_sh[1], s);
+        pr_next = Mod2N(pr_12_sh[0] + pr_12_sh[1] + pr_12, s);
 
     } else {
         sharing::RepShare64 r_0_sh(key.rsh_from_next, 0);
@@ -474,8 +545,8 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
         chls.next.send(pr_20_sh[1]);
         chls.prev.recv(pr_12);
         chls.next.recv(pr_20);
-        pr_prev = Mod2N(pr_12 + pr_12_sh[0] + pr_12_sh[1], d);
-        pr_next = Mod2N(pr_20_sh[0] + pr_20_sh[1] + pr_20, d);
+        pr_prev = Mod2N(pr_12 + pr_12_sh[0] + pr_12_sh[1], s);
+        pr_next = Mod2N(pr_20_sh[0] + pr_20_sh[1] + pr_20, s);
     }
     return std::make_pair(pr_prev, pr_next);
 }
@@ -490,7 +561,7 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
 #endif
 
     // Set replicated sharing of random value
-    uint64_t               d        = params_.GetDatabaseSize();
+    uint64_t               s        = params_.GetShareSize();
     uint64_t               pr_prev1 = 0, pr_next1 = 0, pr_prev2 = 0, pr_next2 = 0;
     sharing::RepShareVec64 r_0_sh(2), r_1_sh(2), r_2_sh(2);
 
@@ -510,10 +581,10 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
         chls.next.send(pr_01_sh[1]);
         chls.next.recv(pr_01);
         chls.prev.recv(pr_20);
-        pr_prev1 = Mod2N(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], d);
-        pr_next1 = Mod2N(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], d);
-        pr_prev2 = Mod2N(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], d);
-        pr_next2 = Mod2N(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], d);
+        pr_prev1 = Mod2N(pr_20[0] + pr_20_sh[0][0] + pr_20_sh[1][0], s);
+        pr_next1 = Mod2N(pr_01_sh[0][0] + pr_01_sh[1][0] + pr_01[0], s);
+        pr_prev2 = Mod2N(pr_20[1] + pr_20_sh[0][1] + pr_20_sh[1][1], s);
+        pr_next2 = Mod2N(pr_01_sh[0][1] + pr_01_sh[1][1] + pr_01[1], s);
 
     } else if (chls.party_id == 1) {
         r_0_sh.Set(0, sharing::RepShare64(0, key1.rsh_from_prev));
@@ -530,10 +601,10 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
         chls.prev.send(pr_01_sh[0]);
         chls.prev.recv(pr_01);
         chls.next.recv(pr_12);
-        pr_prev1 = Mod2N(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], d);
-        pr_next1 = Mod2N(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], d);
-        pr_prev2 = Mod2N(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], d);
-        pr_next2 = Mod2N(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], d);
+        pr_prev1 = Mod2N(pr_01[0] + pr_01_sh[0][0] + pr_01_sh[1][0], s);
+        pr_next1 = Mod2N(pr_12_sh[0][0] + pr_12_sh[1][0] + pr_12[0], s);
+        pr_prev2 = Mod2N(pr_01[1] + pr_01_sh[0][1] + pr_01_sh[1][1], s);
+        pr_next2 = Mod2N(pr_12_sh[0][1] + pr_12_sh[1][1] + pr_12[1], s);
 
     } else {
         r_0_sh.Set(0, sharing::RepShare64(key1.rsh_from_next, 0));
@@ -550,10 +621,10 @@ std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels        
         chls.next.send(pr_20_sh[1]);
         chls.prev.recv(pr_12);
         chls.next.recv(pr_20);
-        pr_prev1 = Mod2N(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], d);
-        pr_next1 = Mod2N(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], d);
-        pr_prev2 = Mod2N(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], d);
-        pr_next2 = Mod2N(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], d);
+        pr_prev1 = Mod2N(pr_12[0] + pr_12_sh[0][0] + pr_12_sh[1][0], s);
+        pr_next1 = Mod2N(pr_20_sh[0][0] + pr_20_sh[1][0] + pr_20[0], s);
+        pr_prev2 = Mod2N(pr_12[1] + pr_12_sh[0][1] + pr_12_sh[1][1], s);
+        pr_next2 = Mod2N(pr_20_sh[0][1] + pr_20_sh[1][1] + pr_20[1], s);
     }
     return std::array<uint64_t, 4>{pr_prev1, pr_next1, pr_prev2, pr_next2};
 }

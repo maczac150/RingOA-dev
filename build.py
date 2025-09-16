@@ -73,6 +73,7 @@ def Setup(install, prefix, par):
         "./data/bench/fmi",
         "./data/bench/os",
         "./data/bench/pir",
+        "./data/bench/wm",
         "./data/log"
     ]
     current_file_path = os.path.dirname(os.path.abspath(__file__))

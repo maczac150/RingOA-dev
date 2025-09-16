@@ -24,17 +24,19 @@ public:
                         const uint64_t sigma = 3)
         : database_bitsize_(database_bitsize),
           database_size_(1U << database_bitsize),
+          share_size_(database_bitsize + 1),
           sigma_(sigma),
-          oa_params_(database_bitsize),
-          ic_params_(database_bitsize, database_bitsize) {
+          oa_params_(database_bitsize, share_size_),
+          ic_params_(share_size_, share_size_) {
     }
 
     void ReconfigureParameters(const uint64_t database_bitsize, const uint64_t sigma = 3) {
         database_bitsize_ = database_bitsize;
         database_size_    = 1U << database_bitsize;
+        share_size_       = database_bitsize + 1;
         sigma_            = sigma;
-        oa_params_.ReconfigureParameters(database_bitsize);
-        ic_params_.ReconfigureParameters(database_bitsize, database_bitsize);
+        oa_params_.ReconfigureParameters(database_bitsize, share_size_);
+        ic_params_.ReconfigureParameters(share_size_, share_size_);
     }
 
     uint64_t GetDatabaseBitSize() const {
@@ -42,6 +44,9 @@ public:
     }
     uint64_t GetDatabaseSize() const {
         return database_size_;
+    }
+    uint64_t GetShareSize() const {
+        return share_size_;
     }
     uint64_t GetSigma() const {
         return sigma_;
@@ -56,6 +61,7 @@ public:
     std::string GetParametersInfo() const {
         std::ostringstream oss;
         oss << "DB size: " << database_bitsize_
+            << ", Share size: " << share_size_
             << ", Sigma: " << sigma_
             << ", RingOA params: "
             << oa_params_.GetParametersInfo()
@@ -67,6 +73,7 @@ public:
 private:
     uint64_t                           database_bitsize_;
     uint64_t                           database_size_;
+    uint64_t                           share_size_;
     uint64_t                           sigma_;
     proto::RingOaParameters            oa_params_;
     proto::IntegerComparisonParameters ic_params_;
@@ -147,10 +154,6 @@ public:
 
     void OnlineSetUp(const uint64_t party_id, const std::string &file_path);
 
-    const proto::RingOaEvaluator &GetRingOaEvaluator() const {
-        return oa_eval_;
-    }
-
     void EvaluateQuantile(Channels                     &chls,
                           const OQuantileKey           &key,
                           std::vector<block>           &uv_prev,
@@ -160,6 +163,16 @@ public:
                           sharing::RepShare64          &right_sh,
                           sharing::RepShare64          &k_sh,
                           sharing::RepShare64          &result) const;
+
+    void EvaluateQuantile_Parallel(Channels                     &chls,
+                                   const OQuantileKey           &key,
+                                   std::vector<block>           &uv_prev,
+                                   std::vector<block>           &uv_next,
+                                   const sharing::RepShareMat64 &wm_tables,
+                                   sharing::RepShare64          &left_sh,
+                                   sharing::RepShare64          &right_sh,
+                                   sharing::RepShare64          &k_sh,
+                                   sharing::RepShare64          &result) const;
 
 private:
     OQuantileParameters               params_;
