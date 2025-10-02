@@ -1,19 +1,31 @@
+#!/usr/bin/env python3
 import os
-import platform
 import sys
-import multiprocessing
+import shutil
 import subprocess
-
-try:
-    import thirdparty.getCryptoTools as getCryptoTools
-except ImportError:
-    print("Error: Could not find 'thirdparty.getCryptoTools'. Ensure the file structure is correct.")
-    sys.exit(1)
+from pathlib import Path
+import platform
 
 
-def getParallel(args):
-    """Determine the number of parallel threads to use for building."""
-    par = multiprocessing.cpu_count()
+# ===== Utility =====
+def run(cmd, cwd=None, use_sudo=False):
+    if use_sudo and platform.system() != "Windows":
+        cmd = ["sudo"] + cmd
+    print(">>", " ".join(cmd))
+    subprocess.run(cmd, cwd=cwd, check=True)
+
+
+def require(tool):
+    if shutil.which(tool) is None:
+        raise RuntimeError(f"Required tool not found in PATH: {tool}")
+
+
+def has_flag(args, flag):
+    return any(a == flag for a in args)
+
+
+def get_parallel(args):
+    par = os.cpu_count() or 1
     for x in args:
         if x.startswith("--par="):
             val = x.split("=", 1)[1]
@@ -27,189 +39,208 @@ def getParallel(args):
     return par
 
 
-def createDirectories(path_list):
-    for path in path_list:
-        try:
-            # Create a new directory if it does not exist
-            if not os.path.exists(path):
-                os.makedirs(path)
-                print(f"Created directory: {path}")
-            else:
-                print(f"Directory already exists: {path}")
-        except Exception as e:
-            print(
-                f"An error occurred while creating directory {path}: {str(e)}")
+def split_args(argv):
+    if "--" in argv:
+        idx = argv.index("--")
+        main_args = argv[:idx]
+        cmake_args = argv[idx + 1:]
+    else:
+        main_args = argv
+        cmake_args = []
+    return main_args, cmake_args
 
 
-def Setup(install, prefix, par):
-    """
-    Setup all dependencies for the project and create necessary directories.
+def already_sets_build_type(cmake_args):
+    for a in cmake_args:
+        if a.startswith("-DCMAKE_BUILD_TYPE=") or "CMAKE_BUILD_TYPE" in a:
+            return True
+    return False
 
-    Args:
-        install (bool): Whether to install dependencies.
-        prefix (str): Installation directory.
-        par (int): Number of parallel build threads.
-    """
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    thirdparty_dir = os.path.join(dir_path, "thirdparty")
-    os.makedirs(thirdparty_dir, exist_ok=True)
 
-    os.chdir(thirdparty_dir)
+def compute_build_type(main_args):
+    if "--debug" in main_args or "--Debug" in main_args:
+        return "Debug"
+    if "--profile" in main_args or "--Profile" in main_args:
+        return "Profile"
+    return "Release"
 
-    # Always setup cryptoTools
-    print("Setting up CryptoTools and Boost...")
-    getCryptoTools.getCryptoTools(install, prefix, par, True, True, False)
 
-    os.chdir(dir_path)
-    print("Setup completed.")
+def get_install_args(args):
+    """Returns (do_install, prefix_path_or_None, use_sudo)"""
+    use_sudo = has_flag(args, "--sudo")
+    for x in args:
+        if x.startswith("--install="):
+            prefix = os.path.abspath(os.path.expanduser(x.split("=", 1)[1]))
+            return True, prefix, use_sudo
+    if has_flag(args, "--install"):
+        return True, None, use_sudo
+    return False, None, use_sudo
 
-    paths_to_create = [
-        "./data/test/utils",
-        "./data/test/ss",
-        "./data/test/ss3",
-        "./data/test/protocol",
-        "./data/test/wm",
-        "./data/test/fmi",
-        "./data/bench/fmi",
-        "./data/bench/os",
-        "./data/bench/pir",
-        "./data/bench/wm",
-        "./data/log"
+
+def choose_build_dir(build_type):
+    return Path("out/build/linux")
+
+
+def user_specified_generator(cmake_args):
+    for a in cmake_args:
+        if a == "-G" or a.startswith("-G"):
+            return True
+    return False
+
+
+def ensure_dirs(paths):
+    for p in paths:
+        if not p.exists():
+            print(f"Creating: {p}")
+            run(["cmake", "-E", "make_directory", str(p)])
+        else:
+            print(f"Exists:   {p}")
+
+
+def create_data_dirs():
+    dir_path = Path(__file__).resolve().parent
+    to_create = [
+        "data/test/utils",
+        "data/test/ss",
+        "data/test/ss3",
+        "data/test/protocol",
+        "data/test/wm",
+        "data/test/fmi",
+        "data/bench/fmi",
+        "data/bench/os",
+        "data/bench/pir",
+        "data/bench/wm",
+        "data/logs",
     ]
-    current_file_path = os.path.dirname(os.path.abspath(__file__))
-    paths_to_create = [current_file_path +
-                       '/' + path for path in paths_to_create]
-    createDirectories(paths_to_create)
+    ensure_dirs([dir_path / p for p in to_create])
 
 
-def Build(projectName, mainArgs, cmakeArgs, install, prefix, par):
-    """
-    Build the main project.
+# ===== Setup Phase =====
+def Setup(par, *, create_project_dirs=False):
+    require("git")
+    require("cmake")
 
-    Args:
-        projectName (str): Name of the project.
-        mainArgs (list): Arguments passed to the build script.
-        cmakeArgs (list): Arguments passed to CMake.
-        install (bool): Whether to install the project.
-        prefix (str): Installation directory.
-        par (int): Number of parallel build threads.
-    """
-    if "--Debug" in mainArgs:
-        buildType = "Debug"
-    elif "--Profile" in mainArgs:
-        buildType = "Profile"
-    else:
-        buildType = "Release"
-    osStr = platform.system()
-    if osStr == "Windows":
-        print("Windows is not supported.")
+    try:
+        import thirdparty.getCryptoTools as getCryptoTools
+    except ImportError:
+        print("Error: Could not find 'thirdparty/getCryptoTools'.")
         sys.exit(1)
-    else:
-        buildDir = "out/build/linux"
 
-    cmakeArgs.append(f"-DCMAKE_BUILD_TYPE={buildType}")
+    print("== Setup: cryptoTools & Boost ==")
+    getCryptoTools.getCryptoTools(
+        par=par,
+        build_cryptoTools=True,
+        setup_boost=True,
+        setup_relic=False,
+        debug=False,
+        use_sudo=False,
+    )
 
-    mkDirCmd = ["mkdir", "-p", buildDir]
-    CMakeCmd = ["cmake", "-S", ".", "-B", buildDir] + cmakeArgs
-    CMakeCmd += ["-G", "Ninja",
-                 "-DCMAKE_CXX_FLAGS=-fdiagnostics-color=always"]
-    BuildCmd = ["cmake", "--build", buildDir]
+    if create_project_dirs:
+        print("== Setup: Creating project data directories ==")
+        create_data_dirs()
 
-    if par != 1:
-        BuildCmd += ["--parallel", str(par)]
+    print("== Setup completed ==")
 
-    print("\n======= build.py ("+projectName+") ==========")
-    print(' '.join(mkDirCmd))
-    print(' '.join(CMakeCmd))
-    print(' '.join(BuildCmd))
+
+# ===== Build/Install Phase =====
+def Build(project_name, main_args, cmake_args, par):
+    require("cmake")
+
+    build_type = compute_build_type(main_args)
+    build_dir = choose_build_dir(build_type)
+
+    generator_opts = []
+    if not user_specified_generator(cmake_args):
+        if shutil.which("ninja"):
+            generator_opts = ["-G", "Ninja"]
+        else:
+            print("Note: 'ninja' not found. Falling back to default CMake generator.")
+
+    cfg_args = list(cmake_args)
+    if not already_sets_build_type(cfg_args):
+        cfg_args.append(f"-DCMAKE_BUILD_TYPE={build_type}")
+    cfg_args.append("-DCMAKE_CXX_FLAGS=-fdiagnostics-color=always")
+
+    do_install, install_prefix, use_sudo = get_install_args(main_args)
+    if do_install and install_prefix:
+        cfg_args.append(f"-DCMAKE_INSTALL_PREFIX={install_prefix}")
+
+    build_cmd = ["cmake", "--build", str(build_dir)]
+    if par and par > 1:
+        build_cmd += ["--parallel", str(par)]
+    install_cmd = ["cmake", "--install", str(build_dir)]
+
+    print("\n======= build.py (" + project_name + ") ==========")
+    print("Configure Dir:", str(build_dir))
+    print("CMake Args:   ", " ".join(cfg_args))
+    print("Generator:    ", " ".join(generator_opts)
+          if generator_opts else "(default)")
+    print("Build Type:   ", build_type)
+    print("Parallel:     ", par)
+    print("Install:      ",
+          f"{do_install} (prefix={install_prefix or '(cmake default)'})")
     print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
 
     try:
-        subprocess.run(mkDirCmd, check=True)
-        subprocess.run(CMakeCmd, check=True)
-        subprocess.run(BuildCmd, check=True)
-    # if install:
-    #     InstallCmd = ["cmake", "--install", buildDir]
-    #     print("Installing project:", " ".join(InstallCmd))
-    #     subprocess.run(InstallCmd, check=True)
+        run(["cmake", "-E", "make_directory", str(build_dir)])
+        configure_cmd = ["cmake", "-S", ".", "-B",
+                         str(build_dir)] + generator_opts + cfg_args
+        run(configure_cmd)
+        run(build_cmd)
+        if do_install:
+            print("== Installing project ==")
+            run(install_cmd, use_sudo=use_sudo)
     except subprocess.CalledProcessError as e:
-        print(f"Error during build: {e}")
+        print(f"\nError during build: {e}")
+        sys.exit(1)
+    except RuntimeError as e:
+        print(f"\nPrerequisite error: {e}")
         sys.exit(1)
 
 
-def getInstallArgs(args):
-    """Determine whether to install the built libraries and the installation directory"""
-    prefix = ""
-    for x in args:
-        if x.startswith("--install="):
-            prefix = x.split("=", 1)[1]
-            prefix = os.path.abspath(os.path.expanduser(prefix))
-            return (True, prefix)
-        if x == "--install":
-            return (True, "")
-    return (False, os.getcwd())
+# ===== CLI =====
+def help_msg():
+    print(
+        """
+Usage:
+  python build.py [options] [-- cmake_args]
+
+Options:
+  --setup             Fetch/build/install third-party deps (cryptoTools/Boost) and create project data dirs.
+  --install           Run 'cmake --install' using CMake's default prefix (e.g. /usr/local).
+  --install=PATH      Configure with -DCMAKE_INSTALL_PREFIX=PATH, then run 'cmake --install'.
+  --sudo              Use sudo for the install step.
+  --par=N             Parallel build with N jobs (default: num cores).
+  --debug             Debug build.
+  --profile           Profile build.
+  --help              Show this help.
+  --                  Args after '--' go directly to CMake configure.
+
+Examples:
+  python build.py --setup
+  python build.py --par=8
+  python build.py --install                    # install into default prefix (may need --sudo)
+  python build.py --install=$HOME/.local       # install into a custom prefix
+  python build.py --install -- -DMY_OPT=ON     # install with extra CMake options
+"""
+    )
 
 
-def parseArgs():
-    """Parse main and CMake-specific arguments."""
-    hasCmakeArgs = "--" in sys.argv
-    if hasCmakeArgs:
-        idx = sys.argv.index("--")
-        mainArgs = sys.argv[:idx]
-        cmakeArgs = sys.argv[idx + 1:]
-    else:
-        mainArgs = sys.argv
-        cmakeArgs = []
-    return mainArgs, cmakeArgs
+def main(project_name):
+    argv = sys.argv[1:]
+    main_args, cmake_args = split_args(argv)
 
-
-def help():
-    """Display usage information."""
-    print("""
-        Usage:
-            python build.py [options] [-- cmake_args]
-
-        Options:
-            --setup          Fetch, build, and optionally install dependencies.
-            --install        Install the built libraries to the default location.
-            --install=path   Install to the specified directory.
-            --sudo           Use sudo when installing.
-            --par=n          Use n threads for parallel builds (default: number of cores).
-            --help           Show this help message.
-            --               Pass arguments after '--' directly to cmake.
-
-        Examples:
-            Fetch dependencies without installation:
-                python build.py --setup
-            Install the built libraries to a specific directory:
-                python build.py --setup --install=/path/to/install
-            Build the main library with parallelism:
-                python build.py --par=4
-            Build with custom cmake configurations:
-                python build.py -- -DCMAKE_BUILD_TYPE=Debug
-        """)
-
-
-def main(projectName):
-    mainArgs, cmake = parseArgs()
-
-    if "--help" in mainArgs:
-        help()
+    if has_flag(main_args, "--help"):
+        help_msg()
         return
 
-    setup = "--setup" in mainArgs
-    install, prefix = getInstallArgs(mainArgs)
-    par = getParallel(mainArgs)
-    print("Setup:", setup)
-    print("Install:", install)
-    print("Prefix:", prefix)
-    print("Parallel threads:", par)
-    print("CMake args:", cmake)
+    par = get_parallel(main_args)
 
-    if setup:
-        Setup(install, prefix, par)
+    if has_flag(main_args, "--setup"):
+        Setup(par, create_project_dirs=True)
     else:
-        Build(projectName, mainArgs, cmake, install, prefix, par)
+        Build(project_name, main_args, cmake_args, par)
 
 
 if __name__ == "__main__":

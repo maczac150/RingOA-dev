@@ -1,38 +1,96 @@
-# ############################
+# =========================
 # Build RingOA
-# ############################
+# =========================
 
-# Set the project name
-project(RingOA)
+# Create the unified static library
+add_library(RingOA STATIC)
+add_library(RingOA::RingOA ALIAS RingOA)
 
-# Add subdirectories
-add_subdirectory(utils)
-add_subdirectory(sharing)
-add_subdirectory(fss)
-add_subdirectory(protocol)
-add_subdirectory(wm)
-add_subdirectory(fm_index)
+# Ensure consumers get C++20
+target_compile_features(RingOA PUBLIC cxx_std_20)
 
-# Add the library target
-add_library(RingOA INTERFACE)
+# All sources go directly into RingOA
+target_sources(RingOA PRIVATE
+  # utils
+  utils/logger.cpp
+  utils/timer.cpp
+  utils/network.cpp
 
-# Link the libraries
-target_link_libraries(RingOA INTERFACE
-    utils
-    sharing
-    fss
-    protocol
-    wm
-    fm_index
+  # sharing
+  sharing/additive_2p.cpp
+  sharing/additive_3p.cpp
+  sharing/binary_2p.cpp
+  sharing/binary_3p.cpp
+
+  # fss
+  fss/dcf_eval.cpp
+  fss/dcf_gen.cpp
+  fss/dcf_key.cpp
+  fss/dpf_eval.cpp
+  fss/dpf_gen.cpp
+  fss/dpf_key.cpp
+  fss/fss.cpp
+  fss/prg.cpp
+
+  # protocol
+  protocol/ddcf.cpp
+  protocol/dpf_pir.cpp
+  protocol/equality.cpp
+  protocol/integer_comparison.cpp
+  protocol/obliv_select.cpp
+  protocol/ringoa.cpp
+  protocol/shared_ot.cpp
+  protocol/zero_test.cpp
+
+  # wm
+  wm/oquantile.cpp
+  wm/owm.cpp
+  wm/plain_wm.cpp
+  wm/sotwm.cpp
+
+  # fm_index
+  fm_index/ofmi.cpp
+  fm_index/sotfmi.cpp
 )
 
-# Add the include directories
-target_include_directories(RingOA INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/sharing
-    ${CMAKE_CURRENT_SOURCE_DIR}/fss
-    ${CMAKE_CURRENT_SOURCE_DIR}/protocol
-    ${CMAKE_CURRENT_SOURCE_DIR}/wm
-    ${CMAKE_CURRENT_SOURCE_DIR}/fm_index
+# Include headers from the RingOA/ tree
+target_include_directories(RingOA
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+# Link external deps only once here
+target_link_libraries(RingOA
+  PUBLIC
+    oc::cryptoTools
+    sdsl
+    divsufsort
+    divsufsort64
+)
+
+set_target_properties(RingOA PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  VERSION   ${PROJECT_VERSION}
+  SOVERSION ${PROJECT_VERSION_MAJOR}
+  EXPORT_NAME RingOA
+)
+
+# ---- Install public headers ----
+install(
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RingOA
+  FILES_MATCHING
+    PATTERN "*.h"  PATTERN "*.hpp" PATTERN "*.hh" PATTERN "*.ipp"
+    PATTERN ".git" EXCLUDE
+    PATTERN "CMakeFiles" EXCLUDE
+)
+
+# ---- Install the library ----
+install(TARGETS RingOA
+  EXPORT ${RINGOA_EXPORT_SET}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RingOA
 )

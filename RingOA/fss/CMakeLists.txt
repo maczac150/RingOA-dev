@@ -1,9 +1,9 @@
-# ############################
+# =========================
 # Build fss
-# ############################
+# =========================
 
 # Add library
-add_library(fss
+add_library(fss STATIC
     fss.cpp
     prg.cpp
     dpf_key.cpp
@@ -14,8 +14,16 @@ add_library(fss
     dcf_eval.cpp
 )
 
-# Include directories
-target_include_directories(fss PRIVATE ${CMAKE_SOURCE_DIR})
+set_target_properties(fss PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# Link libraries
-target_link_libraries(fss PRIVATE oc::cryptoTools utils)
+target_include_directories(fss
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/RingOA>
+)
+
+target_link_libraries(fss
+  PUBLIC
+    oc::cryptoTools
+    utils
+)

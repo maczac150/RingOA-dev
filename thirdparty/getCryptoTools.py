@@ -1,65 +1,81 @@
-import os
-import sys
+#!/usr/bin/env python3
 import platform
+import shutil
+import subprocess
+from pathlib import Path
 
 
-def getCryptoTools(install, prefix, par, cryptoTools, boost, relic):
-    # 現在のディレクトリを記録
-    cwd = os.getcwd()
+def run(cmd, cwd=None):
+    print(">>", " ".join(cmd))
+    subprocess.run(cmd, cwd=cwd, check=True)
 
-    # cryptoToolsの取得
-    if not os.path.isdir("cryptoTools"):
-        os.system("git clone https://github.com/ladnir/cryptoTools.git")
 
-    # cryptoToolsディレクトリに移動してブランチを固定
-    os.chdir(os.path.join(cwd, "cryptoTools"))
-    os.system("git checkout 2bf5fe84e19cadd9aeea5c191a08ac59e65b54e7 --quiet")
-    os.system("git submodule update --init --recursive")
+def pyexe():
+    return shutil.which("python3") or shutil.which("python") or "python3"
 
-    # OSごとの設定
-    osStr = platform.system()
-    debug = "--debug" if "--debug" in sys.argv else ""
-    sudo = "--sudo" if install and osStr != "Windows" and "--sudo" in sys.argv else ""
 
-    # インストール先ディレクトリ
-    if not install:
-        prefix = os.path.join(cwd, "win" if osStr == "Windows" else "unix")
-        if debug:
-            prefix += "-debug"
+def getCryptoTools(par: int, build_cryptoTools: bool, setup_boost: bool, setup_relic: bool,
+                   debug: bool = False, use_sudo: bool = False):
+    cwd = Path(__file__).resolve().parent
+    repo_dir = cwd / "cryptoTools"
+    staged_prefix = cwd / "unix"   # ← 固定: thirdparty/unix
 
-    # コマンド生成用
-    installCmd = f"--install={prefix}" if prefix else (
-        "--install" if install else "")
-    cmakePrefix = f"-DCMAKE_PREFIX_PATH={prefix}" if prefix else ""
+    commit = "2bf5fe84e19cadd9aeea5c191a08ac59e65b54e7"
 
-    # 実行コマンドを生成
-    baseCmd = f"python3 build.py {sudo} --par={par} {installCmd} {debug}"
-    boostCmd = f"{baseCmd} --setup --boost"
-    relicCmd = f"{baseCmd} --setup --relic"
-    cryptoToolsCmd = f"{baseCmd} -D ENABLE_RELIC={'ON' if relic else 'OFF'} -D ENABLE_BOOST=ON {cmakePrefix}"
+    # clone & pin
+    if not repo_dir.is_dir():
+        run(["git", "clone", "https://github.com/ladnir/cryptoTools.git"], cwd=str(cwd))
+    run(["git", "fetch", "--all", "--tags", "--prune"], cwd=str(repo_dir))
+    run(["git", "checkout", "--quiet", commit], cwd=str(repo_dir))
+    run(["git", "submodule", "update", "--init", "--recursive"], cwd=str(repo_dir))
 
-    # コマンド出力
-    print("\n\n=========== getCryptoTools.py ================")
-    if boost:
-        print("Boost setup command:", boostCmd)
-    if relic:
-        print("Relic setup command:", relicCmd)
-    if cryptoTools:
-        print("CryptoTools setup command:", cryptoToolsCmd)
-    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n")
+    dbg = "--debug" if debug else ""
 
-    # コマンド実行
-    if boost:
-        os.system(boostCmd)
-    if relic:
-        os.system(relicCmd)
-    if cryptoTools:
-        os.system(cryptoToolsCmd)
+    # base args
+    base = [pyexe(), "build.py", f"--par={par}", f"--install={staged_prefix}"]
+    if dbg:
+        base.append(dbg)
+    if use_sudo and platform.system() != "Windows":
+        base.append("--sudo")
 
-    # 元のディレクトリに戻る
-    os.chdir(cwd)
+    print("\n\n=========== getCryptoTools.py (fixed prefix) ================\n")
+
+    # 1) Boost
+    if setup_boost:
+        cmd = base + ["--boost"]
+        print("Boost setup command:\n ", " ".join(cmd))
+        run(cmd, cwd=str(repo_dir))
+
+    # 2) Relic
+    if setup_relic:
+        cmd = base + ["--relic"]
+        print("Relic setup command:\n ", " ".join(cmd))
+        run(cmd, cwd=str(repo_dir))
+
+    # 3) cryptoTools itself
+    if build_cryptoTools:
+        cmd = base + [
+            "-DFETCH_AUTO=ON",
+            "-DENABLE_BOOST=ON",
+            "-DFETCH_BOOST=OFF",
+        ]
+        if setup_relic:
+            cmd += ["-DENABLE_RELIC=ON", "-DFETCH_RELIC=OFF"]
+        else:
+            cmd += ["-DENABLE_RELIC=OFF", "-DFETCH_RELIC=OFF"]
+
+        print("cryptoTools build command:\n ", " ".join(cmd))
+        run(cmd, cwd=str(repo_dir))
+
+    print("\nvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n")
 
 
 if __name__ == "__main__":
-    # デフォルト値で実行
-    getCryptoTools(False, "", 1, True, True, False)
+    getCryptoTools(
+        par=1,
+        build_cryptoTools=True,
+        setup_boost=True,
+        setup_relic=False,
+        debug=False,
+        use_sudo=False,
+    )

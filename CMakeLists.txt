@@ -1,55 +1,52 @@
 cmake_minimum_required(VERSION 3.18)
+cmake_policy(SET CMP0167 OLD)
 
-# Set the project name and language
 project(RingOA VERSION 1.0.0 LANGUAGES CXX)
 
-# Enable verbose output
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+
+# =========================
+# Options
+# =========================
+option(RINGOA_BUILD_TESTS  "Build RingOA tests"  ON)
+option(RINGOA_BUILD_BENCH  "Build RingOA bench"  ON)
+
+
+# =========================
+# Output / Compiler Settings
+# =========================
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
 
-# ############################
+
+# =========================
 # Dependencies
-# ############################
-
-# Set third-party directory
+# =========================
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
+find_package(cryptoTools CONFIG REQUIRED HINTS ${THIRD_PARTY_DIR}/unix)
 
-# Find Boost library
-find_package(Boost REQUIRED HINTS ${THIRD_PARTY_DIR}/unix)
 
-if(NOT Boost_FOUND)
-    message(FATAL_ERROR "Boost library not found. Please install it or set the path correctly.")
-endif()
-
-# Find cryptoTools library
-find_package(cryptoTools REQUIRED HINTS ${THIRD_PARTY_DIR}/unix)
-
-if(NOT cryptoTools_FOUND)
-    message(FATAL_ERROR "cryptoTools library not found. Please install it or set the path correctly.")
-endif()
-
-# ############################
-# Build Settings
-# ############################
-
-# Check build type
+# =========================
+# Build Type & Flags
+# =========================
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|Profile")
-    message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Supported types are Debug and Release.")
+    message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Supported types are Debug, Release, and Profile.")
 endif()
 
-# Set build flags
 if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native -flto -funroll-loops")
 elseif(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -62,12 +59,11 @@ elseif(CMAKE_BUILD_TYPE MATCHES Profile)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -fno-omit-frame-pointer -march=native")
 endif()
 
-# ############################
-# Logging Level Settings
-# ############################
 
-# Set default log levels based on build type
-if(NOT DEFINED LOG_LEVEL) # LOG_LEVELがユーザーによって指定されていない場合のみ設定
+# =========================
+# Logging Level
+# =========================
+if(NOT DEFINED LOG_LEVEL)
     if(CMAKE_BUILD_TYPE MATCHES Release)
         set(LOG_LEVEL 4) # INFO
         set(USE_FIXED_RANDOM_SEED 0)
@@ -78,11 +74,12 @@ if(NOT DEFINED LOG_LEVEL) # LOG_LEVELがユーザーによって指定されて�
         set(LOG_LEVEL 0) # NONE
     endif()
 endif()
-
-# Pass the LOG_LEVEL definition to the compiler
 add_compile_definitions(LOG_LEVEL=${LOG_LEVEL})
 
-# Display project configuration info
+
+# =========================
+# Info
+# =========================
 message(STATUS "--------------------------------------------")
 message(STATUS " Project Configuration Info:")
 message(STATUS "--------------------------------------------")
@@ -98,19 +95,55 @@ message(STATUS "  Source Directory          : ${CMAKE_SOURCE_DIR}")
 message(STATUS "  Binary Directory          : ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "[Libraries]")
 message(STATUS "  cryptoTools Directory     : ${cryptoTools_DIR}")
-message(STATUS "  Boost Version             : ${Boost_VERSION}")
-message(STATUS "  Boost Include Directories : ${Boost_INCLUDE_DIRS}")
-message(STATUS "  Boost Libraries           : ${Boost_LIBRARIES}")
-message(STATUS "  Boost Library Dirs        : ${Boost_LIBRARY_DIRS}")
 message(STATUS "[Settings]")
 message(STATUS "  LOG_LEVEL                 : ${LOG_LEVEL}")
 message(STATUS "--------------------------------------------")
 
-# ############################
-# Build RingOA
-# ############################
 
-# Add the source files
+# =========================
+# Export Set (define BEFORE subdirs)
+# =========================
+set(RINGOA_EXPORT_SET RingOATargets)
+set(RINGOA_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/RingOA")
+
+
+# =========================
+# Build Targets
+# =========================
 add_subdirectory(RingOA)
-add_subdirectory(RingOA_Tests)
-add_subdirectory(RingOA_Bench)
+
+if(RINGOA_BUILD_TESTS)
+  add_subdirectory(RingOA_Tests)
+endif()
+
+if(RINGOA_BUILD_BENCH)
+  add_subdirectory(RingOA_Bench)
+endif()
+
+# =========================
+# Install & Package Config
+# =========================
+install(
+  EXPORT ${RINGOA_EXPORT_SET}
+  NAMESPACE RingOA::
+  DESTINATION "${RINGOA_INSTALL_CMAKEDIR}"
+)
+
+configure_package_config_file(
+  "${CMAKE_CURRENT_LIST_DIR}/cmake/RingOAConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/RingOAConfig.cmake"
+  INSTALL_DESTINATION "${RINGOA_INSTALL_CMAKEDIR}"
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/RingOAConfigVersion.cmake"
+  VERSION "${PROJECT_VERSION}"
+  COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/RingOAConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/RingOAConfigVersion.cmake"
+  DESTINATION "${RINGOA_INSTALL_CMAKEDIR}"
+)

@@ -283,14 +283,14 @@ void Binary3P_EvaluateXor_Online_Test() {
         Logger::DebugLog(LOC, "open_z_vec: " + ToString(open_z_vec));
 
         // Validate the opened values
-        if (open_z != (5 ^ 4))
+        if (open_z != (0x5 ^ 0x4))
             throw osuCrypto::UnitTestFail("Binary protocol failed: open_z != (5 ^ 4)");
 
-        if (open_z_vec != std::vector<uint64_t>({(1 ^ 5),
-                                                 (2 ^ 4),
-                                                 (3 ^ 3),
-                                                 (4 ^ 2),
-                                                 (5 ^ 1)}))
+        if (open_z_vec != std::vector<uint64_t>({(0x1 ^ 0x5),
+                                                 (0x2 ^ 0x4),
+                                                 (0x3 ^ 0x3),
+                                                 (0x4 ^ 0x2),
+                                                 (0x5 ^ 0x1)}))
             throw osuCrypto::UnitTestFail("Binary protocol failed: open_z_vec mismatch");
     }
 
