@@ -438,13 +438,11 @@ void DpfEvaluator::FullDomainIterativeDepthFirst(const DpfKey &key, std::vector<
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
             std::string level_str = "|Level=" + ToString(current_level) + "| ";
-            for (uint64_t i = 0; i < 8; ++i) {
-                Logger::TraceLog(LOC, level_str + "Current bit: " + ToString(current_bit));
-                Logger::TraceLog(LOC, level_str + "Current seed (" + ToString(i) + "): " + Format(prev_seeds[current_level][i]));
-                Logger::TraceLog(LOC, level_str + "Current control bit (" + ToString(i) + "): " + ToString(prev_control_bits[current_level][i]));
-                Logger::TraceLog(LOC, level_str + "Expanded seed (" + ToString(i) + "): " + Format(expanded_seeds[i]));
-                Logger::TraceLog(LOC, level_str + "Expanded control bit (" + ToString(i) + "): " + ToString(expanded_control_bits[i]));
-            }
+            Logger::TraceLog(LOC, level_str + "Current bit: " + ToString(current_bit));
+            Logger::TraceLog(LOC, level_str + "Current seed: " + Format(prev_seeds[current_level]));
+            Logger::TraceLog(LOC, level_str + "Current control bit: " + ToString(static_cast<bool>(prev_control_bits[current_level])));
+            Logger::TraceLog(LOC, level_str + "Expanded seed: " + Format(expanded_seeds));
+            Logger::TraceLog(LOC, level_str + "Expanded control bit: " + ToString(static_cast<bool>(expanded_control_bits)));
 #endif
 
             // Apply correction word if control bit is true
@@ -475,7 +473,7 @@ void DpfEvaluator::FullDomainIterativeDepthFirst(const DpfKey &key, std::vector<
 
 #if LOG_LEVEL >= LOG_LEVEL_TRACE
     for (uint64_t i = 0; i < (outputs.size() > 16 ? 16 : outputs.size()); ++i) {
-        Logger::TraceLog(LOC, "Output seed (" + ToString(i) + "): " + Format(outputs[i]));
+        Logger::TraceLog(LOC, "Output seed (" + ToString(i) + "): " + ToString(outputs[i]));
     }
 #endif
 }

@@ -2,8 +2,6 @@
 # Build RingOA_Tests
 # =========================
 
-project(RingOA_Tests)
-
 set(TEST_SOURCES
   utils/utils_test.cpp
   utils/timer_test.cpp
@@ -34,6 +32,12 @@ add_executable(test_RingOA ${TEST_SOURCES})
 target_include_directories(test_RingOA
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_compile_options(test_RingOA PRIVATE
+  $<$<CONFIG:Debug>:-Og -g -Wall -Wextra>
+  $<$<CONFIG:RelWithDebInfo>:-O2 -g -fno-omit-frame-pointer -march=native>
+  $<$<CONFIG:Release>:-O2 -march=native -flto -funroll-loops>
 )
 
 target_link_libraries(test_RingOA

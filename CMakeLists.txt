@@ -13,6 +13,10 @@ include(CMakePackageConfigHelpers)
 option(RINGOA_BUILD_TESTS  "Build RingOA tests"  ON)
 option(RINGOA_BUILD_BENCH  "Build RingOA bench"  ON)
 
+# User-overridable knobs (empty means: let RingOA decide per-config)
+set(LOG_LEVEL "" CACHE STRING "Override RingOA log level (0..5). Empty = per-config default.")
+set(USE_FIXED_RANDOM_SEED "" CACHE STRING "Override fixed seed (0 or 1). Empty = per-config default.")
+
 
 # =========================
 # Output / Compiler Settings
@@ -40,41 +44,19 @@ find_package(cryptoTools CONFIG REQUIRED HINTS ${THIRD_PARTY_DIR}/unix)
 # Build Type & Flags
 # =========================
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release")
+  set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-if(NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|Profile")
-    message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Supported types are Debug, Release, and Profile.")
-endif()
-
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native -flto -funroll-loops")
-elseif(CMAKE_BUILD_TYPE MATCHES Debug)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og -g -Wall -Wextra")
-    add_compile_definitions(USE_FIXED_RANDOM_SEED)
-elseif(CMAKE_BUILD_TYPE MATCHES Profile)
-    # For gprof or valgrind
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O2 -g -flto -fno-omit-frame-pointer")
-    # For uProf
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -fno-omit-frame-pointer -march=native")
+if(NOT CMAKE_BUILD_TYPE MATCHES "Debug|Release|RelWithDebInfo")
+  message(FATAL_ERROR "Invalid build type: ${CMAKE_BUILD_TYPE}. Use Debug, Release, or RelWithDebInfo.")
 endif()
 
 
 # =========================
-# Logging Level
+# Export Settings
 # =========================
-if(NOT DEFINED LOG_LEVEL)
-    if(CMAKE_BUILD_TYPE MATCHES Release)
-        set(LOG_LEVEL 4) # INFO
-        set(USE_FIXED_RANDOM_SEED 0)
-    elseif(CMAKE_BUILD_TYPE MATCHES Debug)
-        set(LOG_LEVEL 5) # DEBUG
-        add_compile_definitions(USE_FIXED_RANDOM_SEED)
-    elseif(CMAKE_BUILD_TYPE MATCHES Profile)
-        set(LOG_LEVEL 0) # NONE
-    endif()
-endif()
-add_compile_definitions(LOG_LEVEL=${LOG_LEVEL})
+set(RINGOA_EXPORT_SET RingOATargets)
+set(RINGOA_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/RingOA")
 
 
 # =========================
@@ -95,16 +77,6 @@ message(STATUS "  Source Directory          : ${CMAKE_SOURCE_DIR}")
 message(STATUS "  Binary Directory          : ${CMAKE_CURRENT_BINARY_DIR}")
 message(STATUS "[Libraries]")
 message(STATUS "  cryptoTools Directory     : ${cryptoTools_DIR}")
-message(STATUS "[Settings]")
-message(STATUS "  LOG_LEVEL                 : ${LOG_LEVEL}")
-message(STATUS "--------------------------------------------")
-
-
-# =========================
-# Export Set (define BEFORE subdirs)
-# =========================
-set(RINGOA_EXPORT_SET RingOATargets)
-set(RINGOA_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/RingOA")
 
 
 # =========================
@@ -119,6 +91,7 @@ endif()
 if(RINGOA_BUILD_BENCH)
   add_subdirectory(RingOA_Bench)
 endif()
+
 
 # =========================
 # Install & Package Config

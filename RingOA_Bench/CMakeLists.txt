@@ -2,8 +2,6 @@
 # Build RingOA_Bench
 # =========================
 
-project(RingOA_Bench)
-
 set(BENCH_SOURCES
     dpf_bench.cpp
     dpf_pir_bench.cpp
@@ -21,6 +19,13 @@ target_include_directories(bench_RingOA
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
+
+target_compile_options(bench_RingOA PRIVATE
+  $<$<CONFIG:Debug>:-Og -g -Wall -Wextra>
+  $<$<CONFIG:RelWithDebInfo>:-O2 -g -fno-omit-frame-pointer -march=native>
+  $<$<CONFIG:Release>:-O2 -march=native -flto -funroll-loops>
+)
+
 
 target_link_libraries(bench_RingOA
   PRIVATE

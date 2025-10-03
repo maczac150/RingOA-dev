@@ -61,7 +61,7 @@ def compute_build_type(main_args):
     if "--debug" in main_args or "--Debug" in main_args:
         return "Debug"
     if "--profile" in main_args or "--Profile" in main_args:
-        return "Profile"
+        return "RelWithDebInfo"
     return "Release"
 
 

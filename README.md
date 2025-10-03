@@ -1,11 +1,5 @@
 # RingOA
 Ring-Based Oblivious Access via Distributed Point Functions (DPFs)  
-Implementation of the RingOA protocol described in our paper:  
-> Tomoki Uchiyama and Kana Shimizu, RingOA: Ring-Based Oblivious Access for Large-Scale Databases and Practical Applications.
-
-RingOA is a three-party oblivious access protocol that combines replicated secret sharing (RSS) over rings with 1-bit DPFs and supports early termination optimization.  
-It enables efficient retrieval from billion-entry secret-shared databases while eliminating costly share conversions for subsequent arithmetic computations.  
-Applications include the Oblivious Rank Dictionary and Fully Oblivious Full-Text Search using succinct data structures.
 
 ---
 
@@ -15,8 +9,10 @@ Applications include the Oblivious Rank Dictionary and Fully Oblivious Full-Text
 - OS: Tested on Linux (x86_64)
 - Dependencies:
   - [cryptoTools](https://github.com/ladnir/cryptoTools) and its prerequisites
-  - CMake ≥ 3.16
-  - Python ≥ 3.8
+  - [SDSL](https://github.com/simongog/sdsl) (for succinct data structures)
+- CMake ≥ 3.18
+- Python ≥ 3.6 (for build script)
+- Ninja (optional, for faster builds)
 
 ---
 
@@ -25,8 +21,8 @@ Applications include the Oblivious Rank Dictionary and Fully Oblivious Full-Text
 Clone the repository and build with the provided Python script:
 
 ```bash
-git clone https://github.com/u-tmk/RingOA
-cd RingOA
+git clone https://github.com/u-tmk/RingOA-dev
+cd RingOA-dev
 python build.py --setup
 ```
 

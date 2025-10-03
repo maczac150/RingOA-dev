@@ -60,7 +60,69 @@ target_include_directories(RingOA
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+
+# =========================
+# Per-config compile options
+# =========================
+# Debug:       -Og -g -Wall -Wextra
+# Release:     -O2 -march=native -flto -funroll-loops
+# RelWithDebInfo: -O2 -g -fno-omit-frame-pointer -march=native
+target_compile_options(RingOA PRIVATE
+  $<$<CONFIG:Debug>:-Og -g -Wall -Wextra>
+  $<$<CONFIG:Release>:-O2 -march=native -flto -funroll-loops>
+  $<$<CONFIG:RelWithDebInfo>:-O2 -g -fno-omit-frame-pointer -march=native>
+)
+
+
+# ===== LOG_LEVEL (user override > per-config defaults) =====
+if(DEFINED LOG_LEVEL AND NOT "${LOG_LEVEL}" STREQUAL "")
+  target_compile_definitions(RingOA PUBLIC LOG_LEVEL=${LOG_LEVEL})
+  set(LOG_LEVEL_EFFECTIVE "${LOG_LEVEL}")
+else()
+  target_compile_definitions(RingOA PUBLIC
+    $<$<CONFIG:Debug>:LOG_LEVEL=5>
+    $<$<CONFIG:RelWithDebInfo>:LOG_LEVEL=4>
+    $<$<CONFIG:Release>:LOG_LEVEL=4>
+  )
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LOG_LEVEL_EFFECTIVE 5)
+  elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(LOG_LEVEL_EFFECTIVE 4)
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(LOG_LEVEL_EFFECTIVE 4)
+  else()
+    set(LOG_LEVEL_EFFECTIVE "(unknown)")
+  endif()
+endif()
+
+# ===== USE_FIXED_RANDOM_SEED (user override > per-config defaults) =====
+if(DEFINED USE_FIXED_RANDOM_SEED AND NOT "${USE_FIXED_RANDOM_SEED}" STREQUAL "")
+  target_compile_definitions(RingOA PUBLIC USE_FIXED_RANDOM_SEED=${USE_FIXED_RANDOM_SEED})
+  set(USE_FIXED_RANDOM_SEED_EFFECTIVE "${USE_FIXED_RANDOM_SEED}")
+else()
+  target_compile_definitions(RingOA PUBLIC
+    $<$<CONFIG:Debug>:USE_FIXED_RANDOM_SEED=1>
+    $<$<CONFIG:RelWithDebInfo>:USE_FIXED_RANDOM_SEED=1>
+    $<$<CONFIG:Release>:USE_FIXED_RANDOM_SEED=0>
+  )
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(USE_FIXED_RANDOM_SEED_EFFECTIVE 1)
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(USE_FIXED_RANDOM_SEED_EFFECTIVE 0)
+  else()
+    set(USE_FIXED_RANDOM_SEED_EFFECTIVE "(unknown)")
+  endif()
+endif()
+
+message(STATUS "[RingOA Settings]")
+message(STATUS "  LOG_LEVEL                 : ${LOG_LEVEL_EFFECTIVE}")
+message(STATUS "  USE_FIXED_RANDOM_SEED     : ${USE_FIXED_RANDOM_SEED_EFFECTIVE}")
+message(STATUS "--------------------------------------------")
+
+
+# =========================
 # Link external deps only once here
+# =========================
 target_link_libraries(RingOA
   PUBLIC
     oc::cryptoTools
@@ -76,7 +138,6 @@ set_target_properties(RingOA PROPERTIES
   EXPORT_NAME RingOA
 )
 
-# ---- Install public headers ----
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RingOA
@@ -86,7 +147,6 @@ install(
     PATTERN "CMakeFiles" EXCLUDE
 )
 
-# ---- Install the library ----
 install(TARGETS RingOA
   EXPORT ${RINGOA_EXPORT_SET}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
