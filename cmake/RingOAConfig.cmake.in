@@ -13,5 +13,9 @@ if(NOT TARGET RingOA::RingOA)
   include("${CMAKE_CURRENT_LIST_DIR}/RingOATargets.cmake")
 endif()
 
+# >>> Expose RingOA's effective settings to consumers <<<
+set(RingOA_LOG_LEVEL "@LOG_LEVEL_EFFECTIVE@")
+set(RingOA_USE_FIXED_RANDOM_SEED "@USE_FIXED_RANDOM_SEED_EFFECTIVE@")
+
 # Convenience variable (optional)
 set(RingOA_VERSION "@PROJECT_VERSION@")

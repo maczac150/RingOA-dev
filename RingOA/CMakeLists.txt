@@ -94,6 +94,7 @@ else()
     set(LOG_LEVEL_EFFECTIVE "(unknown)")
   endif()
 endif()
+set(LOG_LEVEL_EFFECTIVE ${LOG_LEVEL_EFFECTIVE} CACHE INTERNAL "Effective log level used by RingOA")
 
 # ===== USE_FIXED_RANDOM_SEED (user override > per-config defaults) =====
 if(DEFINED USE_FIXED_RANDOM_SEED AND NOT "${USE_FIXED_RANDOM_SEED}" STREQUAL "")
@@ -113,6 +114,7 @@ else()
     set(USE_FIXED_RANDOM_SEED_EFFECTIVE "(unknown)")
   endif()
 endif()
+set(USE_FIXED_RANDOM_SEED_EFFECTIVE ${USE_FIXED_RANDOM_SEED_EFFECTIVE} CACHE INTERNAL "Effective fixed seed used by RingOA")
 
 message(STATUS "[RingOA Settings]")
 message(STATUS "  LOG_LEVEL                 : ${LOG_LEVEL_EFFECTIVE}")
