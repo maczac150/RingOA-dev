@@ -33,14 +33,14 @@ void DpfParameters::Resolve_() {
     // Small-n -> Naive
     if ((element_bitsize_ == 1 && input_bitsize_ < 10) ||
         (element_bitsize_ > 1 && input_bitsize_ <= 8)) {
-        if (fde_type_ != EvalType::kNaive) {
+        if (fde_type_ != EvalType::kBruteforce) {
             Logger::WarnLog(LOC, "Switching to naive evaluation: EvalType -> Naive");
         }
-        fde_type_ = EvalType::kNaive;
+        fde_type_ = EvalType::kBruteforce;
     }
 
     // Disable ET for Naive / IterDepthFirst
-    if (fde_type_ == EvalType::kNaive || fde_type_ == EvalType::kIterDepthFirst) {
+    if (fde_type_ == EvalType::kBruteforce || fde_type_ == EvalType::kIterative) {
         if (enable_et_) {
             Logger::WarnLog(LOC, "Disabling early termination for non-ET strategy: ET OFF");
         }
@@ -88,8 +88,8 @@ void DpfParameters::ValidateOrThrow_() const {
             throw std::invalid_argument("nu (" + ToString(terminate_bitsize_) + ") must equal n (" + ToString(input_bitsize_) + ") when ET is disabled");
         }
     }
-    if (fde_type_ == EvalType::kNaive && enable_et_) {
-        throw std::invalid_argument("EvalType::kNaive requires ET to be disabled");
+    if (fde_type_ == EvalType::kBruteforce && enable_et_) {
+        throw std::invalid_argument("EvalType::kBruteforce requires ET to be disabled");
     }
     if (element_bitsize_ != 1 && output_mode_ == OutputType::kSingleBitMask) {
         throw std::invalid_argument("OutputType::kSingleBitMask requires element_bitsize == 1");

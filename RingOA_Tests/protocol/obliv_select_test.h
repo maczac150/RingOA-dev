@@ -8,10 +8,6 @@ namespace test_ringoa {
 void OblivSelect_Offline_Test();
 void OblivSelect_SingleBitMask_Online_Test(const osuCrypto::CLP &cmd);
 void OblivSelect_ShiftedAdditive_Online_Test(const osuCrypto::CLP &cmd);
-void SharedOt_Offline_Test();
-void SharedOt_Online_Test(const osuCrypto::CLP &cmd);
-void RingOa_Offline_Test();
-void RingOa_Online_Test(const osuCrypto::CLP &cmd);
 
 }    // namespace test_ringoa
 

@@ -9,6 +9,8 @@ void SotFMI_Offline_Test();
 void SotFMI_Online_Test(const osuCrypto::CLP &cmd);
 void OFMI_Offline_Test();
 void OFMI_Online_Test(const osuCrypto::CLP &cmd);
+void OFMI_Fsc_Offline_Test();
+void OFMI_Fsc_Online_Test(const osuCrypto::CLP &cmd);
 
 }    // namespace test_ringoa
 

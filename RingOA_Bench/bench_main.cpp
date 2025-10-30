@@ -1,7 +1,6 @@
 #include <cryptoTools/Common/CLP.h>
 #include <cryptoTools/Common/TestCollection.h>
 #include <random>
-#include <tests_cryptoTools/UnitTests.h>
 
 #include "RingOA/utils/logger.h"
 #include "RingOA/utils/rng.h"
@@ -46,16 +45,14 @@ std::vector<std::string>
     helpTags{"h", "help"},
     listTags{"l", "list"},
     benchTags{"b", "bench"},
-    repeatTags{"repeat"},
-    loopTags{"loop"};
+    repeatTags{"repeat"};
 
-void PrintHelp() {
-    std::cout << "Usage: bench_program [OPTIONS]\n";
+void PrintHelp(const char *prog) {
+    std::cout << "Usage: " << prog << " [OPTIONS]\n";
     std::cout << "Options:\n";
     std::cout << "  -list, -l           List all available benchmarks.\n";
-    std::cout << "  -bench=<Index>, -b   Run the specified test by its index.\n";
-    std::cout << "  -repeat=<Count>     Specify the number of repetitions for the test (default: 1).\n";
-    std::cout << "  -loop=<Count>       Repeat the entire test execution for the specified number of loops (default: 1).\n";
+    std::cout << "  -bench=<Index>, -b  Run the specified test by its index.\n";
+    std::cout << "  -repeat=<Count>     Number of repetitions within each benchmark (default: 3).\n";
     std::cout << "  -help, -h           Display this help message.\n";
 }
 
@@ -63,21 +60,23 @@ void PrintHelp() {
 
 int main(int argc, char **argv) {
     try {
-#ifndef USE_FIXED_RANDOM_SEED
+#if !USE_FIXED_RANDOM_SEED
         {
             std::random_device rd;
             osuCrypto::block   seed = osuCrypto::toBlock(rd(), rd());
             ringoa::GlobalRng::Initialize(seed);
+            std::cout << "[bench] RNG initialized with random seed " << seed << "\n";
         }
 #else
         ringoa::GlobalRng::Initialize();
+        std::cout << "[bench] RNG initialized with fixed default seed\n";
 #endif
         osuCrypto::CLP cmd(argc, argv);
-        auto           tests = bench_ringoa::Tests;
+        auto          &tests = bench_ringoa::Tests;
 
         // Display help message
         if (cmd.isSet(helpTags)) {
-            PrintHelp();
+            PrintHelp(argv[0]);
             return 0;
         }
 
@@ -89,28 +88,26 @@ int main(int argc, char **argv) {
 
         // Handle test execution
         if (cmd.hasValue(benchTags)) {
-            auto testIdxs    = cmd.getMany<osuCrypto::u64>(benchTags);
-            int  repeatCount = cmd.getOr(repeatTags, 1);
-            int  loopCount   = cmd.getOr(loopTags, 1);
-
+            auto testIdxs = cmd.getMany<osuCrypto::u64>(benchTags);
             if (testIdxs.empty()) {
                 std::cerr << "Error: No test index specified.\n";
                 return 1;
             }
 
-            // Execute tests in a loop
-            for (int i = 0; i < loopCount; ++i) {
-                auto result = tests.run(testIdxs, repeatCount, &cmd);
-                if (result != osuCrypto::TestCollection::Result::passed) {
-                    return 1;    // Exit on failure
-                }
+            // validate repeat value
+            int repeatCount = cmd.getOr(repeatTags, 3);
+            if (repeatCount < 1) {
+                std::cerr << "Error: repeat must be >= 1.\n";
+                return 1;
             }
-            return 0;    // Success
+
+            auto result = tests.run(testIdxs, /*repeatCount=*/1, &cmd);
+            return (result == osuCrypto::TestCollection::Result::passed) ? 0 : 1;
         }
 
         // Invalid options
         std::cerr << "Error: No valid options specified.\n";
-        PrintHelp();
+        PrintHelp(argv[0]);
         return 1;
 
     } catch (const std::exception &ex) {

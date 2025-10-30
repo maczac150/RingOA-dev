@@ -39,17 +39,20 @@ target_sources(RingOA PRIVATE
   protocol/integer_comparison.cpp
   protocol/obliv_select.cpp
   protocol/ringoa.cpp
+  protocol/ringoa_fsc.cpp
   protocol/shared_ot.cpp
   protocol/zero_test.cpp
 
   # wm
   wm/oquantile.cpp
   wm/owm.cpp
+  wm/owm_fsc.cpp
   wm/plain_wm.cpp
   wm/sotwm.cpp
 
   # fm_index
   fm_index/ofmi.cpp
+  fm_index/ofmi_fsc.cpp
   fm_index/sotfmi.cpp
 )
 

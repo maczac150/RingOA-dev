@@ -15,10 +15,10 @@ constexpr uint64_t kRight             = 1;
 
 enum class EvalType
 {
-    kNaive,
-    kRecursion,
-    kIterSingleBatch,
-    kIterDepthFirst,
+    kBruteforce,       // Naive full-domain evaluation using EvaluateAtNaive() for all x
+    kIterative,        // Iterative (loop-based) depth-first traversal without recursion
+    kRecursive,        // Recursive traversal with AES expansion at each level
+    kHybridBatched,    // Hybrid method: BFS for first levels + batched AES thereafter
 };
 
 enum class OutputType
@@ -27,7 +27,7 @@ enum class OutputType
     kSingleBitMask,
 };
 
-inline constexpr EvalType kOptimizedEvalType = EvalType::kIterSingleBatch;
+inline constexpr EvalType kOptimizedEvalType = EvalType::kHybridBatched;
 
 std::string GetEvalTypeString(EvalType t);
 std::string GetOutputTypeString(OutputType m);

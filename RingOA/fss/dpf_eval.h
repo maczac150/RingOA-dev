@@ -87,10 +87,10 @@ private:
         std::array<block, 2> &expanded_seeds, std::array<bool, 2> &expanded_control_bits,
         const DpfKey &key) const;
 
-    void FullDomainRecursion(const DpfKey &key, std::vector<block> &outputs) const;
-    void FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const;
-    void FullDomainIterativeDepthFirst(const DpfKey &key, std::vector<uint64_t> &outputs) const;
-    void FullDomainNaive(const DpfKey &key, std::vector<uint64_t> &outputs) const;
+    void FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const;
+    void FullDomainHybridBatched(const DpfKey &key, std::vector<block> &outputs) const;
+    void FullDomainIterative(const DpfKey &key, std::vector<uint64_t> &outputs) const;
+    void FullDomainBruteforce(const DpfKey &key, std::vector<uint64_t> &outputs) const;
 
     void Traverse(const block  &current_seed,
                   const bool    current_control_bit,

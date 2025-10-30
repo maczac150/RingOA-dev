@@ -36,7 +36,7 @@ public:
         FileIo io(".key.bin");
         io.WriteBinary(file_path, buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Logger::DebugLog(LOC, "Key saved successfully to " + file_path);
+        Logger::DebugLog(LOC, "Key saved successfully to " + file_path + io.GetExtension());
 #endif
     }
 
@@ -50,7 +50,7 @@ public:
         }
         key.Deserialize(buffer);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Logger::DebugLog(LOC, "Key loaded successfully from " + file_path);
+        Logger::DebugLog(LOC, "Key loaded successfully from " + file_path + io.GetExtension());
 #endif
     }
 };

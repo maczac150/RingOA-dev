@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_RINGOA_H_
-#define PROTOCOL_RINGOA_H_
+#ifndef PROTOCOL_RINGOA_FSC_H_
+#define PROTOCOL_RINGOA_FSC_H_
 
 #include "RingOA/fss/dpf_eval.h"
 #include "RingOA/fss/dpf_gen.h"
@@ -19,15 +19,15 @@ class AdditiveSharing2P;
 
 namespace proto {
 
-class RingOaParameters {
+class RingOaFscParameters {
 public:
-    RingOaParameters() = delete;
-    explicit RingOaParameters(const uint64_t d)
+    RingOaFscParameters() = delete;
+    explicit RingOaFscParameters(const uint64_t d)
         : params_(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive),
           db_bitsize_(d),
           share_bitsize_(d) {
     }
-    explicit RingOaParameters(const uint64_t d, const uint64_t s)
+    explicit RingOaFscParameters(const uint64_t d, const uint64_t s)
         : params_(d, 1, fss::kOptimizedEvalType, fss::OutputType::kShiftedAdditive),
           db_bitsize_(d),
           share_bitsize_(s) {
@@ -65,30 +65,30 @@ private:
     uint64_t                share_bitsize_;
 };
 
-struct RingOaKey {
+struct RingOaFscKey {
     uint64_t         party_id;
     fss::dpf::DpfKey key_from_prev;
     fss::dpf::DpfKey key_from_next;
     uint64_t         rsh_from_prev;
     uint64_t         rsh_from_next;
-    uint64_t         wsh_from_prev;
-    uint64_t         wsh_from_next;
+    uint64_t         w_from_prev;
+    uint64_t         w_from_next;
 
-    RingOaKey() = delete;
-    RingOaKey(const uint64_t id, const RingOaParameters &params);
-    ~RingOaKey() = default;
+    RingOaFscKey() = delete;
+    RingOaFscKey(const uint64_t id, const RingOaFscParameters &params);
+    ~RingOaFscKey() = default;
 
-    RingOaKey(const RingOaKey &)            = delete;
-    RingOaKey &operator=(const RingOaKey &) = delete;
-    RingOaKey(RingOaKey &&)                 = default;
-    RingOaKey &operator=(RingOaKey &&)      = default;
+    RingOaFscKey(const RingOaFscKey &)            = delete;
+    RingOaFscKey &operator=(const RingOaFscKey &) = delete;
+    RingOaFscKey(RingOaFscKey &&)                 = default;
+    RingOaFscKey &operator=(RingOaFscKey &&)      = default;
 
-    bool operator==(const RingOaKey &rhs) const {
+    bool operator==(const RingOaFscKey &rhs) const {
         return (party_id == rhs.party_id) && (key_from_prev == rhs.key_from_prev) && (key_from_next == rhs.key_from_next) &&
                (rsh_from_prev == rhs.rsh_from_prev) && (rsh_from_next == rhs.rsh_from_next) &&
-               (wsh_from_prev == rhs.wsh_from_prev) && (wsh_from_next == rhs.wsh_from_next);
+               (w_from_prev == rhs.w_from_prev) && (w_from_next == rhs.w_from_next);
     }
-    bool operator!=(const RingOaKey &rhs) const {
+    bool operator!=(const RingOaFscKey &rhs) const {
         return !(*this == rhs);
     }
 
@@ -103,45 +103,54 @@ struct RingOaKey {
     void PrintKey(const bool detailed = false) const;
 
 private:
-    RingOaParameters params_;
-    size_t           serialized_size_;
+    RingOaFscParameters params_;
+    size_t              serialized_size_;
 };
 
-class RingOaKeyGenerator {
+class RingOaFscKeyGenerator {
 public:
-    RingOaKeyGenerator() = delete;
-    RingOaKeyGenerator(const RingOaParameters     &params,
-                       sharing::AdditiveSharing2P &ass);
+    RingOaFscKeyGenerator() = delete;
+    RingOaFscKeyGenerator(const RingOaFscParameters    &params,
+                          sharing::ReplicatedSharing3P &rss,
+                          sharing::AdditiveSharing2P   &ass);
 
-    void OfflineSetUp(const uint64_t num_selection, const std::string &file_path) const;
+    void GenerateDatabaseShare(const std::vector<uint64_t>           &database,
+                               std::array<sharing::RepShareVec64, 3> &db_sh,
+                               std::array<bool, 3>                   &v_sign) const;
 
-    std::array<RingOaKey, 3> GenerateKeys() const;
+    void GenerateDatabaseShare(const std::vector<uint64_t>           &database,
+                               std::array<sharing::RepShareMat64, 3> &db_sh,
+                               size_t                                 rows,
+                               size_t                                 cols,
+                               std::array<bool, 3>                   &v_sign) const;
+
+    std::array<RingOaFscKey, 3> GenerateKeys(std::array<bool, 3> &v_sign) const;
 
 private:
-    RingOaParameters            params_;
-    fss::dpf::DpfKeyGenerator   gen_;
-    sharing::AdditiveSharing2P &ass_;
+    RingOaFscParameters           params_;
+    fss::dpf::DpfKeyGenerator     gen_;
+    sharing::ReplicatedSharing3P &rss_;
+    sharing::AdditiveSharing2P   &ass_;
 
     uint64_t ComputeSignCorrection(
         block   &final_seed_0,
         block   &final_seed_1,
         bool     final_control_bit_1,
+        bool     v_sign,
         uint64_t alpha_hat) const;
 };
 
-class RingOaEvaluator {
+class RingOaFscEvaluator {
 public:
-    RingOaEvaluator() = delete;
+    RingOaFscEvaluator() = delete;
 
-    RingOaEvaluator(const RingOaParameters       &params,
-                    sharing::ReplicatedSharing3P &rss,
-                    sharing::AdditiveSharing2P   &ass_prev,
-                    sharing::AdditiveSharing2P   &ass_next);
-
-    void OnlineSetUp(const uint64_t party_id, const std::string &file_path) const;
+    RingOaFscEvaluator(const RingOaFscParameters    &params,
+                       sharing::ReplicatedSharing3P &rss,
+                       sharing::AdditiveSharing2P   &ass_prev,
+                       sharing::AdditiveSharing2P   &ass_next);
 
     void Evaluate(Channels                      &chls,
-                  const RingOaKey               &key,
+                  const RingOaFscKey            &key,
                   std::vector<block>            &uv_prev,
                   std::vector<block>            &uv_next,
                   const sharing::RepShareView64 &database,
@@ -149,8 +158,8 @@ public:
                   sharing::RepShare64           &result) const;
 
     void Evaluate_Parallel(Channels                      &chls,
-                           const RingOaKey               &key1,
-                           const RingOaKey               &key2,
+                           const RingOaFscKey            &key1,
+                           const RingOaFscKey            &key2,
                            std::vector<block>            &uv_prev,
                            std::vector<block>            &uv_next,
                            const sharing::RepShareView64 &database,
@@ -168,7 +177,7 @@ public:
         const uint64_t                 pr_next) const;
 
 private:
-    RingOaParameters              params_;
+    RingOaFscParameters           params_;
     fss::dpf::DpfEvaluator        eval_;
     sharing::ReplicatedSharing3P &rss_;
     sharing::AdditiveSharing2P   &ass_prev_;
@@ -177,17 +186,17 @@ private:
     // Internal functions
     std::pair<uint64_t, uint64_t> ReconstructMaskedValue(
         Channels                  &chls,
-        const RingOaKey           &key,
+        const RingOaFscKey        &key,
         const sharing::RepShare64 &index) const;
 
     std::array<uint64_t, 4> ReconstructMaskedValue(
         Channels                     &chls,
-        const RingOaKey              &key1,
-        const RingOaKey              &key2,
+        const RingOaFscKey           &key1,
+        const RingOaFscKey           &key2,
         const sharing::RepShareVec64 &index) const;
 };
 
 }    // namespace proto
 }    // namespace ringoa
 
-#endif    // PROTOCOL_RINGOA_H_
+#endif    // PROTOCOL_RINGOA_FSC_H_

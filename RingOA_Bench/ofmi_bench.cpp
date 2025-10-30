@@ -36,13 +36,33 @@ std::string GenerateRandomString(size_t length, const std::string &charset = "AT
     return result;
 }
 
+std::string ReadFastaSequence(const std::string &fasta_path) {
+    std::ifstream fin(fasta_path);
+    if (!fin) {
+        throw std::runtime_error("Failed to open file: " + fasta_path);
+    }
+
+    std::ostringstream seq;
+    std::string        line;
+
+    while (std::getline(fin, line)) {
+        if (line.empty())
+            continue;
+        if (line[0] == '>')
+            continue;    // skip header line
+        seq << line;     // append sequence line
+    }
+
+    return seq.str();
+}
+
 std::vector<uint64_t> text_bitsizes = ringoa::CreateSequence(10, 31);
 // std::vector<uint64_t> text_bitsizes = {24};
 std::vector<uint64_t> query_sizes = {16};
 
 constexpr uint64_t kIterDefault = 10;
 
-constexpr ringoa::fss::EvalType kEvalType = ringoa::fss::EvalType::kIterDepthFirst;
+constexpr ringoa::fss::EvalType kEvalType = ringoa::fss::EvalType::kIterative;
 
 }    // namespace
 
@@ -143,7 +163,7 @@ void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "SotFMI_Offline_Bench - Finished");
-    if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
+    if (kEvalType == ringoa::fss::EvalType::kHybridBatched) {
         Logger::ExportLogList("./data/logs/ofmi/sotfmi_offline");
     } else {
         Logger::ExportLogList("./data/logs/ofmi/sotfmi_naive_offline");
@@ -222,7 +242,7 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "SotFMI_Online_Bench - Finished");
-    if (kEvalType == ringoa::fss::EvalType::kIterSingleBatch) {
+    if (kEvalType == ringoa::fss::EvalType::kHybridBatched) {
         Logger::ExportLogList("./data/logs/ofmi/sotfmi_online_p" + ToString(party_id) + "_" + network);
     } else {
         Logger::ExportLogList("./data/logs/ofmi/sotfmi_naive_online_p" + ToString(party_id) + "_" + network);

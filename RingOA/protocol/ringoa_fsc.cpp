@@ -1,4 +1,4 @@
-#include "ringoa.h"
+#include "ringoa_fsc.h"
 
 #include <cstring>
 
@@ -15,29 +15,29 @@
 namespace ringoa {
 namespace proto {
 
-void RingOaParameters::PrintParameters() const {
+void RingOaFscParameters::PrintParameters() const {
     Logger::DebugLog(LOC, "[RingOA Parameters]" + GetParametersInfo());
 }
 
-RingOaKey::RingOaKey(const uint64_t id, const RingOaParameters &params)
+RingOaFscKey::RingOaFscKey(const uint64_t id, const RingOaFscParameters &params)
     : party_id(id),
       key_from_prev(0, params.GetParameters()),
       key_from_next(1, params.GetParameters()),
       rsh_from_prev(0), rsh_from_next(0),
-      wsh_from_prev(0), wsh_from_next(0),
+      w_from_prev(0), w_from_next(0),
       params_(params),
       serialized_size_(CalculateSerializedSize()) {
 }
 
-size_t RingOaKey::CalculateSerializedSize() const {
+size_t RingOaFscKey::CalculateSerializedSize() const {
     return sizeof(party_id) + key_from_prev.GetSerializedSize() + key_from_next.GetSerializedSize() +
            sizeof(rsh_from_prev) + sizeof(rsh_from_next) +
-           sizeof(wsh_from_prev) + sizeof(wsh_from_next);
+           sizeof(w_from_prev) + sizeof(w_from_next);
 }
 
-void RingOaKey::Serialize(std::vector<uint8_t> &buffer) const {
+void RingOaFscKey::Serialize(std::vector<uint8_t> &buffer) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Serializing RingOaKey");
+    Logger::DebugLog(LOC, "Serializing RingOaFscKey");
 #endif
     // Serialize the party ID
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&party_id), reinterpret_cast<const uint8_t *>(&party_id) + sizeof(party_id));
@@ -53,8 +53,8 @@ void RingOaKey::Serialize(std::vector<uint8_t> &buffer) const {
     // Serialize the random shares
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&rsh_from_prev), reinterpret_cast<const uint8_t *>(&rsh_from_prev) + sizeof(rsh_from_prev));
     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&rsh_from_next), reinterpret_cast<const uint8_t *>(&rsh_from_next) + sizeof(rsh_from_next));
-    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&wsh_from_prev), reinterpret_cast<const uint8_t *>(&wsh_from_prev) + sizeof(wsh_from_prev));
-    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&wsh_from_next), reinterpret_cast<const uint8_t *>(&wsh_from_next) + sizeof(wsh_from_next));
+    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&w_from_prev), reinterpret_cast<const uint8_t *>(&w_from_prev) + sizeof(w_from_prev));
+    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&w_from_next), reinterpret_cast<const uint8_t *>(&w_from_next) + sizeof(w_from_next));
 
     // Check size
     if (buffer.size() != serialized_size_) {
@@ -63,9 +63,9 @@ void RingOaKey::Serialize(std::vector<uint8_t> &buffer) const {
     }
 }
 
-void RingOaKey::Deserialize(const std::vector<uint8_t> &buffer) {
+void RingOaFscKey::Deserialize(const std::vector<uint8_t> &buffer) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, "Deserializing RingOaKey");
+    Logger::DebugLog(LOC, "Deserializing RingOaFscKey");
 #endif
     size_t offset = 0;
 
@@ -86,61 +86,144 @@ void RingOaKey::Deserialize(const std::vector<uint8_t> &buffer) {
     offset += sizeof(rsh_from_prev);
     std::memcpy(&rsh_from_next, buffer.data() + offset, sizeof(rsh_from_next));
     offset += sizeof(rsh_from_next);
-    std::memcpy(&wsh_from_prev, buffer.data() + offset, sizeof(wsh_from_prev));
-    offset += sizeof(wsh_from_prev);
-    std::memcpy(&wsh_from_next, buffer.data() + offset, sizeof(wsh_from_next));
+    std::memcpy(&w_from_prev, buffer.data() + offset, sizeof(w_from_prev));
+    offset += sizeof(w_from_prev);
+    std::memcpy(&w_from_next, buffer.data() + offset, sizeof(w_from_next));
 }
 
-void RingOaKey::PrintKey(const bool detailed) const {
+void RingOaFscKey::PrintKey(const bool detailed) const {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     if (detailed) {
-        Logger::DebugLog(LOC, Logger::StrWithSep("RingOa Key [Party " + ToString(party_id) + "]"));
+        Logger::DebugLog(LOC, Logger::StrWithSep("RingOaFsc Key [Party " + ToString(party_id) + "]"));
         key_from_prev.PrintKey(true);
         key_from_next.PrintKey(true);
         Logger::DebugLog(LOC, "(rsh_from_prev, rsh_from_next): (" + ToString(rsh_from_prev) + ", " + ToString(rsh_from_next) + ")");
-        Logger::DebugLog(LOC, "(wsh_from_prev, wsh_from_next): (" + ToString(wsh_from_prev) + ", " + ToString(wsh_from_next) + ")");
+        Logger::DebugLog(LOC, "(w_from_prev, w_from_next): (" + ToString(w_from_prev) + ", " + ToString(w_from_next) + ")");
         Logger::DebugLog(LOC, kDash);
     } else {
-        Logger::DebugLog(LOC, "RingOa Key [Party " + ToString(party_id) + "]");
+        Logger::DebugLog(LOC, "RingOaFsc Key [Party " + ToString(party_id) + "]");
         key_from_prev.PrintKey(false);
         key_from_next.PrintKey(false);
         Logger::DebugLog(LOC, "(rsh_from_prev, rsh_from_next): (" + ToString(rsh_from_prev) + ", " + ToString(rsh_from_next) + ")");
-        Logger::DebugLog(LOC, "(wsh_from_prev, wsh_from_next): (" + ToString(wsh_from_prev) + ", " + ToString(wsh_from_next) + ")");
+        Logger::DebugLog(LOC, "(w_from_prev, w_from_next): (" + ToString(w_from_prev) + ", " + ToString(w_from_next) + ")");
     }
 #endif
 }
 
-void RingOaKeyGenerator::OfflineSetUp(const uint64_t num_selection, const std::string &file_path) const {
-    ass_.OfflineSetUp(num_selection, file_path + "btP0P1");
-    ass_.OfflineSetUp(num_selection, file_path + "btP1P2");
-    ass_.OfflineSetUp(num_selection, file_path + "btP2P0");
-}
-
-RingOaKeyGenerator::RingOaKeyGenerator(
-    const RingOaParameters     &params,
-    sharing::AdditiveSharing2P &ass)
+RingOaFscKeyGenerator::RingOaFscKeyGenerator(
+    const RingOaFscParameters    &params,
+    sharing::ReplicatedSharing3P &rss,
+    sharing::AdditiveSharing2P   &ass)
     : params_(params),
-      gen_(params.GetParameters()), ass_(ass) {
+      gen_(params.GetParameters()),
+      rss_(rss), ass_(ass) {
 }
 
-std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
+void RingOaFscKeyGenerator::GenerateDatabaseShare(
+    const std::vector<uint64_t>           &database,
+    std::array<sharing::RepShareVec64, 3> &db_sh,
+    std::array<bool, 3>                   &v_sign) const {
+    uint64_t d = params_.GetDatabaseSize();
+    uint64_t s = params_.GetShareSize();
+    if (database.size() != (1ULL << d)) {
+        throw std::invalid_argument("Database size does not match the expected size");
+    }
+
+    db_sh = rss_.ShareLocal(database);
+
+    v_sign = {
+        GlobalRng::RandBit(),
+        GlobalRng::RandBit(),
+        GlobalRng::RandBit(),
+    };
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Generated Database Shares:");
+    Logger::DebugLog(LOC, "v_sign: (" + ToString(v_sign[0]) + ", " + ToString(v_sign[1]) + ", " + ToString(v_sign[2]) + ")");
+#endif
+
+    if (v_sign[0]) {
+        for (size_t i = 0; i < db_sh[0].Size(); ++i) {
+            db_sh[1].data[0][i] = Mod2N(-db_sh[1].data[0][i], s);
+            db_sh[2].data[1][i] = Mod2N(-db_sh[2].data[1][i], s);
+        }
+    }
+    if (v_sign[1]) {
+        for (size_t i = 0; i < db_sh[1].Size(); ++i) {
+            db_sh[2].data[0][i] = Mod2N(-db_sh[2].data[0][i], s);
+            db_sh[0].data[1][i] = Mod2N(-db_sh[0].data[1][i], s);
+        }
+    }
+    if (v_sign[2]) {
+        for (size_t i = 0; i < db_sh[2].Size(); ++i) {
+            db_sh[0].data[0][i] = Mod2N(-db_sh[0].data[0][i], s);
+            db_sh[1].data[1][i] = Mod2N(-db_sh[1].data[1][i], s);
+        }
+    }
+}
+
+void RingOaFscKeyGenerator::GenerateDatabaseShare(const std::vector<uint64_t>           &database,
+                                                  std::array<sharing::RepShareMat64, 3> &db_sh,
+                                                  size_t                                 rows,
+                                                  size_t                                 cols,
+                                                  std::array<bool, 3>                   &v_sign) const {
+    uint64_t s = params_.GetShareSize();
+    uint64_t n = rows * cols;
+    if (database.size() != n) {
+        throw std::invalid_argument("Database size does not match the expected size");
+    }
+    
+    db_sh = rss_.ShareLocal(database, rows, cols);
+
+    v_sign = {
+        GlobalRng::RandBit(),
+        GlobalRng::RandBit(),
+        GlobalRng::RandBit(),
+    };
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Generated Database Shares:");
+    Logger::DebugLog(LOC, "v_sign: (" + ToString(v_sign[0]) + ", " + ToString(v_sign[1]) + ", " + ToString(v_sign[2]) + ")");
+#endif
+
+    if (v_sign[0]) {
+        for (size_t i = 0; i < n; ++i) {
+            db_sh[1].shares.data[0][i] = Mod2N(-db_sh[1].shares.data[0][i], s);
+            db_sh[2].shares.data[1][i] = Mod2N(-db_sh[2].shares.data[1][i], s);
+        }
+    }
+    if (v_sign[1]) {
+        for (size_t i = 0; i < n; ++i) {
+            db_sh[2].shares.data[0][i] = Mod2N(-db_sh[2].shares.data[0][i], s);
+            db_sh[0].shares.data[1][i] = Mod2N(-db_sh[0].shares.data[1][i], s);
+        }
+    }
+    if (v_sign[2]) {
+        for (size_t i = 0; i < n; ++i) {
+            db_sh[0].shares.data[0][i] = Mod2N(-db_sh[0].shares.data[0][i], s);
+            db_sh[1].shares.data[1][i] = Mod2N(-db_sh[1].shares.data[1][i], s);
+        }
+    }
+
+}
+
+std::array<RingOaFscKey, 3> RingOaFscKeyGenerator::GenerateKeys(std::array<bool, 3> &v_sign) const {
     // Initialize the keys
-    std::array<RingOaKey, 3> keys = {
-        RingOaKey(0, params_),
-        RingOaKey(1, params_),
-        RingOaKey(2, params_),
+    std::array<RingOaFscKey, 3> keys = {
+        RingOaFscKey(0, params_),
+        RingOaFscKey(1, params_),
+        RingOaFscKey(2, params_),
     };
     uint64_t d             = params_.GetDatabaseSize();
     uint64_t remaining_bit = params_.GetParameters().GetInputBitsize() - params_.GetParameters().GetTerminateBitsize();
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Generate RingOa Keys"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate RingOaFsc Keys"));
 #endif
 
     std::array<uint64_t, 3>                                    rands;
     std::array<std::pair<uint64_t, uint64_t>, 3>               rand_shs;
     std::array<uint64_t, 3>                                    w;
-    std::array<std::pair<uint64_t, uint64_t>, 3>               w_shs;
     std::vector<std::pair<fss::dpf::DpfKey, fss::dpf::DpfKey>> key_pairs;
     key_pairs.reserve(3);
 
@@ -162,8 +245,8 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
         w[i]               = ComputeSignCorrection(final_seed_0,
                                                    final_seed_1,
                                                    final_control_bit_1,
+                                                   v_sign[i],
                                                    alpha_hat);
-        w_shs[i]           = ass_.Share(w[i]);
     }
 
     // Assign previous and next keys
@@ -172,10 +255,10 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
         uint64_t next         = (i + 1) % 3;
         keys[i].key_from_prev = std::move(key_pairs[prev].first);
         keys[i].rsh_from_prev = rand_shs[prev].first;
-        keys[i].wsh_from_prev = w_shs[prev].first;
+        keys[i].w_from_prev   = w[prev];
         keys[i].key_from_next = std::move(key_pairs[next].second);
         keys[i].rsh_from_next = rand_shs[next].second;
-        keys[i].wsh_from_next = w_shs[next].second;
+        keys[i].w_from_next   = w[next];
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -186,10 +269,11 @@ std::array<RingOaKey, 3> RingOaKeyGenerator::GenerateKeys() const {
     return keys;
 }
 
-uint64_t RingOaKeyGenerator::ComputeSignCorrection(
+uint64_t RingOaFscKeyGenerator::ComputeSignCorrection(
     block   &final_seed_0,
     block   &final_seed_1,
     bool     final_control_bit_1,
+    bool     v_sign,
     uint64_t alpha_hat) const {
     uint64_t s = params_.GetShareSize();
 
@@ -199,7 +283,7 @@ uint64_t RingOaKeyGenerator::ComputeSignCorrection(
                             : GetBit(final_seed_1, alpha_hat);
 
     // --- Compute sign correction value (mod 2^s) ---
-    uint64_t w = (selected_bit ^ final_control_bit_1) ? Mod2N(-1, s) : 1;
+    uint64_t w = (selected_bit ^ final_control_bit_1 ^ v_sign) ? Mod2N(-1, s) : 1;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     std::string src_seed = final_control_bit_1 ? "seed0" : "seed1";
@@ -209,6 +293,7 @@ uint64_t RingOaKeyGenerator::ComputeSignCorrection(
                       ", control_bit=" + ToString(final_control_bit_1) +
                       ", src=" + src_seed +
                       ", selected_bit=" + ToString(selected_bit) +
+                      ", v_sign=" + ToString(v_sign) +
                       ", w=" + ToString(w);
     Logger::DebugLog(LOC, msg);
 #endif
@@ -216,34 +301,21 @@ uint64_t RingOaKeyGenerator::ComputeSignCorrection(
     return w;
 }
 
-RingOaEvaluator::RingOaEvaluator(
-    const RingOaParameters       &params,
+RingOaFscEvaluator::RingOaFscEvaluator(
+    const RingOaFscParameters    &params,
     sharing::ReplicatedSharing3P &rss,
     sharing::AdditiveSharing2P   &ass_prev,
     sharing::AdditiveSharing2P   &ass_next)
     : params_(params), eval_(params.GetParameters()), rss_(rss), ass_prev_(ass_prev), ass_next_(ass_next) {
 }
 
-void RingOaEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &file_path) const {
-    if (party_id == 0) {
-        ass_prev_.OnlineSetUp(1, file_path + "btP2P0");
-        ass_next_.OnlineSetUp(0, file_path + "btP0P1");
-    } else if (party_id == 1) {
-        ass_prev_.OnlineSetUp(1, file_path + "btP0P1");
-        ass_next_.OnlineSetUp(0, file_path + "btP1P2");
-    } else {
-        ass_prev_.OnlineSetUp(1, file_path + "btP1P2");
-        ass_next_.OnlineSetUp(0, file_path + "btP2P0");
-    }
-}
-
-void RingOaEvaluator::Evaluate(Channels                      &chls,
-                               const RingOaKey               &key,
-                               std::vector<block>            &uv_prev,
-                               std::vector<block>            &uv_next,
-                               const sharing::RepShareView64 &database,
-                               const sharing::RepShare64     &index,
-                               sharing::RepShare64           &result) const {
+void RingOaFscEvaluator::Evaluate(Channels                      &chls,
+                                  const RingOaFscKey            &key,
+                                  std::vector<block>            &uv_prev,
+                                  std::vector<block>            &uv_next,
+                                  const sharing::RepShareView64 &database,
+                                  const sharing::RepShare64     &index,
+                                  sharing::RepShare64           &result) const {
 
     uint64_t party_id = chls.party_id;
     uint64_t d        = params_.GetDatabaseSize();
@@ -261,7 +333,7 @@ void RingOaEvaluator::Evaluate(Channels                      &chls,
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate RingOa key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate RingOaFsc key"));
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     std::string party_str = "[P" + ToString(party_id) + "] ";
     Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
@@ -283,15 +355,22 @@ void RingOaEvaluator::Evaluate(Channels                      &chls,
 
     uint64_t ext_dp_prev, ext_dp_next;
     if (party_id == 0) {
-        ass_prev_.EvaluateMult(1, chls.prev, dp_prev, key.wsh_from_next, ext_dp_prev);    // P0 <-> P2
-        ass_next_.EvaluateMult(0, chls.next, dp_next, key.wsh_from_prev, ext_dp_next);    // P0 <-> P1
+        // ass_prev_.EvaluateMult(1, chls.prev, dp_prev, key.w_from_next, ext_dp_prev);    // P0 <-> P2
+        // ass_next_.EvaluateMult(0, chls.next, dp_next, key.w_from_prev, ext_dp_next);    // P0 <-> P1
+        ext_dp_prev = Mod2N(dp_prev * key.w_from_next, s);
+        ext_dp_next = Mod2N(dp_next * key.w_from_prev, s);
     } else if (party_id == 1) {
-        ass_next_.EvaluateMult(0, chls.next, dp_next, key.wsh_from_prev, ext_dp_next);    // P1 <-> P2
-        ass_prev_.EvaluateMult(1, chls.prev, dp_prev, key.wsh_from_next, ext_dp_prev);    // P1 <-> P0
+        // ass_next_.EvaluateMult(0, chls.next, dp_next, key.w_from_prev, ext_dp_next);    // P1 <-> P2
+        // ass_prev_.EvaluateMult(1, chls.prev, dp_prev, key.w_from_next, ext_dp_prev);    // P1 <-> P0
+        ext_dp_next = Mod2N(dp_next * key.w_from_prev, s);
+        ext_dp_prev = Mod2N(dp_prev * key.w_from_next, s);
     } else {
-        ass_prev_.EvaluateMult(1, chls.prev, dp_prev, key.wsh_from_next, ext_dp_prev);    // P1 <-> P2
-        ass_next_.EvaluateMult(0, chls.next, dp_next, key.wsh_from_prev, ext_dp_next);    // P0 <-> P2
+        // ass_prev_.EvaluateMult(1, chls.prev, dp_prev, key.w_from_next, ext_dp_prev);    // P1 <-> P2
+        // ass_next_.EvaluateMult(0, chls.next, dp_next, key.w_from_prev, ext_dp_next);    // P0 <-> P2
+        ext_dp_prev = Mod2N(dp_prev * key.w_from_next, s);
+        ext_dp_next = Mod2N(dp_next * key.w_from_prev, s);
     }
+
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + "ext_dp_prev: " + ToString(ext_dp_prev) + ", ext_dp_next: " + ToString(ext_dp_next));
 #endif
@@ -307,14 +386,14 @@ void RingOaEvaluator::Evaluate(Channels                      &chls,
 #endif
 }
 
-void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
-                                        const RingOaKey               &key1,
-                                        const RingOaKey               &key2,
-                                        std::vector<block>            &uv_prev,
-                                        std::vector<block>            &uv_next,
-                                        const sharing::RepShareView64 &database,
-                                        const sharing::RepShareVec64  &index,
-                                        sharing::RepShareVec64        &result) const {
+void RingOaFscEvaluator::Evaluate_Parallel(Channels                      &chls,
+                                           const RingOaFscKey            &key1,
+                                           const RingOaFscKey            &key2,
+                                           std::vector<block>            &uv_prev,
+                                           std::vector<block>            &uv_next,
+                                           const sharing::RepShareView64 &database,
+                                           const sharing::RepShareVec64  &index,
+                                           sharing::RepShareVec64        &result) const {
 
     uint64_t party_id = chls.party_id;
     uint64_t d        = params_.GetDatabaseSize();
@@ -332,7 +411,7 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate RingOa key"));
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate RingOaFsc key"));
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     std::string party_str = "[P" + ToString(party_id) + "] ";
     Logger::DebugLog(LOC, party_str + " idx: " + index.ToString());
@@ -359,14 +438,26 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
 
     std::array<uint64_t, 2> ext_dp_prev, ext_dp_next;
     if (party_id == 0) {
-        ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P0 <-> P2
-        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_prev}, ext_dp_next);    // P0 <-> P1
+        // ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.w_from_next, key2.w_from_next}, ext_dp_prev);    // P0 <-> P2
+        // ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.w_from_prev, key2.w_from_prev}, ext_dp_next);    // P0 <-> P1
+        ext_dp_prev[0] = Mod2N(dp_prev1 * key1.w_from_next, s);
+        ext_dp_prev[1] = Mod2N(dp_prev2 * key2.w_from_next, s);
+        ext_dp_next[0] = Mod2N(dp_next1 * key1.w_from_prev, s);
+        ext_dp_next[1] = Mod2N(dp_next2 * key2.w_from_prev, s);
     } else if (party_id == 1) {
-        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_prev}, ext_dp_next);    // P1 <-> P2
-        ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P1 <-> P0
+        // ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.w_from_prev, key2.w_from_prev}, ext_dp_next);    // P1 <-> P2
+        // ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.w_from_next, key2.w_from_next}, ext_dp_prev);    // P1 <-> P0
+        ext_dp_next[0] = Mod2N(dp_next1 * key1.w_from_prev, s);
+        ext_dp_next[1] = Mod2N(dp_next2 * key2.w_from_prev, s);
+        ext_dp_prev[0] = Mod2N(dp_prev1 * key1.w_from_next, s);
+        ext_dp_prev[1] = Mod2N(dp_prev2 * key2.w_from_next, s);
     } else {
-        ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.wsh_from_next, key2.wsh_from_next}, ext_dp_prev);    // P1 <-> P2
-        ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.wsh_from_prev, key2.wsh_from_prev}, ext_dp_next);    // P0 <-> P2
+        // ass_prev_.EvaluateMult(1, chls.prev, {dp_prev1, dp_prev2}, {key1.w_from_next, key2.w_from_next}, ext_dp_prev);    // P1 <-> P2
+        // ass_next_.EvaluateMult(0, chls.next, {dp_next1, dp_next2}, {key1.w_from_prev, key2.w_from_prev}, ext_dp_next);    // P0 <-> P2
+        ext_dp_prev[0] = Mod2N(dp_prev1 * key1.w_from_next, s);
+        ext_dp_prev[1] = Mod2N(dp_prev2 * key2.w_from_next, s);
+        ext_dp_next[0] = Mod2N(dp_next1 * key1.w_from_prev, s);
+        ext_dp_next[1] = Mod2N(dp_next2 * key2.w_from_prev, s);
     }
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, party_str + "ext_dp_prev1: " + ToString(ext_dp_prev[0]) + ", ext_dp_prev2: " + ToString(ext_dp_prev[1]) +
@@ -387,7 +478,7 @@ void RingOaEvaluator::Evaluate_Parallel(Channels                      &chls,
 #endif
 }
 
-std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
+std::pair<uint64_t, uint64_t> RingOaFscEvaluator::EvaluateFullDomainThenDotProduct(
     const uint64_t                 party_id,
     const fss::dpf::DpfKey        &key_from_prev,
     const fss::dpf::DpfKey        &key_from_next,
@@ -434,9 +525,9 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::EvaluateFullDomainThenDotProduct(
     return std::make_pair(dp_prev, dp_next);
 }
 
-std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels                  &chls,
-                                                                      const RingOaKey           &key,
-                                                                      const sharing::RepShare64 &index) const {
+std::pair<uint64_t, uint64_t> RingOaFscEvaluator::ReconstructMaskedValue(Channels                  &chls,
+                                                                         const RingOaFscKey        &key,
+                                                                         const sharing::RepShare64 &index) const {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "ReconstructMaskedValue for Party " + ToString(chls.party_id));
@@ -498,10 +589,10 @@ std::pair<uint64_t, uint64_t> RingOaEvaluator::ReconstructMaskedValue(Channels  
     return std::make_pair(pr_prev, pr_next);
 }
 
-std::array<uint64_t, 4> RingOaEvaluator::ReconstructMaskedValue(Channels                     &chls,
-                                                                const RingOaKey              &key1,
-                                                                const RingOaKey              &key2,
-                                                                const sharing::RepShareVec64 &index) const {
+std::array<uint64_t, 4> RingOaFscEvaluator::ReconstructMaskedValue(Channels                     &chls,
+                                                                   const RingOaFscKey           &key1,
+                                                                   const RingOaFscKey           &key2,
+                                                                   const sharing::RepShareVec64 &index) const {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "ReconstructPR for Party " + ToString(chls.party_id));

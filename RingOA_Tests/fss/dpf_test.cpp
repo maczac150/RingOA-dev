@@ -102,9 +102,9 @@ void Dpf_Params_Test() {
         {29, 29},
     };
     const std::vector<EvalType> evals = {
-        EvalType::kNaive,
-        EvalType::kRecursion,
-        EvalType::kIterSingleBatch};
+        EvalType::kBruteforce,
+        EvalType::kRecursive,
+        EvalType::kHybridBatched};
 
     // Test all combinations of parameters
     for (auto [n, e] : size_pair) {
@@ -133,8 +133,8 @@ void Dpf_EvalAt_Test() {
         {29, 29},
     };
     const std::vector<EvalType> evals = {
-        EvalType::kNaive,
-        EvalType::kIterSingleBatch};
+        EvalType::kBruteforce,
+        EvalType::kHybridBatched};
 
     // Test all combinations of parameters
     for (auto [n, e] : size_pair) {
@@ -172,14 +172,14 @@ void Dpf_EvalAt_Test() {
 void Dpf_Fde_Test() {
     Logger::DebugLog(LOC, "Dpf_Fde_Test...");
     const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
-        {3, 3, EvalType::kNaive},
-        {8, 8, EvalType::kRecursion},
-        {8, 8, EvalType::kIterSingleBatch},
-        {9, 9, EvalType::kIterDepthFirst},
-        {9, 9, EvalType::kRecursion},
-        {9, 9, EvalType::kIterSingleBatch},
-        {17, 17, EvalType::kRecursion},
-        {17, 17, EvalType::kIterSingleBatch},
+        {3, 3, EvalType::kBruteforce},
+        {8, 8, EvalType::kRecursive},
+        {8, 8, EvalType::kHybridBatched},
+        {9, 9, EvalType::kIterative},
+        {9, 9, EvalType::kRecursive},
+        {9, 9, EvalType::kHybridBatched},
+        {17, 17, EvalType::kRecursive},
+        {17, 17, EvalType::kHybridBatched},
     };
 
     // Test all combinations of parameters
@@ -219,9 +219,9 @@ void Dpf_Fde_Test() {
 void Dpf_Fde_One_Test() {
     Logger::DebugLog(LOC, "Dpf_Fde_One_Test...");
     const std::vector<std::tuple<uint64_t, uint64_t, EvalType>> fde_param = {
-        {3, 1, EvalType::kNaive},
-        {10, 1, EvalType::kRecursion},
-        {10, 1, EvalType::kIterSingleBatch},
+        {3, 1, EvalType::kBruteforce},
+        {10, 1, EvalType::kRecursive},
+        {10, 1, EvalType::kHybridBatched},
     };
     // Test all combinations of parameters
     for (auto [n, e, eval_type] : fde_param) {
@@ -237,7 +237,7 @@ void Dpf_Fde_One_Test() {
         std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
         // Evaluate keys
-        if (param.GetEvalType() == EvalType::kNaive) {
+        if (param.GetEvalType() == EvalType::kBruteforce) {
             std::vector<uint64_t> outputs_0(1 << n), outputs_1(1 << n);
             eval.EvaluateFullDomain(keys.first, outputs_0);
             eval.EvaluateFullDomain(keys.second, outputs_1);

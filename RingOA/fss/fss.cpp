@@ -7,14 +7,14 @@ namespace fss {
 
 std::string GetEvalTypeString(const EvalType eval_type) {
     switch (eval_type) {
-        case EvalType::kNaive:
-            return "Naive";
-        case EvalType::kRecursion:
-            return "Recursion";
-        case EvalType::kIterSingleBatch:
-            return "IterSingleBatch";
-        case EvalType::kIterDepthFirst:
-            return "IterDepthFirst";
+        case EvalType::kBruteforce:
+            return "Bruteforce";
+        case EvalType::kRecursive:
+            return "Recursive";
+        case EvalType::kHybridBatched:
+            return "HybridBatched";
+        case EvalType::kIterative:
+            return "Iterative";
         default:
             return "Unknown";
     }

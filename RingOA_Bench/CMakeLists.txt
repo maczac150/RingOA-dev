@@ -3,13 +3,13 @@
 # =========================
 
 set(BENCH_SOURCES
-    dpf_bench.cpp
-    dpf_pir_bench.cpp
-    obliv_select_bench.cpp
-    obliv_access_bench.cpp
-    ofmi_bench.cpp
-    oquantile_bench.cpp
-    bench_main.cpp
+  dpf_bench.cpp
+  dpf_pir_bench.cpp
+  obliv_select_bench.cpp
+  obliv_access_bench.cpp
+  ofmi_bench.cpp
+  oquantile_bench.cpp
+  bench_main.cpp
 )
 
 add_executable(bench_RingOA ${BENCH_SOURCES})

@@ -1,0 +1,259 @@
+#include "owm_fsc.h"
+
+#include <cstring>
+
+#include "RingOA/sharing/additive_2p.h"
+#include "RingOA/sharing/additive_3p.h"
+#include "RingOA/utils/logger.h"
+#include "RingOA/utils/to_string.h"
+#include "RingOA/utils/utils.h"
+#include "plain_wm.h"
+
+namespace ringoa {
+namespace wm {
+
+using ringoa::sharing::ReplicatedSharing3P;
+
+void OWMFscParameters::PrintParameters() const {
+    Logger::DebugLog(LOC, "[OWMFsc Parameters]" + GetParametersInfo());
+}
+
+OWMFscKey::OWMFscKey(const uint64_t id, const OWMFscParameters &params)
+    : num_oa_keys(params.GetSigma()),
+      params_(params) {
+    oa_keys.reserve(num_oa_keys);
+    for (uint64_t i = 0; i < num_oa_keys; ++i) {
+        oa_keys.emplace_back(proto::RingOaFscKey(id, params.GetOaParameters()));
+    }
+    serialized_size_ = CalculateSerializedSize();
+}
+
+size_t OWMFscKey::CalculateSerializedSize() const {
+    size_t size = sizeof(num_oa_keys);
+    for (uint64_t i = 0; i < num_oa_keys; ++i) {
+        size += oa_keys[i].GetSerializedSize();
+    }
+    return size;
+}
+
+void OWMFscKey::Serialize(std::vector<uint8_t> &buffer) const {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Serializing OWMFscKey");
+#endif
+
+    // Serialize the number of OA keys
+    buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&num_oa_keys), reinterpret_cast<const uint8_t *>(&num_oa_keys) + sizeof(num_oa_keys));
+
+    // Serialize the OA keys
+    for (const auto &oa_key : oa_keys) {
+        std::vector<uint8_t> key_buffer;
+        oa_key.Serialize(key_buffer);
+        buffer.insert(buffer.end(), key_buffer.begin(), key_buffer.end());
+    }
+
+    // Check size
+    if (buffer.size() != serialized_size_) {
+        Logger::ErrorLog(LOC, "Serialized size mismatch: " + ToString(buffer.size()) + " != " + ToString(serialized_size_));
+        return;
+    }
+}
+
+void OWMFscKey::Deserialize(const std::vector<uint8_t> &buffer) {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Deserializing OWMFscKey");
+#endif
+    size_t offset = 0;
+
+    // Deserialize the number of OA keys
+    std::memcpy(&num_oa_keys, buffer.data() + offset, sizeof(num_oa_keys));
+    offset += sizeof(num_oa_keys);
+
+    // Deserialize the OA keys
+    for (auto &oa_key : oa_keys) {
+        size_t key_size = oa_key.GetSerializedSize();
+        oa_key.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.begin() + offset + key_size));
+        offset += key_size;
+    }
+}
+
+void OWMFscKey::PrintKey(const bool detailed) const {
+    Logger::DebugLog(LOC, Logger::StrWithSep("OWMFsc Key"));
+    Logger::DebugLog(LOC, "Number of RingOa Keys: " + ToString(num_oa_keys));
+    for (uint64_t i = 0; i < num_oa_keys; ++i) {
+        oa_keys[i].PrintKey(detailed);
+    }
+}
+
+OWMFscKeyGenerator::OWMFscKeyGenerator(
+    const OWMFscParameters       &params,
+    sharing::AdditiveSharing2P   &ass,
+    sharing::ReplicatedSharing3P &rss)
+    : params_(params),
+      oa_gen_(params.GetOaParameters(), rss, ass),
+      rss_(rss) {
+}
+
+void OWMFscKeyGenerator::GenerateDatabaseU64Share(const FMIndex                         &fm,
+                                                  std::array<sharing::RepShareMat64, 3> &db_sh,
+                                                  std::array<sharing::RepShareVec64, 3> &aux_sh,
+                                                  std::array<bool, 3>                   &v_sign) const {
+    if (fm.GetWaveletMatrix().GetLength() + 1 != params_.GetDatabaseSize()) {
+        throw std::invalid_argument("FMIndex length does not match the database size in OWMFscParameters");
+    }
+    const std::vector<uint64_t> &rank0_tables = fm.GetRank0Tables();
+    oa_gen_.GenerateDatabaseShare(rank0_tables, db_sh, fm.GetWaveletMatrix().GetSigma(), fm.GetWaveletMatrix().GetLength() + 1, v_sign);
+
+    const size_t          stride = fm.GetWaveletMatrix().GetLength() + 1;
+    std::vector<uint64_t> total_zero(fm.GetWaveletMatrix().GetSigma());
+    for (size_t i = 0; i < fm.GetWaveletMatrix().GetSigma(); ++i) {
+        total_zero[i] = rank0_tables[(i + 1) * stride - 1];
+    }
+    aux_sh = rss_.ShareLocal(total_zero);
+}
+
+std::array<OWMFscKey, 3> OWMFscKeyGenerator::GenerateKeys(std::array<bool, 3> &v_sign) const {
+    // Initialize the keys
+    std::array<OWMFscKey, 3> keys = {
+        OWMFscKey(0, params_),
+        OWMFscKey(1, params_),
+        OWMFscKey(2, params_),
+    };
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Generate OWMFsc keys"));
+#endif
+
+    for (uint64_t i = 0; i < keys[0].num_oa_keys; ++i) {
+        // Generate the RingOa keys
+        std::array<proto::RingOaFscKey, 3> oa_key = oa_gen_.GenerateKeys(v_sign);
+
+        // Set the RingOa keys
+        keys[0].oa_keys[i] = std::move(oa_key[0]);
+        keys[1].oa_keys[i] = std::move(oa_key[1]);
+        keys[2].oa_keys[i] = std::move(oa_key[2]);
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "OWMFsc keys generated");
+    keys[0].PrintKey();
+    keys[1].PrintKey();
+    keys[2].PrintKey();
+#endif
+
+    // Return the keys
+    return keys;
+}
+
+OWMFscEvaluator::OWMFscEvaluator(
+    const OWMFscParameters       &params,
+    sharing::ReplicatedSharing3P &rss,
+    sharing::AdditiveSharing2P   &ass_prev,
+    sharing::AdditiveSharing2P   &ass_next)
+    : params_(params),
+      oa_eval_(params.GetOaParameters(), rss, ass_prev, ass_next),
+      rss_(rss) {
+}
+
+void OWMFscEvaluator::EvaluateRankCF(Channels                      &chls,
+                                     const OWMFscKey               &key,
+                                     std::vector<block>            &uv_prev,
+                                     std::vector<block>            &uv_next,
+                                     const sharing::RepShareMat64  &wm_tables,
+                                     const sharing::RepShareView64 &aux_sh,
+                                     const sharing::RepShareView64 &char_sh,
+                                     sharing::RepShare64           &position_sh,
+                                     sharing::RepShare64           &result) const {
+
+    uint64_t d        = params_.GetDatabaseBitSize();
+    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OWMFsc key"));
+    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
+    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+#endif
+
+    sharing::RepShare64 rank0_sh(0, 0), rank1_sh(0, 0);
+    sharing::RepShare64 total_zeros;
+    sharing::RepShare64 p_sub_rank0_sh;
+
+    for (uint64_t i = 0; i < sigma; ++i) {
+        oa_eval_.Evaluate(chls, key.oa_keys[i], uv_prev, uv_next, wm_tables.RowView(i), position_sh, rank0_sh);
+
+        total_zeros = aux_sh.At(i);
+        rss_.EvaluateSub(position_sh, rank0_sh, p_sub_rank0_sh);
+        rss_.EvaluateAdd(p_sub_rank0_sh, total_zeros, rank1_sh);
+        rss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        uint64_t total_zero_rec;
+        uint64_t p_sub_rank0;
+        rss_.Open(chls, total_zeros, total_zero_rec);
+        rss_.Open(chls, p_sub_rank0_sh, p_sub_rank0);
+        Logger::DebugLog(LOC, party_str + "total_zero_rec: " + ToString(total_zero_rec));
+        Logger::DebugLog(LOC, party_str + "p_sub_rank0: " + ToString(p_sub_rank0));
+        Logger::DebugLog(LOC, party_str + "Rank0 share: " + ToString(rank0_sh[0]) + ", " + ToString(rank0_sh[1]));
+        Logger::DebugLog(LOC, party_str + "Rank1 share: " + ToString(rank1_sh[0]) + ", " + ToString(rank1_sh[1]));
+        uint64_t open_position = 0;
+        rss_.Open(chls, position_sh, open_position);
+        Logger::DebugLog(LOC, party_str + "Rank CF for character " + ToString(i) + ": " + ToString(open_position));
+#endif
+    }
+    result = position_sh;
+}
+
+void OWMFscEvaluator::EvaluateRankCF_Parallel(Channels                      &chls,
+                                              const OWMFscKey               &key1,
+                                              const OWMFscKey               &key2,
+                                              std::vector<block>            &uv_prev,
+                                              std::vector<block>            &uv_next,
+                                              const sharing::RepShareMat64  &wm_tables,
+                                              const sharing::RepShareView64 &aux_sh,
+                                              const sharing::RepShareView64 &char_sh,
+                                              sharing::RepShareVec64        &position_sh,
+                                              sharing::RepShareVec64        &result) const {
+    uint64_t d        = params_.GetDatabaseBitSize();
+    uint64_t ds       = params_.GetDatabaseSize();
+    uint64_t sigma    = params_.GetSigma();
+    uint64_t party_id = chls.party_id;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, Logger::StrWithSep("Evaluate OWMFsc key"));
+    Logger::DebugLog(LOC, "Database bit size: " + ToString(d));
+    Logger::DebugLog(LOC, "Database size: " + ToString(ds));
+    Logger::DebugLog(LOC, "Sigma: " + ToString(sigma));
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    Logger::DebugLog(LOC, "Rows: " + ToString(wm_tables.rows) + ", Columns: " + ToString(wm_tables.cols));
+    std::string party_str = "[P" + ToString(party_id) + "] ";
+#endif
+
+    sharing::RepShareVec64 rank0_sh(2), rank1_sh(2);
+    sharing::RepShareVec64 total_zeros(2);
+    sharing::RepShareVec64 p_sub_rank0_sh(2);
+    for (uint64_t i = 0; i < sigma; ++i) {
+        oa_eval_.Evaluate_Parallel(chls, key1.oa_keys[i], key2.oa_keys[i], uv_prev, uv_next, wm_tables.RowView(i), position_sh, rank0_sh);
+        total_zeros.Set(0, aux_sh.At(i));
+        total_zeros.Set(1, aux_sh.At(i));
+        rss_.EvaluateSub(position_sh, rank0_sh, p_sub_rank0_sh);
+        rss_.EvaluateAdd(p_sub_rank0_sh, total_zeros, rank1_sh);
+        rss_.EvaluateSelect(chls, rank0_sh, rank1_sh, char_sh.At(i), position_sh);
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        Logger::DebugLog(LOC, party_str + "Rank0 share: " + ToString(rank0_sh[0]) + ", " + ToString(rank0_sh[1]));
+        Logger::DebugLog(LOC, party_str + "Rank1 share: " + ToString(rank1_sh[0]) + ", " + ToString(rank1_sh[1]));
+        std::vector<uint64_t> open_position(2);
+        rss_.Open(chls, position_sh, open_position);
+        Logger::DebugLog(LOC, party_str + "Rank CF for character " + ToString(i) + ": " + ToString(open_position[0]) + ", " + ToString(open_position[1]));
+#endif
+    }
+    result = position_sh;
+}
+
+}    // namespace wm
+}    // namespace ringoa

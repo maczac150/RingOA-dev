@@ -148,14 +148,14 @@ void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<block> &out
     Logger::DebugLog(LOC, "Party ID: " + ToString(key.party_id));
 #endif
     switch (fde_type) {
-        case EvalType::kNaive:
+        case EvalType::kBruteforce:
             Logger::FatalLog(LOC, "Naive approach is not supported for the block output");
             break;
-        case EvalType::kRecursion:
-            FullDomainRecursion(key, outputs);
+        case EvalType::kRecursive:
+            FullDomainRecursive(key, outputs);
             break;
-        case EvalType::kIterSingleBatch:
-            FullDomainIterativeSingleBatch(key, outputs);
+        case EvalType::kHybridBatched:
+            FullDomainHybridBatched(key, outputs);
             break;
         default:
             throw std::invalid_argument(
@@ -182,31 +182,31 @@ void DpfEvaluator::EvaluateFullDomain(const DpfKey &key, std::vector<uint64_t> &
 #endif
 
     switch (fde_type) {
-        case EvalType::kNaive: {
+        case EvalType::kBruteforce: {
             // No ET, direct uint64_t outputs
-            FullDomainNaive(key, outputs);
+            FullDomainBruteforce(key, outputs);
             break;
         }
 
-        case EvalType::kRecursion: {
+        case EvalType::kRecursive: {
             // With ET, compute block buffer then split to field outputs
             std::vector<block> outputs_block(num_nodes);
-            FullDomainRecursion(key, outputs_block);
+            FullDomainRecursive(key, outputs_block);
             SplitBlockToFieldVector(outputs_block, n - nu, params_.GetOutputBitsize(), outputs);
             break;
         }
 
-        case EvalType::kIterSingleBatch: {
+        case EvalType::kHybridBatched: {
             // With ET, BFS for first few levels then DFS
             std::vector<block> outputs_block(num_nodes);
-            FullDomainIterativeSingleBatch(key, outputs_block);
+            FullDomainHybridBatched(key, outputs_block);
             SplitBlockToFieldVector(outputs_block, n - nu, params_.GetOutputBitsize(), outputs);
             break;
         }
 
-        case EvalType::kIterDepthFirst: {
+        case EvalType::kIterative: {
             // No ET, pure iterative DFS writing uint64_t outputs
-            FullDomainIterativeDepthFirst(key, outputs);
+            FullDomainIterative(key, outputs);
             break;
         }
 
@@ -247,7 +247,7 @@ void DpfEvaluator::EvaluateNextSeed(
     expanded_control_bits[kRight] ^= control_mask_right;
 }
 
-void DpfEvaluator::FullDomainRecursion(const DpfKey &key, std::vector<block> &outputs) const {
+void DpfEvaluator::FullDomainRecursive(const DpfKey &key, std::vector<block> &outputs) const {
     uint64_t nu = params_.GetTerminateBitsize();
 
     // Get the seed and control bit from the given DPF key
@@ -257,7 +257,7 @@ void DpfEvaluator::FullDomainRecursion(const DpfKey &key, std::vector<block> &ou
     Traverse(seed, control_bit, key, nu, 0, outputs);
 }
 
-void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector<block> &outputs) const {
+void DpfEvaluator::FullDomainHybridBatched(const DpfKey &key, std::vector<block> &outputs) const {
     uint64_t nu            = params_.GetTerminateBitsize();
     uint64_t remaining_bit = params_.GetInputBitsize() - nu;
 
@@ -400,7 +400,7 @@ void DpfEvaluator::FullDomainIterativeSingleBatch(const DpfKey &key, std::vector
 #endif
 }
 
-void DpfEvaluator::FullDomainIterativeDepthFirst(const DpfKey &key, std::vector<uint64_t> &outputs) const {
+void DpfEvaluator::FullDomainIterative(const DpfKey &key, std::vector<uint64_t> &outputs) const {
     uint64_t n = params_.GetInputBitsize();
     uint64_t e = params_.GetOutputBitsize();
 
@@ -478,7 +478,7 @@ void DpfEvaluator::FullDomainIterativeDepthFirst(const DpfKey &key, std::vector<
 #endif
 }
 
-void DpfEvaluator::FullDomainNaive(const DpfKey &key, std::vector<uint64_t> &outputs) const {
+void DpfEvaluator::FullDomainBruteforce(const DpfKey &key, std::vector<uint64_t> &outputs) const {
     // Evaluate the DPF key for all possible x values
     for (uint64_t x = 0; x < (1U << params_.GetInputBitsize()); x++) {
         outputs[x] = EvaluateAtNaive(key, x);

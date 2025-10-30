@@ -13,7 +13,9 @@
 #include "RingOA_Tests/protocol/dpf_pir_test.h"
 #include "RingOA_Tests/protocol/equality_test.h"
 #include "RingOA_Tests/protocol/integer_comparison_test.h"
-#include "RingOA_Tests/protocol/obliv_access_test.h"
+#include "RingOA_Tests/protocol/obliv_select_test.h"
+#include "RingOA_Tests/protocol/ringoa_test.h"
+#include "RingOA_Tests/protocol/shared_ot_test.h"
 #include "RingOA_Tests/protocol/zt_test.h"
 #include "RingOA_Tests/sharing/additive_2p_test.h"
 #include "RingOA_Tests/sharing/additive_3p_test.h"
@@ -90,6 +92,8 @@ void RegisterProtocolTests(osuCrypto::TestCollection &t) {
     t.add("SharedOt_Online_Test", SharedOt_Online_Test);
     t.add("RingOa_Offline_Test", RingOa_Offline_Test);
     t.add("RingOa_Online_Test", RingOa_Online_Test);
+    t.add("RingOa_Fsc_Offline_Test", RingOa_Fsc_Offline_Test);
+    t.add("RingOa_Fsc_Online_Test", RingOa_Fsc_Online_Test);
 }
 
 void RegisterWmTests(osuCrypto::TestCollection &t) {
@@ -101,6 +105,8 @@ void RegisterWmTests(osuCrypto::TestCollection &t) {
     t.add("FMIndex_Test", FMIndex_Test);
     t.add("OWM_Offline_Test", OWM_Offline_Test);
     t.add("OWM_Online_Test", OWM_Online_Test);
+    t.add("OWM_Fsc_Offline_Test", OWM_Fsc_Offline_Test);
+    t.add("OWM_Fsc_Online_Test", OWM_Fsc_Online_Test);
     t.add("OQuantile_Offline_Test", OQuantile_Offline_Test);
     t.add("OQuantile_Online_Test", OQuantile_Online_Test);
 }
@@ -110,6 +116,8 @@ void RegisterFmIndexTests(osuCrypto::TestCollection &t) {
     t.add("SotFMI_Online_Test", SotFMI_Online_Test);
     t.add("OFMI_Offline_Test", OFMI_Offline_Test);
     t.add("OFMI_Online_Test", OFMI_Online_Test);
+    t.add("OFMI_Fsc_Offline_Test", OFMI_Fsc_Offline_Test);
+    t.add("OFMI_Fsc_Online_Test", OFMI_Fsc_Online_Test);
 }
 
 }    // namespace test_ringoa
@@ -121,19 +129,15 @@ std::vector<std::string>
     listTags{"l", "list"},
     testTags{"t", "test"},
     unitTags{"u", "unitTests"},
-    suiteTags{"s", "suite"},
-    repeatTags{"repeat"},
-    loopTags{"loop"};
+    suiteTags{"s", "suite"};
 
-void PrintHelp() {
-    std::cout << "Usage: test_program [OPTIONS]\n";
+void PrintHelp(const char *prog) {
+    std::cout << "Usage: " << prog << " [OPTIONS]\n";
     std::cout << "Options:\n";
     std::cout << "  -unit, -u           Run all unit tests.\n";
     std::cout << "  -list, -l           List all available tests.\n";
     std::cout << "  -test=<Index>, -t   Run the specified test by its index.\n";
     std::cout << "  -suite=<Name>, -s   Run the specified test suite.\n";
-    std::cout << "  -repeat=<Count>     Specify the number of repetitions for the test (default: 1).\n";
-    std::cout << "  -loop=<Count>       Repeat the entire test execution for the specified number of loops (default: 1).\n";
     std::cout << "  -help, -h           Display this help message.\n";
 }
 
@@ -141,14 +145,16 @@ void PrintHelp() {
 
 int main(int argc, char **argv) {
     try {
-#ifndef USE_FIXED_RANDOM_SEED
+#if !USE_FIXED_RANDOM_SEED
         {
             std::random_device rd;
             osuCrypto::block   seed = osuCrypto::toBlock(rd(), rd());
             ringoa::GlobalRng::Initialize(seed);
+            std::cout << "[test] RNG initialized with random seed " << seed << "\n";
         }
 #else
         ringoa::GlobalRng::Initialize();
+        std::cout << "[test] RNG initialized with fixed default seed\n";
 #endif
 
         osuCrypto::CLP            cmd(argc, argv);
@@ -162,7 +168,7 @@ int main(int argc, char **argv) {
 
         // Display help message
         if (cmd.isSet(helpTags)) {
-            PrintHelp();
+            PrintHelp(argv[0]);
             return 0;
         }
 
@@ -174,23 +180,14 @@ int main(int argc, char **argv) {
 
         // Handle test execution
         if (cmd.hasValue(testTags)) {
-            auto testIdxs    = cmd.getMany<osuCrypto::u64>(testTags);
-            int  repeatCount = cmd.getOr(repeatTags, 1);
-            int  loopCount   = cmd.getOr(loopTags, 1);
-
+            auto testIdxs = cmd.getMany<osuCrypto::u64>(testTags);
             if (testIdxs.empty()) {
                 std::cerr << "Error: No test index specified.\n";
                 return 1;
             }
 
-            // Execute tests in a loop
-            for (int i = 0; i < loopCount; ++i) {
-                auto result = tests.run(testIdxs, repeatCount, &cmd);
-                if (result != osuCrypto::TestCollection::Result::passed) {
-                    return 1;    // Exit on failure
-                }
-            }
-            return 0;    // Success
+            auto result = tests.run(testIdxs, /*repeatCount=*/1, &cmd);
+            return (result == osuCrypto::TestCollection::Result::passed) ? 0 : 1;
         }
 
         if (cmd.hasValue(suiteTags)) {
@@ -200,22 +197,15 @@ int main(int argc, char **argv) {
             std::list<std::string> queries = {prefix};
 
             // this will return all test indices whose name contains prefix
-            auto idxs = tests.search(queries);
+            auto testIdxs = tests.search(queries);
 
-            if (idxs.empty()) {
+            if (testIdxs.empty()) {
                 std::cerr << "No tests match suite string: " << prefix << "\n";
                 return 1;
             }
 
-            int rep  = cmd.getOr(repeatTags, 1);
-            int loop = cmd.getOr(loopTags, 1);
-
-            for (int i = 0; i < loop; ++i) {
-                auto r = tests.run(idxs, rep, &cmd);
-                if (r != osuCrypto::TestCollection::Result::passed)
-                    return 1;
-            }
-            return 0;
+            auto result = tests.run(testIdxs, /*repeatCount=*/1, &cmd);
+            return (result == osuCrypto::TestCollection::Result::passed) ? 0 : 1;
         }
 
         // Unit test execution
@@ -230,7 +220,7 @@ int main(int argc, char **argv) {
 
         // Invalid options
         std::cerr << "Error: No valid options specified.\n";
-        PrintHelp();
+        PrintHelp(argv[0]);
         return 1;
 
     } catch (const std::exception &ex) {

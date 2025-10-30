@@ -18,7 +18,9 @@ set(TEST_SOURCES
   protocol/integer_comparison_test.cpp
   protocol/zt_test.cpp
   protocol/dpf_pir_test.cpp
-  protocol/obliv_access_test.cpp
+  protocol/obliv_select_test.cpp
+  protocol/ringoa_test.cpp
+  protocol/shared_ot_test.cpp
   protocol/ddcf_test.cpp
   wm/wm_test.cpp
   wm/owm_test.cpp
