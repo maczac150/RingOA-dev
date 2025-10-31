@@ -104,6 +104,13 @@ inline std::vector<uint64_t> CreateSequence(const uint64_t start, const uint64_t
     return v;
 }
 
+// Check if a file exists at the given path.
+inline bool FileExists(const std::string &path, const std::string &ext = ".bin") {
+    std::error_code   ec;
+    const std::string full_path = path + ext;
+    return std::filesystem::exists(full_path, ec);
+}
+
 }    // namespace ringoa
 
 #endif    // UTILS_UTILS_H_

@@ -5,10 +5,10 @@
 
 namespace bench_ringoa {
 
-void SotFMI_Offline_Bench(const osuCrypto::CLP &cmd);
-void SotFMI_Online_Bench(const osuCrypto::CLP &cmd);
 void OFMI_Offline_Bench(const osuCrypto::CLP &cmd);
 void OFMI_Online_Bench(const osuCrypto::CLP &cmd);
+void OFMI_Fsc_Offline_Bench(const osuCrypto::CLP &cmd);
+void OFMI_Fsc_Online_Bench(const osuCrypto::CLP &cmd);
 
 }    // namespace bench_ringoa
 

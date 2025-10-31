@@ -61,12 +61,12 @@ using ringoa::fm_index::SotFMIKey;
 using ringoa::fm_index::SotFMIKeyGenerator;
 using ringoa::fm_index::SotFMIParameters;
 using ringoa::proto::KeyIo;
-using ringoa::sharing::AdditiveSharing2P, ringoa::sharing::BinarySharing2P;
-using ringoa::sharing::ReplicatedSharing3P, ringoa::sharing::BinaryReplicatedSharing3P;
-using ringoa::sharing::RepShare64, ringoa::sharing::RepShareVec64;
-using ringoa::sharing::RepShareBlock, ringoa::sharing::RepShareVecBlock;
-using ringoa::sharing::RepShareMat64, ringoa::sharing::RepShareView64;
-using ringoa::sharing::RepShareMatBlock, ringoa::sharing::RepShareViewBlock;
+using ringoa::sharing::AdditiveSharing2P;
+using ringoa::sharing::ReplicatedSharing3P;
+using ringoa::sharing::RepShare64;
+using ringoa::sharing::RepShareMat64;
+using ringoa::sharing::RepShareVec64;
+using ringoa::sharing::RepShareView64;
 using ringoa::sharing::ShareIo;
 using ringoa::wm::FMIndex;
 

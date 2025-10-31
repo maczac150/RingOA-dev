@@ -337,7 +337,9 @@ void ReplicatedSharing3P::EvaluateInnerProduct(Channels &chls, const RepShareVec
 }
 
 void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Offline Rand for ReplicatedSharing3P.");
+#endif
     block                            key_0 = GlobalRng::Rand<block>();
     block                            key_1 = GlobalRng::Rand<block>();
     block                            key_2 = GlobalRng::Rand<block>();
@@ -376,7 +378,9 @@ void ReplicatedSharing3P::RandOffline(const std::string &file_path) const {
 }
 
 void ReplicatedSharing3P::RandOnline(const uint64_t party_id, const std::string &file_path, uint64_t buffer_size) {
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Rand setup for ReplicatedSharing3P.");
+#endif
 
     block key_next, key_prev;
     try {

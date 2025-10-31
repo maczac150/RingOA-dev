@@ -1,7 +1,6 @@
 #include "dpf_bench.h"
 
 #include <cryptoTools/Common/TestCollection.h>
-#include <thread>
 
 #include "RingOA/fss/dpf_eval.h"
 #include "RingOA/fss/dpf_gen.h"
@@ -12,20 +11,11 @@
 #include "RingOA/utils/timer.h"
 #include "RingOA/utils/to_string.h"
 #include "RingOA/utils/utils.h"
-
-namespace {
-
-std::vector<uint64_t> sizes = {12, 14, 16, 18, 20, 22, 24, 26, 28, 30};
-// std::vector<uint64_t> sizes = ringoa::CreateSequence(10, 31);
-
-constexpr uint64_t kRepeatDefault = 10;
-
-}    // namespace
+#include "bench_common.h"
 
 namespace bench_ringoa {
 
 using ringoa::block;
-using ringoa::FileIo;
 using ringoa::GlobalRng;
 using ringoa::Logger;
 using ringoa::Mod2N;
@@ -39,6 +29,7 @@ using ringoa::fss::dpf::DpfParameters;
 
 void Dpf_Fde_Bench(const osuCrypto::CLP &cmd) {
     uint64_t              repeat     = cmd.getOr("repeat", kRepeatDefault);
+    std::vector<uint64_t> sizes      = SelectBitsizes(cmd);
     std::vector<EvalType> eval_types = {
         EvalType::kHybridBatched,
     };
@@ -57,23 +48,18 @@ void Dpf_Fde_Bench(const osuCrypto::CLP &cmd) {
             uint64_t alpha = Mod2N(GlobalRng::Rand<uint64_t>(), n);
             uint64_t beta  = Mod2N(GlobalRng::Rand<uint64_t>(), e);
 
-            // Prepare output buffers (full domain)
             std::vector<block> outputs_0(1ULL << nu);
             std::vector<block> outputs_1(1ULL << nu);
 
-            // --- Timer setup ---
-            const std::string timer_name = "DPF-FDE Eval P0";
+            const std::string timer_name = "DPF-FDE Eval (P0)";
 
             TimerManager timer_mgr;
             int32_t      timer_id = timer_mgr.CreateNewTimer(timer_name);
             timer_mgr.SelectTimer(timer_id);
 
-            // Generate keys (not timed per-iteration)
             std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
-            // --- Measurement loop ---
             for (uint64_t i = 0; i < repeat; ++i) {
-                // Time P0 evaluation only
                 timer_mgr.Start();
                 eval.EvaluateFullDomain(keys.first, outputs_0);
                 timer_mgr.Stop(
@@ -85,8 +71,6 @@ void Dpf_Fde_Bench(const osuCrypto::CLP &cmd) {
                 eval.EvaluateFullDomain(keys.second, outputs_1);
             }
 
-            // --- Summarize results ---
-            // msg here should describe the condition (n/e/eval)
             const std::string summary_msg =
                 "n=" + ToString(n) +
                 " e=" + ToString(e) +
@@ -99,12 +83,12 @@ void Dpf_Fde_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    Logger::ExportLogList("./data/logs/dpf_fde_bench");
+    Logger::ExportLogListAndClear(kLogDpfPath + "dpf_fde_bench", /*use_timestamp=*/true);
 }
 
 void Dpf_Fde_Convert_Bench(const osuCrypto::CLP &cmd) {
-    uint64_t repeat = cmd.getOr("repeat", kRepeatDefault);
-
+    uint64_t              repeat     = cmd.getOr("repeat", kRepeatDefault);
+    std::vector<uint64_t> sizes      = SelectBitsizes(cmd);
     std::vector<EvalType> eval_types = {
         EvalType::kHybridBatched,
         EvalType::kIterative,
@@ -115,8 +99,8 @@ void Dpf_Fde_Convert_Bench(const osuCrypto::CLP &cmd) {
     for (auto eval_type : eval_types) {
         for (auto size : sizes) {
             DpfParameters   params(size, size, eval_type);
-            uint64_t        n  = params.GetInputBitsize();
-            uint64_t        e  = params.GetOutputBitsize();
+            uint64_t        n = params.GetInputBitsize();
+            uint64_t        e = params.GetOutputBitsize();
             DpfKeyGenerator gen(params);
             DpfEvaluator    eval(params);
 
@@ -126,19 +110,15 @@ void Dpf_Fde_Convert_Bench(const osuCrypto::CLP &cmd) {
             std::vector<uint64_t> outputs_0(1U << size);
             std::vector<uint64_t> outputs_1(1U << size);
 
-            // --- Timer setup ---
             const std::string timer_name = "DPF-FDE-Convert Eval P0";
 
             TimerManager timer_mgr;
             int32_t      timer_id = timer_mgr.CreateNewTimer(timer_name);
             timer_mgr.SelectTimer(timer_id);
 
-            // Key generation (not included in per-iteration timing)
             std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
-            // --- Measurement loop ---
             for (uint64_t i = 0; i < repeat; ++i) {
-                // Measure P0 only
                 timer_mgr.Start();
                 eval.EvaluateFullDomain(keys.first, outputs_0);
                 timer_mgr.Stop(
@@ -147,11 +127,9 @@ void Dpf_Fde_Convert_Bench(const osuCrypto::CLP &cmd) {
                     " eval=" + GetEvalTypeString(params.GetEvalType()) +
                     " iter=" + ToString(i));
 
-                // P1 eval (not timed in this timer)
                 eval.EvaluateFullDomain(keys.second, outputs_1);
             }
 
-            // --- Summarize results for this (n,e,eval_type) condition ---
             const std::string summary_msg =
                 "n=" + ToString(n) +
                 " e=" + ToString(e) +
@@ -164,12 +142,12 @@ void Dpf_Fde_Convert_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    Logger::ExportLogList("./data/logs/dpf_fde_conv_bench");
+    Logger::ExportLogListAndClear(kLogDpfPath + "dpf_fde_conv_bench", /*use_timestamp=*/true);
 }
 
 void Dpf_Fde_One_Bench(const osuCrypto::CLP &cmd) {
-    uint64_t repeat = cmd.getOr("repeat", kRepeatDefault);
-
+    uint64_t              repeat     = cmd.getOr("repeat", kRepeatDefault);
+    std::vector<uint64_t> sizes      = SelectBitsizes(cmd);
     std::vector<EvalType> eval_types = {
         EvalType::kHybridBatched,
     };
@@ -191,17 +169,14 @@ void Dpf_Fde_One_Bench(const osuCrypto::CLP &cmd) {
             std::vector<block> outputs_0(1ULL << nu);
             std::vector<block> outputs_1(1ULL << nu);
 
-            // Timer setup
             const std::string timer_name = "DPF-FDE-One Eval P0";
 
             TimerManager timer_mgr;
             int32_t      timer_id = timer_mgr.CreateNewTimer(timer_name);
             timer_mgr.SelectTimer(timer_id);
 
-            // Key generation (not included in per-iteration timing)
             std::pair<DpfKey, DpfKey> keys = gen.GenerateKeys(alpha, beta);
 
-            // Measurement loop
             for (uint64_t i = 0; i < repeat; ++i) {
                 timer_mgr.Start();
                 eval.EvaluateFullDomain(keys.first, outputs_0);
@@ -211,11 +186,9 @@ void Dpf_Fde_One_Bench(const osuCrypto::CLP &cmd) {
                     " eval=" + GetEvalTypeString(params.GetEvalType()) +
                     " iter=" + ToString(i));
 
-                // P1 eval (not timed here)
                 eval.EvaluateFullDomain(keys.second, outputs_1);
             }
 
-            // Summarize
             const std::string summary_msg =
                 "n=" + ToString(n) +
                 " e=" + ToString(e) +
@@ -228,7 +201,7 @@ void Dpf_Fde_One_Bench(const osuCrypto::CLP &cmd) {
         }
     }
     Logger::InfoLog(LOC, "FDE Benchmark completed");
-    Logger::ExportLogList("./data/logs/dpf_fde_one_bench");
+    Logger::ExportLogListAndClear(kLogDpfPath + "dpf_fde_one_bench", /*use_timestamp=*/true);
 }
 
 }    // namespace bench_ringoa

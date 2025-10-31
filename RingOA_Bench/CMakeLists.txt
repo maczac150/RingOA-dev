@@ -6,7 +6,9 @@ set(BENCH_SOURCES
   dpf_bench.cpp
   dpf_pir_bench.cpp
   obliv_select_bench.cpp
-  obliv_access_bench.cpp
+  shared_ot_bench.cpp
+  ringoa_bench.cpp
+  sotfmi_bench.cpp
   ofmi_bench.cpp
   oquantile_bench.cpp
   bench_main.cpp

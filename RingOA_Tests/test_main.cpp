@@ -134,11 +134,11 @@ std::vector<std::string>
 void PrintHelp(const char *prog) {
     std::cout << "Usage: " << prog << " [OPTIONS]\n";
     std::cout << "Options:\n";
-    std::cout << "  -unit, -u           Run all unit tests.\n";
-    std::cout << "  -list, -l           List all available tests.\n";
-    std::cout << "  -test=<Index>, -t   Run the specified test by its index.\n";
-    std::cout << "  -suite=<Name>, -s   Run the specified test suite.\n";
-    std::cout << "  -help, -h           Display this help message.\n";
+    std::cout << "  --unit, -u            Run all unit tests.\n";
+    std::cout << "  --list, -l            List all available tests.\n";
+    std::cout << "  --test <Index>, -t    Run the specified test by its index.\n";
+    std::cout << "  --suite <Name>, -s    Run the specified test suite.\n";
+    std::cout << "  --help, -h            Display this help message.\n";
 }
 
 }    // namespace

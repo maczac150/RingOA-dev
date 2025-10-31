@@ -165,10 +165,10 @@ void Logger::ClearLogList() {
     log_list_.clear();
 }
 
-void Logger::ExportLogList(const std::string &file_path, const bool use_timestamp) {
+bool Logger::ExportLogList(const std::string &file_path, const bool use_timestamp) {
     std::lock_guard<std::mutex> lock(log_mutex_);
     if (log_list_.empty()) {
-        return;    // No logs to export
+        return false;    // No logs to export
     }
 
     std::string out_path = file_path;
@@ -176,8 +176,21 @@ void Logger::ExportLogList(const std::string &file_path, const bool use_timestam
         out_path = file_path + "_" + GetCurrentDateTimeAsString();
     }
 
-    FileIo io(".log");
-    io.WriteTextToFile(out_path, log_list_);
+    try {
+        FileIo io(".log");
+        io.WriteTextToFile(out_path, log_list_);
+        return true;
+    } catch (...) {
+        std::cerr << "Failed to export log list to file: " << out_path << std::endl;
+        return false;
+    }
+}
+
+void Logger::ExportLogListAndClear(const std::string &file_path, const bool use_timestamp) {
+    bool result = ExportLogList(file_path, use_timestamp);
+    if (result) {
+        ClearLogList();
+    }
 }
 
 void Logger::SetLogFormat(const std::string &log_level, const std::string &func_name, const std::string &message) {

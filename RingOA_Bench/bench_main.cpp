@@ -6,10 +6,12 @@
 #include "RingOA/utils/rng.h"
 #include "RingOA_Bench/dpf_bench.h"
 #include "RingOA_Bench/dpf_pir_bench.h"
-#include "RingOA_Bench/obliv_access_bench.h"
 #include "RingOA_Bench/obliv_select_bench.h"
 #include "RingOA_Bench/ofmi_bench.h"
 #include "RingOA_Bench/oquantile_bench.h"
+#include "RingOA_Bench/ringoa_bench.h"
+#include "RingOA_Bench/shared_ot_bench.h"
+#include "RingOA_Bench/sotfmi_bench.h"
 
 namespace bench_ringoa {
 
@@ -19,22 +21,33 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("Dpf_Fde_One_Bench", Dpf_Fde_One_Bench);
     t.add("DpfPir_Offline_Bench", DpfPir_Offline_Bench);
     t.add("DpfPir_Online_Bench", DpfPir_Online_Bench);
-    t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
-    t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
-    t.add("OblivSelect_Binary_Offline_Bench", OblivSelect_Binary_Offline_Bench);
-    t.add("OblivSelect_Binary_Online_Bench", OblivSelect_Binary_Online_Bench);
-    t.add("OblivSelect_Additive_Offline_Bench", OblivSelect_Additive_Offline_Bench);
-    t.add("OblivSelect_Additive_Online_Bench", OblivSelect_Additive_Online_Bench);
-    t.add("SharedOt_Offline_Bench", SharedOt_Offline_Bench);
-    t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
+
     t.add("RingOa_Offline_Bench", RingOa_Offline_Bench);
     t.add("RingOa_Online_Bench", RingOa_Online_Bench);
-    t.add("SotFMI_Offline_Bench", SotFMI_Offline_Bench);
-    t.add("SotFMI_Online_Bench", SotFMI_Online_Bench);
+    t.add("RingOa_Fsc_Offline_Bench", RingOa_Fsc_Offline_Bench);
+    t.add("RingOa_Fsc_Online_Bench", RingOa_Fsc_Online_Bench);
+
     t.add("OFMI_Offline_Bench", OFMI_Offline_Bench);
     t.add("OFMI_Online_Bench", OFMI_Online_Bench);
+    t.add("OFMI_Fsc_Offline_Bench", OFMI_Fsc_Offline_Bench);
+    t.add("OFMI_Fsc_Online_Bench", OFMI_Fsc_Online_Bench);
+
     t.add("OQuantile_Offline_Bench", OQuantile_Offline_Bench);
     t.add("OQuantile_Online_Bench", OQuantile_Online_Bench);
+
+    t.add("SharedOt_Offline_Bench", SharedOt_Offline_Bench);
+    t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
+    t.add("SharedOt_Naive_Offline_Bench", SharedOt_Naive_Offline_Bench);
+    t.add("SharedOt_Naive_Online_Bench", SharedOt_Naive_Online_Bench);
+    t.add("SotFMI_Offline_Bench", SotFMI_Offline_Bench);
+    t.add("SotFMI_Online_Bench", SotFMI_Online_Bench);
+
+    // t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
+    // t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
+    // t.add("OblivSelect_SingleBitMask_Offline_Bench", OblivSelect_SingleBitMask_Offline_Bench);
+    // t.add("OblivSelect_SingleBitMask_Online_Bench", OblivSelect_SingleBitMask_Online_Bench);
+    // t.add("OblivSelect_ShiftedAdditive_Offline_Bench", OblivSelect_ShiftedAdditive_Offline_Bench);
+    // t.add("OblivSelect_ShiftedAdditive_Online_Bench", OblivSelect_ShiftedAdditive_Online_Bench);
 });
 
 }    // namespace bench_ringoa
@@ -45,15 +58,17 @@ std::vector<std::string>
     helpTags{"h", "help"},
     listTags{"l", "list"},
     benchTags{"b", "bench"},
+    sizeTags{"s", "size"},
     repeatTags{"repeat"};
 
 void PrintHelp(const char *prog) {
     std::cout << "Usage: " << prog << " [OPTIONS]\n";
     std::cout << "Options:\n";
-    std::cout << "  -list, -l           List all available benchmarks.\n";
-    std::cout << "  -bench=<Index>, -b  Run the specified test by its index.\n";
-    std::cout << "  -repeat=<Count>     Number of repetitions within each benchmark (default: 3).\n";
-    std::cout << "  -help, -h           Display this help message.\n";
+    std::cout << "  --list, -l            List all available benchmarks.\n";
+    std::cout << "  --bench <Index>, -b   Run the specified test by its index.\n";
+    std::cout << "  --size <Name>, -s     Benchmark scale: small, medium, large, even (default: full range).\n";
+    std::cout << "  --repeat <Count>      Number of repetitions within each benchmark (default: 3).\n";
+    std::cout << "  --help, -h            Display this help message.\n";
 }
 
 }    // namespace
@@ -107,6 +122,7 @@ int main(int argc, char **argv) {
 
         // Invalid options
         std::cerr << "Error: No valid options specified.\n";
+        std::cerr << "       Use -list to see available tests or -help for usage.\n";
         PrintHelp(argv[0]);
         return 1;
 
