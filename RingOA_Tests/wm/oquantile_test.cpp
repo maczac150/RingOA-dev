@@ -58,7 +58,7 @@ using ringoa::wm::WaveletMatrix;
 void OQuantile_Offline_Test() {
     Logger::DebugLog(LOC, "OQuantile_Offline_Test...");
     std::vector<OQuantileParameters> params_list = {
-        OQuantileParameters(10),
+        OQuantileParameters(10, 7),
         // OQuantileParameters(15),
         // OQuantileParameters(20),
     };
@@ -77,7 +77,7 @@ void OQuantile_Offline_Test() {
 
         // Generate the database and index
         std::vector<uint64_t> database = GenerateRandomVector(ds - 1, params.GetSigma());
-        std::vector<uint64_t> q_arg    = {/* left = */ 123, /* right = */ 456, /* k = */ 100};
+        std::vector<uint64_t> q_arg    = {/* left = */ 100, /* right = */ 150, /* k = */ 49};
         WaveletMatrix         wm(database, params.GetSigma());
         Logger::DebugLog(LOC, "Database: " + ToString(database));
         Logger::DebugLog(LOC, "Left: " + ToString(q_arg[0]) + ", Right: " + ToString(q_arg[1]) + ", k: " + ToString(q_arg[2]));
@@ -121,7 +121,7 @@ void OQuantile_Offline_Test() {
 void OQuantile_Online_Test(const osuCrypto::CLP &cmd) {
     Logger::DebugLog(LOC, "OQuantile_Online_Test...");
     std::vector<OQuantileParameters> params_list = {
-        OQuantileParameters(10),
+        OQuantileParameters(10, 7),
         // OQuantileParameters(15),
         // OQuantileParameters(20),
     };

@@ -34,6 +34,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
 
     t.add("OQuantile_Offline_Bench", OQuantile_Offline_Bench);
     t.add("OQuantile_Online_Bench", OQuantile_Online_Bench);
+    t.add("OQuantile_VAF_Offline_Bench", OQuantile_VAF_Offline_Bench);
+    t.add("OQuantile_VAF_Online_Bench", OQuantile_VAF_Online_Bench);
 
     t.add("SharedOt_Offline_Bench", SharedOt_Offline_Bench);
     t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
@@ -44,10 +46,10 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
 
     // t.add("OblivSelect_ComputeDotProductBlockSIMD_Bench", OblivSelect_ComputeDotProductBlockSIMD_Bench);
     // t.add("OblivSelect_EvaluateFullDomainThenDotProduct_Bench", OblivSelect_EvaluateFullDomainThenDotProduct_Bench);
-    // t.add("OblivSelect_SingleBitMask_Offline_Bench", OblivSelect_SingleBitMask_Offline_Bench);
-    // t.add("OblivSelect_SingleBitMask_Online_Bench", OblivSelect_SingleBitMask_Online_Bench);
-    // t.add("OblivSelect_ShiftedAdditive_Offline_Bench", OblivSelect_ShiftedAdditive_Offline_Bench);
-    // t.add("OblivSelect_ShiftedAdditive_Online_Bench", OblivSelect_ShiftedAdditive_Online_Bench);
+    t.add("OblivSelect_SingleBitMask_Offline_Bench", OblivSelect_SingleBitMask_Offline_Bench);
+    t.add("OblivSelect_SingleBitMask_Online_Bench", OblivSelect_SingleBitMask_Online_Bench);
+    t.add("OblivSelect_ShiftedAdditive_Offline_Bench", OblivSelect_ShiftedAdditive_Offline_Bench);
+    t.add("OblivSelect_ShiftedAdditive_Online_Bench", OblivSelect_ShiftedAdditive_Online_Bench);
 });
 
 }    // namespace bench_ringoa
@@ -64,11 +66,11 @@ std::vector<std::string>
 void PrintHelp(const char *prog) {
     std::cout << "Usage: " << prog << " [OPTIONS]\n";
     std::cout << "Options:\n";
-    std::cout << "  --list, -l            List all available benchmarks.\n";
-    std::cout << "  --bench <Index>, -b   Run the specified test by its index.\n";
-    std::cout << "  --size <Name>, -s     Benchmark scale: small, medium, large, even (default: full range).\n";
-    std::cout << "  --repeat <Count>      Number of repetitions within each benchmark (default: 3).\n";
-    std::cout << "  --help, -h            Display this help message.\n";
+    std::cout << "  -list, -l            List all available benchmarks.\n";
+    std::cout << "  -bench <Index>, -b   Run the specified test by its index.\n";
+    std::cout << "  -size <Name>, -s     Benchmark scale: small, medium, large, even (default: full range).\n";
+    std::cout << "  -repeat <Count>      Number of repetitions within each benchmark (default: 3).\n";
+    std::cout << "  -help, -h            Display this help message.\n";
 }
 
 }    // namespace

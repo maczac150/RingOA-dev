@@ -65,24 +65,11 @@ struct RepShare {
         return oss.str();
     }
 
-    // Serialize into byte buffer (little-endian)
-    void Serialize(std::vector<uint8_t> &buffer) const {
-        const uint8_t *ptr = reinterpret_cast<const uint8_t *>(data.data());
-        buffer.insert(buffer.end(), ptr, ptr + 2 * sizeof(T));
-    }
-
     void SerializeToStream(std::ofstream &ofs) const {
         ofs.write(reinterpret_cast<const char *>(data.data()), 2 * sizeof(T));
         if (!ofs) {
             throw std::runtime_error("Failed to write RepShare to stream");
         }
-    }
-
-    // Deserialize from byte buffer (little-endian)
-    void Deserialize(const std::vector<uint8_t> &buffer) {
-        if (buffer.size() < 2 * sizeof(T))
-            throw std::invalid_argument("RepShare::Deserialize: buffer too small");
-        std::memcpy(data.data(), buffer.data(), 2 * sizeof(T));
     }
 
     void DeserializeFromStream(std::ifstream &ifs) {
@@ -160,40 +147,6 @@ struct RepShareVec {
         }
         return oss.str();
     }
-
-    // void Serialize(std::vector<uint8_t> &buffer) const {
-    //     // Serialize the number of shares
-    //     uint64_t ns = static_cast<uint64_t>(num_shares);
-    //     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&ns), reinterpret_cast<const uint8_t *>(&ns) + sizeof(ns));
-
-    //     // Serialize the share data
-    //     size_t bytes_per_vector = sizeof(T) * num_shares;
-    //     for (int i = 0; i < 2; ++i) {
-    //         const uint8_t *ptr = reinterpret_cast<const uint8_t *>(data[i].data());
-    //         buffer.insert(buffer.end(), ptr, ptr + bytes_per_vector);
-    //     }
-    // }
-
-    // void Deserialize(const std::vector<uint8_t> &buffer) {
-    //     size_t offset = 0;
-
-    //     // Deserialize the number of shares
-    //     uint64_t ns = 0;
-    //     std::memcpy(&ns, buffer.data() + offset, sizeof(ns));
-    //     num_shares = static_cast<size_t>(ns);
-    //     offset += sizeof(ns);
-
-    //     // Resize the share data vectors
-    //     data[0].resize(num_shares);
-    //     data[1].resize(num_shares);
-
-    //     // Deserialize the share data
-    //     size_t bytes_per_vector = sizeof(T) * num_shares;
-    //     for (int i = 0; i < 2; ++i) {
-    //         std::memcpy(data[i].data(), buffer.data() + offset, bytes_per_vector);
-    //         offset += bytes_per_vector;
-    //     }
-    // }
 
     /**
      * @brief Serializes the RepShareVec to a binary stream.
@@ -365,33 +318,6 @@ struct RepShareMat {
         }
         return oss.str();
     }
-
-    // void Serialize(std::vector<uint8_t> &buffer) const {
-    //     // Serialize dimensions
-    //     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&rows), reinterpret_cast<const uint8_t *>(&rows) + sizeof(rows));
-    //     buffer.insert(buffer.end(), reinterpret_cast<const uint8_t *>(&cols), reinterpret_cast<const uint8_t *>(&cols) + sizeof(cols));
-
-    //     // Serialize the share data
-    //     shares.Serialize(buffer);
-    // }
-
-    // void Deserialize(const std::vector<uint8_t> &buffer) {
-    //     size_t offset = 0;
-
-    //     // Deserialize dimensions
-    //     std::memcpy(&rows, buffer.data() + offset, sizeof(rows));
-    //     offset += sizeof(rows);
-    //     std::memcpy(&cols, buffer.data() + offset, sizeof(cols));
-    //     offset += sizeof(cols);
-
-    //     // Resize internal shares
-    //     shares.num_shares = rows * cols;
-    //     shares.data[0].resize(shares.num_shares);
-    //     shares.data[1].resize(shares.num_shares);
-
-    //     // Deserialize the share data
-    //     shares.Deserialize(std::vector<uint8_t>(buffer.begin() + offset, buffer.end()));
-    // }
 
     /**
      * @brief Write [rows, cols] (each as uint64_t) and then all shares into 'ofs'.

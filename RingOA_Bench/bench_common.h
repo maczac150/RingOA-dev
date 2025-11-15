@@ -59,6 +59,9 @@ inline const std::string kLogOsPath     = kCurrentPath + "/data/logs/os/";
 inline const std::string kLogWmPath     = kCurrentPath + "/data/logs/wm/";
 inline const std::string kLogOfmiPath   = kCurrentPath + "/data/logs/ofmi/";
 inline const std::string kLogSotfmiPath = kCurrentPath + "/data/logs/sotfmi/";
+// real data
+inline const std::string kChromosomePath = kCurrentPath + "/data/bench/grch38/";
+inline const std::string kVafDataPath    = kCurrentPath + "/data/bench/icgc/";
 
 }    // namespace bench_ringoa
 

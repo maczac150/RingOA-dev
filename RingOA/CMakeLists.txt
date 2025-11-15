@@ -15,6 +15,7 @@ target_sources(RingOA PRIVATE
   utils/logger.cpp
   utils/timer.cpp
   utils/network.cpp
+  utils/seq_io.cpp
 
   # sharing
   sharing/additive_2p.cpp

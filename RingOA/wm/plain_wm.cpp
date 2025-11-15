@@ -37,7 +37,7 @@ void CharMapper::Initialize(CharType type) {
     switch (type) {
         case CharType::DNA:
             sigma_   = 3;
-            char2id_ = {{'$', 0}, {'A', 1}, {'C', 2}, {'G', 3}, {'T', 4}};
+            char2id_ = {{'$', 0}, {'A', 1}, {'C', 2}, {'G', 3}, {'T', 4}, {'N', 5}};
             break;
         case CharType::PROTEIN:
             sigma_   = 5;

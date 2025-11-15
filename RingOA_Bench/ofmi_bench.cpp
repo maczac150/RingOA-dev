@@ -12,6 +12,7 @@
 #include "RingOA/sharing/share_io.h"
 #include "RingOA/utils/logger.h"
 #include "RingOA/utils/network.h"
+#include "RingOA/utils/seq_io.h"
 #include "RingOA/utils/timer.h"
 #include "RingOA/utils/utils.h"
 #include "RingOA/wm/plain_wm.h"
@@ -31,26 +32,6 @@ std::string GenerateRandomString(size_t length, const std::string &charset = "AT
         result[i] = charset[dist(rng)];
     }
     return result;
-}
-
-std::string ReadFastaSequence(const std::string &fasta_path) {
-    std::ifstream fin(fasta_path);
-    if (!fin) {
-        throw std::runtime_error("Failed to open file: " + fasta_path);
-    }
-
-    std::ostringstream seq;
-    std::string        line;
-
-    while (std::getline(fin, line)) {
-        if (line.empty())
-            continue;
-        if (line[0] == '>')
-            continue;    // skip header line
-        seq << line;     // append sequence line
-    }
-
-    return seq.str();
 }
 
 }    // namespace
@@ -84,8 +65,22 @@ using ringoa::wm::FMIndex;
 
 void OFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
     uint64_t              repeat        = cmd.getOr("repeat", kRepeatDefault);
+    bool                  use_chr       = cmd.isSet("chr");
     std::vector<uint64_t> text_bitsizes = SelectBitsizes(cmd);
     std::vector<uint64_t> query_sizes   = SelectQueryBitsize(cmd);
+
+    std::unique_ptr<ringoa::ChromosomeLoader> chr_loader;
+    if (use_chr) {
+        std::vector<std::string> fasta_paths;
+        for (int i = 1; i <= 6; ++i) {
+            std::string path = kChromosomePath + "chr" + std::to_string(i) + "_clean.fa";
+            if (std::filesystem::exists(path))
+                fasta_paths.push_back(path);
+        }
+        if (fasta_paths.empty())
+            throw std::runtime_error("No FASTA files found in " + kChromosomePath);
+        chr_loader = std::make_unique<ringoa::ChromosomeLoader>(std::move(fasta_paths));
+    }
 
     Logger::InfoLog(LOC, "OFMI Offline Benchmark started (repeat=" + ToString(repeat) + ")");
 
@@ -141,8 +136,25 @@ void OFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
                 timer_mgr.Start();
 
                 std::string database, query;
-                database = GenerateRandomString(ds - 2);
-                query    = GenerateRandomString(qs);
+
+                if (use_chr) {
+                    database = chr_loader->EnsurePrefix(ds - 2);
+                    // Choose a random start position so that query fits entirely
+                    uint64_t max_start = database.size() - qs;
+                    uint64_t start_pos = rss.GenerateRandomValue() % (max_start + 1);    // uses osuCrypto's RNG seed
+                    query              = database.substr(start_pos, qs);
+
+                    // Logging with explicit file names (robust even if some chrs missing)
+                    auto used = chr_loader->loaded_count();
+                    Logger::InfoLog(LOC, "Genome sequence prepared (" +
+                                             std::to_string(database.size()) + " bp), files consumed=" + std::to_string(used));
+                    Logger::InfoLog(LOC, "Database sample: " + database.substr(0, std::min<size_t>(50, database.size())) + "...");
+                    Logger::InfoLog(LOC, "Query sample: " + query.substr(0, std::min<size_t>(50, query.size())) + "...");
+                } else {
+                    database = GenerateRandomString(ds - 2);
+                    query    = GenerateRandomString(qs);
+                }
+
                 timer_mgr.Mark("DataGen d=" + ToString(d) + " qs=" + ToString(qs));
 
                 FMIndex fm(database);
@@ -164,13 +176,18 @@ void OFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
     }
 
     Logger::InfoLog(LOC, "OFMI Offline Benchmark completed");
-    Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_offline", true);
+    if (use_chr) {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_offline_chr", true);
+    } else {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_offline", true);
+    }
 }
 
 void OFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     uint64_t              repeat        = cmd.getOr("repeat", kRepeatDefault);
     int                   party_id      = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     std::string           network       = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
+    bool                  use_chr       = cmd.isSet("chr");
     std::vector<uint64_t> text_bitsizes = SelectBitsizes(cmd);
     std::vector<uint64_t> query_sizes   = SelectQueryBitsize(cmd);
 
@@ -214,7 +231,7 @@ void OFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                     eval.OnlineSetUp(p, kBenchOfmiPath);
                     rss.OnlineSetUp(p, kBenchOfmiPath + "prf");
                     timer_mgr.Stop("d=" + ToString(d) + " qs=" + ToString(qs) + " iter=0");
-                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
+                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
 
                     timer_mgr.SelectTimer(id_eval);
                     for (uint64_t i = 0; i < repeat; ++i) {
@@ -228,7 +245,7 @@ void OFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                         ass_prev.ResetTripleIndex();
                         ass_next.ResetTripleIndex();
                     }
-                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
+                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
                 }
             }
         };
@@ -239,7 +256,11 @@ void OFMI_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "OFMI Online Benchmark completed");
-    Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_online_p" + ToString(party_id) + "_" + network, true);
+    if (use_chr) {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_online_chr_p" + ToString(party_id) + "_" + network, true);
+    } else {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_online_p" + ToString(party_id) + "_" + network, true);
+    }
 }
 
 void OFMI_Fsc_Offline_Bench(const osuCrypto::CLP &cmd) {
@@ -381,7 +402,7 @@ void OFMI_Fsc_Online_Bench(const osuCrypto::CLP &cmd) {
                     sh_io.LoadShare(query_path + "_" + ToString(p), query_sh);
                     rss.OnlineSetUp(p, kBenchOfmiPath + "prf");
                     timer_mgr.Stop("d=" + ToString(d) + " qs=" + ToString(qs) + " iter=0");
-                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
+                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
 
                     timer_mgr.SelectTimer(id_eval);
                     for (uint64_t i = 0; i < repeat; ++i) {
@@ -395,7 +416,7 @@ void OFMI_Fsc_Online_Bench(const osuCrypto::CLP &cmd) {
                         ass_prev.ResetTripleIndex();
                         ass_next.ResetTripleIndex();
                     }
-                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
+                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
                 }
             }
         };
@@ -405,8 +426,8 @@ void OFMI_Fsc_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.AutoConfigure(party_id, MakeTask(0), MakeTask(1), MakeTask(2));
     net_mgr.WaitForCompletion();
 
-    Logger::InfoLog(LOC, "OFMI Online Benchmark completed");
-    Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_online_p" + ToString(party_id) + "_" + network, true);
+    Logger::InfoLog(LOC, "OFMI (FSC) Online Benchmark completed");
+    Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_online_p" + ToString(party_id) + "_" + network, false);
 }
 
 }    // namespace bench_ringoa

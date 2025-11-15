@@ -28,6 +28,10 @@ public:
             Logger::FatalLog(LOC, "Failed to open file for saving share: " + full_path);
             exit(EXIT_FAILURE);
         }
+        // --- Stream buffer configuration (1 MiB example) ---
+        static thread_local std::vector<char> obuf(1 << 20);    // 1 MiB buffer
+        ofs.rdbuf()->pubsetbuf(obuf.data(), obuf.size());
+        // ---------------------------------------------------
         try {
             share.SerializeToStream(ofs);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
@@ -54,6 +58,10 @@ public:
             Logger::FatalLog(LOC, "Failed to open file for loading share: " + full_path);
             exit(EXIT_FAILURE);
         }
+        // --- Stream buffer configuration (1 MiB example) ---
+        static thread_local std::vector<char> ibuf(1 << 20);    // 1 MiB buffer
+        ifs.rdbuf()->pubsetbuf(ibuf.data(), ibuf.size());
+        // ---------------------------------------------------
         try {
             share.DeserializeFromStream(ifs);
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
