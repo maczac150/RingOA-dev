@@ -146,6 +146,7 @@ void OFMI_Offline_Bench(const osuCrypto::CLP &cmd) {
 
                     // Logging with explicit file names (robust even if some chrs missing)
                     auto used = chr_loader->loaded_count();
+                    Logger::InfoLog(LOC, "Query start position: " + ToString(start_pos));
                     Logger::InfoLog(LOC, "Genome sequence prepared (" +
                                              std::to_string(database.size()) + " bp), files consumed=" + std::to_string(used));
                     Logger::InfoLog(LOC, "Database sample: " + database.substr(0, std::min<size_t>(50, database.size())) + "...");
@@ -265,8 +266,22 @@ void OFMI_Online_Bench(const osuCrypto::CLP &cmd) {
 
 void OFMI_Fsc_Offline_Bench(const osuCrypto::CLP &cmd) {
     uint64_t              repeat        = cmd.getOr("repeat", kRepeatDefault);
+    bool                  use_chr       = cmd.isSet("chr");
     std::vector<uint64_t> text_bitsizes = SelectBitsizes(cmd);
     std::vector<uint64_t> query_sizes   = SelectQueryBitsize(cmd);
+
+    std::unique_ptr<ringoa::ChromosomeLoader> chr_loader;
+    if (use_chr) {
+        std::vector<std::string> fasta_paths;
+        for (int i = 1; i <= 6; ++i) {
+            std::string path = kChromosomePath + "chr" + std::to_string(i) + "_clean.fa";
+            if (std::filesystem::exists(path))
+                fasta_paths.push_back(path);
+        }
+        if (fasta_paths.empty())
+            throw std::runtime_error("No FASTA files found in " + kChromosomePath);
+        chr_loader = std::make_unique<ringoa::ChromosomeLoader>(std::move(fasta_paths));
+    }
 
     Logger::InfoLog(LOC, "OFMI (FSC) Offline Benchmark started (repeat=" + ToString(repeat) + ")");
 
@@ -300,8 +315,24 @@ void OFMI_Fsc_Offline_Bench(const osuCrypto::CLP &cmd) {
                 timer_mgr.Start();
 
                 std::string database, query;
-                database = GenerateRandomString(ds - 2);
-                query    = GenerateRandomString(qs);
+                if (use_chr) {
+                    database = chr_loader->EnsurePrefix(ds - 2);
+                    // Choose a random start position so that query fits entirely
+                    uint64_t max_start = database.size() - qs;
+                    uint64_t start_pos = rss.GenerateRandomValue() % (max_start + 1);    // uses osuCrypto's RNG seed
+                    query              = database.substr(start_pos, qs);
+
+                    // Logging with explicit file names (robust even if some chrs missing)
+                    auto used = chr_loader->loaded_count();
+                    Logger::InfoLog(LOC, "Query start position: " + ToString(start_pos));
+                    Logger::InfoLog(LOC, "Genome sequence prepared (" +
+                                             std::to_string(database.size()) + " bp), files consumed=" + std::to_string(used));
+                    Logger::InfoLog(LOC, "Database sample: " + database.substr(0, std::min<size_t>(50, database.size())) + "...");
+                    Logger::InfoLog(LOC, "Query sample: " + query.substr(0, std::min<size_t>(50, query.size())) + "...");
+                } else {
+                    database = GenerateRandomString(ds - 2);
+                    query    = GenerateRandomString(qs);
+                }
                 timer_mgr.Mark("DataGen d=" + ToString(d) + " qs=" + ToString(qs));
 
                 FMIndex fm(database);
@@ -350,13 +381,18 @@ void OFMI_Fsc_Offline_Bench(const osuCrypto::CLP &cmd) {
     }
 
     Logger::InfoLog(LOC, "OFMI Offline Benchmark completed");
-    Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_offline", true);
+    if (use_chr) {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_offline_chr", true);
+    } else {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_offline", true);
+    }
 }
 
 void OFMI_Fsc_Online_Bench(const osuCrypto::CLP &cmd) {
     uint64_t              repeat        = cmd.getOr("repeat", kRepeatDefault);
     int                   party_id      = cmd.isSet("party") ? cmd.get<int>("party") : -1;
     std::string           network       = cmd.isSet("network") ? cmd.get<std::string>("network") : "";
+    bool                  use_chr       = cmd.isSet("chr");
     std::vector<uint64_t> text_bitsizes = SelectBitsizes(cmd);
     std::vector<uint64_t> query_sizes   = SelectQueryBitsize(cmd);
 
@@ -427,7 +463,11 @@ void OFMI_Fsc_Online_Bench(const osuCrypto::CLP &cmd) {
     net_mgr.WaitForCompletion();
 
     Logger::InfoLog(LOC, "OFMI (FSC) Online Benchmark completed");
-    Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_online_p" + ToString(party_id) + "_" + network, false);
+    if (use_chr) {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_online_chr_p" + ToString(party_id) + "_" + network, true);
+    } else {
+        Logger::ExportLogListAndClear(kLogOfmiPath + "ofmi_fsc_online_p" + ToString(party_id) + "_" + network, true);
+    }
 }
 
 }    // namespace bench_ringoa

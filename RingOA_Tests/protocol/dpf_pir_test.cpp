@@ -128,7 +128,7 @@ void DpfPir_Naive_Online_Test() {
             eval.OnlineSetUp(0, kTestEqPath);
 
             // Evaluate
-            y_0 = eval.EvaluateNaive(chl, key_0, uv, database, idx_0);
+            y_0 = eval.EvaluateSharedIndexNaive(chl, key_0, uv, database, idx_0);
 
             // Send output
             ss.Reconst(0, chl, y_0, y_1, y);
@@ -152,7 +152,7 @@ void DpfPir_Naive_Online_Test() {
             eval.OnlineSetUp(1, kTestEqPath);
 
             // Evaluate
-            y_1 = eval.EvaluateNaive(chl, key_1, uv, database, idx_1);
+            y_1 = eval.EvaluateSharedIndexNaive(chl, key_1, uv, database, idx_1);
 
             // Send output
             ss.Reconst(1, chl, y_0, y_1, y);
@@ -260,7 +260,7 @@ void DpfPir_Online_Test() {
             eval.OnlineSetUp(0, kTestEqPath);
 
             // Evaluate
-            y_0 = eval.Evaluate(chl, key_0, uv, database, idx_0);
+            y_0 = eval.EvaluateSharedIndex(chl, key_0, uv, database, idx_0);
 
             // Send output
             ss.Reconst(0, chl, y_0, y_1, y);
@@ -284,7 +284,7 @@ void DpfPir_Online_Test() {
             eval.OnlineSetUp(1, kTestEqPath);
 
             // Evaluate
-            y_1 = eval.Evaluate(chl, key_1, uv, database, idx_1);
+            y_1 = eval.EvaluateSharedIndex(chl, key_1, uv, database, idx_1);
 
             // Send output
             ss.Reconst(1, chl, y_0, y_1, y);

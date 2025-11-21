@@ -41,6 +41,7 @@ public:
     void Reconst(const uint64_t party_id, osuCrypto::Channel &chl, uint64_t &x_0, uint64_t &x_1, uint64_t &x) const;
     void Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 2> &x_0, std::array<uint64_t, 2> &x_1, std::array<uint64_t, 2> &x) const;
     void Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 4> &x_0, std::array<uint64_t, 4> &x_1, std::array<uint64_t, 4> &x) const;
+    void Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 6> &x_0, std::array<uint64_t, 6> &x_1, std::array<uint64_t, 6> &x) const;
     void Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::vector<uint64_t> &x_0, std::vector<uint64_t> &x_1, std::vector<uint64_t> &x) const;
     void Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<std::vector<uint64_t>, 2> &x_0, std::array<std::vector<uint64_t>, 2> &x_1, std::array<std::vector<uint64_t>, 2> &x) const;
 
@@ -55,6 +56,7 @@ public:
 
     void EvaluateMult(const uint64_t party_id, osuCrypto::Channel &chl, const uint64_t &x, const uint64_t &y, uint64_t &z);
     void EvaluateMult(const uint64_t party_id, osuCrypto::Channel &chl, const std::array<uint64_t, 2> &x, const std::array<uint64_t, 2> &y, std::array<uint64_t, 2> &z);
+    void EvaluateMult(const uint64_t party_id, osuCrypto::Channel &chl, const std::array<uint64_t, 3> &x, const std::array<uint64_t, 3> &y, std::array<uint64_t, 3> &z);
     // void EvaluateMult(const uint64_t party_id, osuCrypto::Channel &chl, const std::vector<uint64_t> &x, const std::vector<uint64_t> &y, std::vector<uint64_t> &z);
 
     void EvaluateSelect(const uint64_t party_id, osuCrypto::Channel &chl, const uint64_t &x, const uint64_t &y, const uint64_t &c, uint64_t &z);

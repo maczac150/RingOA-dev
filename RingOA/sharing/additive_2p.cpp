@@ -170,6 +170,22 @@ void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl
     x[3] = Mod2N(x_0[3] + x_1[3], bitsize_);
 }
 
+void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::array<uint64_t, 6> &x_0, std::array<uint64_t, 6> &x_1, std::array<uint64_t, 6> &x) const {
+    if (party_id == 0) {
+        chl.send(x_0);
+        chl.recv(x_1);
+    } else {
+        chl.recv(x_0);
+        chl.send(x_1);
+    }
+    x[0] = Mod2N(x_0[0] + x_1[0], bitsize_);
+    x[1] = Mod2N(x_0[1] + x_1[1], bitsize_);
+    x[2] = Mod2N(x_0[2] + x_1[2], bitsize_);
+    x[3] = Mod2N(x_0[3] + x_1[3], bitsize_);
+    x[4] = Mod2N(x_0[4] + x_1[4], bitsize_);
+    x[5] = Mod2N(x_0[5] + x_1[5], bitsize_);
+}
+
 void AdditiveSharing2P::Reconst(const uint64_t party_id, osuCrypto::Channel &chl, std::vector<uint64_t> &x_0, std::vector<uint64_t> &x_1, std::vector<uint64_t> &x) const {
     if (party_id == 0) {
         chl.send(x_0);
@@ -381,6 +397,91 @@ void AdditiveSharing2P::EvaluateMult(const uint64_t party_id, osuCrypto::Channel
         z[1] = Mod2N((de[3] * triple_1.a) +
                          (de[2] * triple_1.b) +
                          triple_1.c,
+                     bitsize_);
+    }
+}
+
+void AdditiveSharing2P::EvaluateMult(const uint64_t party_id, osuCrypto::Channel &chl, const std::array<uint64_t, 3> &x, const std::array<uint64_t, 3> &y, std::array<uint64_t, 3> &z) {
+    // Use two different Beaver triples for each element of array x, y
+    if (triple_index_ + 1 >= triples_.num_triples) {
+        Logger::ErrorLog(LOC, "No more Beaver triples available.");
+        return;
+    }
+
+    // Get the current Beaver triples
+    const auto &triple_0 = triples_.triples[triple_index_];
+    const auto &triple_1 = triples_.triples[triple_index_ + 1];
+    const auto &triple_2 = triples_.triples[triple_index_ + 2];
+    triple_index_ += 3;
+
+    // -------------------------------------------------------
+    // 1) Prepare local differences: d = (x - a), e = (y - b)
+    //    Then we reconstruct d, e across both parties.
+    // -------------------------------------------------------
+
+    // For convenience, define local arrays for d, e
+    // We'll store them as:   de_0 = { d0_0, e0_0, d1_0, e1_0 , d2_0, e2_0 } on Party 0
+    //                        de_1 = { d0_1, e0_1, d1_1, e1_1, d2_1, e2_1 } on Party 1
+    // Then we 'Reconst' them into a single array 'de' = { d0_reconst, e0_reconst, d1_reconst, e1_reconst, d2_reconst, e2_reconst }
+
+    // We'll define them as std::array<T, 6> so that each of d, e is of type T.
+    std::array<uint64_t, 6> de_0, de_1;
+
+    if (party_id == 0) {
+        de_0[0] = Mod2N(x[0] - triple_0.a, bitsize_);    // d0
+        de_0[1] = Mod2N(y[0] - triple_0.b, bitsize_);    // e0
+        de_0[2] = Mod2N(x[1] - triple_1.a, bitsize_);    // d1
+        de_0[3] = Mod2N(y[1] - triple_1.b, bitsize_);    // e1
+        de_0[4] = Mod2N(x[2] - triple_2.a, bitsize_);    // d2
+        de_0[5] = Mod2N(y[2] - triple_2.b, bitsize_);    // e2
+    } else {
+        de_1[0] = Mod2N(x[0] - triple_0.a, bitsize_);    // d0
+        de_1[1] = Mod2N(y[0] - triple_0.b, bitsize_);    // e0
+        de_1[2] = Mod2N(x[1] - triple_1.a, bitsize_);    // d1
+        de_1[3] = Mod2N(y[1] - triple_1.b, bitsize_);    // e1
+        de_1[4] = Mod2N(x[2] - triple_2.a, bitsize_);    // d2
+        de_1[5] = Mod2N(y[2] - triple_2.b, bitsize_);    // e2
+    }
+
+    // -------------------------------------------------------
+    // 2) Reconstruct d, e across both parties
+    //    We'll store it in 'de': { d0_reconst, e0_reconst, d1_reconst, e1_reconst, d2_reconst, e2_reconst }
+    // -------------------------------------------------------
+    std::array<uint64_t, 6> de;    // d0_reconst = de[0], e0_reconst = de[1], d1_reconst = de[2], e1_reconst = de[3], d2_reconst = de[4], e2_reconst = de[5]
+    Reconst(party_id, chl, de_0, de_1, de);
+
+    // -------------------------------------------------------
+    // 3) Compute final product share z
+    //    Beaver formula: z = a*e + b*d + c (+ d*e for party 0)
+    // -------------------------------------------------------
+    if (party_id == 0) {
+        z[0] = Mod2N((de[1] * triple_0.a) +        // a * e0
+                         (de[0] * triple_0.b) +    // b * d0
+                         triple_0.c +              // c0
+                         (de[0] * de[1]),          // d0 * e0
+                     bitsize_);
+        z[1] = Mod2N((de[3] * triple_1.a) +        // a * e1
+                         (de[2] * triple_1.b) +    // b * d1
+                         triple_1.c +              // c1
+                         (de[2] * de[3]),          // d1 * e1
+                     bitsize_);
+        z[2] = Mod2N((de[5] * triple_2.a) +        // a * e2
+                         (de[4] * triple_2.b) +    // b * d2
+                         triple_2.c +              // c2
+                         (de[4] * de[5]),          // d2 * e2
+                     bitsize_);
+    } else {
+        z[0] = Mod2N((de[1] * triple_0.a) +
+                         (de[0] * triple_0.b) +
+                         triple_0.c,
+                     bitsize_);
+        z[1] = Mod2N((de[3] * triple_1.a) +
+                         (de[2] * triple_1.b) +
+                         triple_1.c,
+                     bitsize_);
+        z[2] = Mod2N((de[5] * triple_2.a) +
+                         (de[4] * triple_2.b) +
+                         triple_2.c,
                      bitsize_);
     }
 }

@@ -122,22 +122,72 @@ public:
 
     void OnlineSetUp(const uint64_t party_id, const std::string &file_path) const;
 
-    uint64_t Evaluate(osuCrypto::Channel          &chl,
-                      const DpfPirKey             &key,
-                      std::vector<block>          &uv,
-                      const std::vector<uint64_t> &database,
-                      const uint64_t               index) const;
+    uint64_t EvaluateSharedIndex(osuCrypto::Channel          &chl,
+                                 const DpfPirKey             &key,
+                                 std::vector<block>          &uv,
+                                 const std::vector<uint64_t> &database,
+                                 const uint64_t               index_sh) const;
 
-    uint64_t EvaluateNaive(osuCrypto::Channel          &chl,
-                           const DpfPirKey             &key,
-                           std::vector<uint64_t>       &uv,
-                           const std::vector<uint64_t> &database,
-                           const uint64_t               index) const;
+    uint64_t EvaluateMaskedIndex(osuCrypto::Channel          &chl,
+                                 const DpfPirKey             &key,
+                                 std::vector<block>          &uv,
+                                 const std::vector<uint64_t> &database,
+                                 const uint64_t               masked_index) const;
+
+    void EvaluateMaskedIndex_Double(osuCrypto::Channel          &chl,
+                                    const DpfPirKey             &key,
+                                    std::vector<block>          &uv,
+                                    const std::vector<uint64_t> &database_1,
+                                    const std::vector<uint64_t> &database_2,
+                                    const uint64_t               masked_index,
+                                    std::array<uint64_t, 2>     &dot_product) const;
+
+    void EvaluateMaskedIndex_Triple(osuCrypto::Channel          &chl,
+                                    const DpfPirKey             &key,
+                                    std::vector<block>          &uv,
+                                    const std::vector<uint64_t> &database_1,
+                                    const std::vector<uint64_t> &database_2,
+                                    const std::vector<uint64_t> &database_3,
+                                    const uint64_t               masked_index,
+                                    std::array<uint64_t, 3>     &dot_product) const;
 
     uint64_t EvaluateFullDomainThenDotProduct(const fss::dpf::DpfKey      &key,
                                               const std::vector<uint64_t> &database,
                                               const uint64_t               masked_idx,
                                               std::vector<block>          &outputs) const;
+
+    void EvaluateFullDomainThenDotProduct_Double(const fss::dpf::DpfKey      &key,
+                                                 const std::vector<uint64_t> &database_1,
+                                                 const std::vector<uint64_t> &database_2,
+                                                 const uint64_t               masked_idx,
+                                                 std::vector<block>          &outputs,
+                                                 std::array<uint64_t, 2>     &dot_product) const;
+
+    void EvaluateFullDomainThenDotProduct_Triple(const fss::dpf::DpfKey      &key,
+                                                 const std::vector<uint64_t> &database_1,
+                                                 const std::vector<uint64_t> &database_2,
+                                                 const std::vector<uint64_t> &database_3,
+                                                 const uint64_t               masked_idx,
+                                                 std::vector<block>          &outputs,
+                                                 std::array<uint64_t, 3>     &dot_product) const;
+
+    void EvaluateFullDomainThenDotProduct_Vectorized(const fss::dpf::DpfKey                   &key,
+                                                     const std::vector<std::vector<uint64_t>> &databases,
+                                                     const uint64_t                            masked_idx,
+                                                     std::vector<block>                       &outputs,
+                                                     std::vector<uint64_t>                    &dot_product) const;
+
+    uint64_t EvaluateSharedIndexNaive(osuCrypto::Channel          &chl,
+                                      const DpfPirKey             &key,
+                                      std::vector<uint64_t>       &uv,
+                                      const std::vector<uint64_t> &database,
+                                      const uint64_t               index_sh) const;
+
+    uint64_t EvaluateMaskedIndexNaive(osuCrypto::Channel          &chl,
+                                      const DpfPirKey             &key,
+                                      std::vector<uint64_t>       &uv,
+                                      const std::vector<uint64_t> &database,
+                                      const uint64_t               masked_index) const;
 
 private:
     DpfPirParameters                 params_;

@@ -198,7 +198,7 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
                             Logger::InfoLog(LOC, "d=" + ToString(d) + " qs=" + ToString(qs) + " total_data_sent=" + ToString(chls.GetStats()) + " bytes");
                         chls.ResetStats();
                     }
-                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MICROSECONDS, true);
+                    timer_mgr.PrintCurrentResults("d=" + ToString(d) + " qs=" + ToString(qs), ringoa::MILLISECONDS, true);
                 }
             }
         };
@@ -210,7 +210,7 @@ void SotFMI_Online_Bench(const osuCrypto::CLP &cmd) {
 
     Logger::InfoLog(LOC, "SotFMI Online Benchmark completed");
     if (kEvalType == ringoa::fss::EvalType::kHybridBatched) {
-        Logger::ExportLogListAndClear(kLogSotfmiPath + "sotfmi_online_p" + ToString(party_id) + "_" + network, true);
+        Logger::ExportLogListAndClear(kLogSotfmiPath + "sotfmi_online_chr_p" + ToString(party_id) + "_" + network, true);
     } else {
         Logger::ExportLogListAndClear(kLogSotfmiPath + "sotfmi_naive_online_p" + ToString(party_id) + "_" + network, true);
     }

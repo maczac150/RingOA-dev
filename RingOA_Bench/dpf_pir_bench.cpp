@@ -180,7 +180,7 @@ void DpfPir_Online_Bench(const osuCrypto::CLP &cmd) {
             for (uint64_t i = 0; i < repeat; ++i) {
                 timer_mgr.Start();
                 // Evaluate
-                y_0 = eval.Evaluate(chl, key_0, uv, database, idx_0);
+                y_0 = eval.EvaluateSharedIndex(chl, key_0, uv, database, idx_0);
                 timer_mgr.Stop("d=" + ToString(d) + " iter=" + ToString(i));
 
                 if (i < 2)
@@ -217,7 +217,7 @@ void DpfPir_Online_Bench(const osuCrypto::CLP &cmd) {
             for (uint64_t i = 0; i < repeat; ++i) {
                 timer_mgr.Start();
                 // Evaluate
-                y_1 = eval.Evaluate(chl, key_1, uv, database, idx_1);
+                y_1 = eval.EvaluateSharedIndex(chl, key_1, uv, database, idx_1);
                 timer_mgr.Stop("d=" + ToString(d) + " iter=" + ToString(i));
 
                 if (i < 2)

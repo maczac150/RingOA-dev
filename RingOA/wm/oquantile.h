@@ -79,7 +79,8 @@ private:
     proto::IntegerComparisonParameters ic_params_;
 };
 
-struct OQuantileKey {
+struct 
+OQuantileKey {
     uint64_t                                 num_oa_keys;
     uint64_t                                 num_ic_keys;
     std::vector<proto::RingOaKey>            oa_keys;

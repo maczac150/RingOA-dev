@@ -176,11 +176,11 @@ void DpfPirEvaluator::OnlineSetUp(const uint64_t party_id, const std::string &fi
     ss_.OnlineSetUp(party_id, file_path + "bt");
 }
 
-uint64_t DpfPirEvaluator::Evaluate(osuCrypto::Channel          &chl,
-                                   const DpfPirKey             &key,
-                                   std::vector<block>          &uv,
-                                   const std::vector<uint64_t> &database,
-                                   const uint64_t               index) const {
+uint64_t DpfPirEvaluator::EvaluateSharedIndex(osuCrypto::Channel          &chl,
+                                              const DpfPirKey             &key,
+                                              std::vector<block>          &uv,
+                                              const std::vector<uint64_t> &database,
+                                              const uint64_t               index_sh) const {
 
     if (params_.GetParameters().GetOutputBitsize() != 1) {
         Logger::ErrorLog(LOC, "Output bitsize must be 1, but got: " +
@@ -205,16 +205,16 @@ uint64_t DpfPirEvaluator::Evaluate(osuCrypto::Channel          &chl,
     Logger::DebugLog(LOC, "Evaluating DpfPirEvaluator protocol with shared inputs");
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     std::string party_str = (party_id == 0) ? "[P0]" : "[P1]";
-    Logger::DebugLog(LOC, party_str + " index: " + ToString(index));
+    Logger::DebugLog(LOC, party_str + " index_sh: " + ToString(index_sh));
 #endif
 
     // Reconstruct masked inputs
     uint64_t pr_0, pr_1, pr;
     if (party_id == 0) {
-        ss_.EvaluateSub(index, key.r_sh, pr_0);
+        ss_.EvaluateSub(index_sh, key.r_sh, pr_0);
         ss_.Reconst(party_id, chl, pr_0, pr_1, pr);
     } else {
-        ss_.EvaluateSub(index, key.r_sh, pr_1);
+        ss_.EvaluateSub(index_sh, key.r_sh, pr_1);
         ss_.Reconst(party_id, chl, pr_0, pr_1, pr);
     }
 
@@ -234,24 +234,25 @@ uint64_t DpfPirEvaluator::Evaluate(osuCrypto::Channel          &chl,
     return dp_cor_sh;
 }
 
-uint64_t DpfPirEvaluator::EvaluateNaive(osuCrypto::Channel          &chl,
-                                        const DpfPirKey             &key,
-                                        std::vector<uint64_t>       &uv,
-                                        const std::vector<uint64_t> &database,
-                                        const uint64_t               index) const {
+uint64_t DpfPirEvaluator::EvaluateMaskedIndex(osuCrypto::Channel          &chl,
+                                              const DpfPirKey             &key,
+                                              std::vector<block>          &uv,
+                                              const std::vector<uint64_t> &database,
+                                              const uint64_t               masked_index) const {
 
-    if (params_.GetParameters().GetOutputBitsize() == 1) {
-        Logger::ErrorLog(LOC, "Output bitsize must be larger than 1, but got: " +
+    if (params_.GetParameters().GetOutputBitsize() != 1) {
+        Logger::ErrorLog(LOC, "Output bitsize must be 1, but got: " +
                                   ToString(params_.GetParameters().GetOutputBitsize()));
         return 0;
     }
 
     uint64_t party_id = key.dpf_key.party_id;
     uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
 
-    if (uv.size() != (1UL << d)) {
+    if (uv.size() != (1UL << nu)) {
         Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
-                                  ToString(uv.size()) + " != " + ToString(1UL << d));
+                                  ToString(uv.size()) + " != " + ToString(1UL << nu));
     }
     if (database.size() != (1UL << d)) {
         Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
@@ -262,37 +263,105 @@ uint64_t DpfPirEvaluator::EvaluateNaive(osuCrypto::Channel          &chl,
     Logger::DebugLog(LOC, "Evaluating DpfPirEvaluator protocol with shared inputs");
     Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
     std::string party_str = (party_id == 0) ? "[P0]" : "[P1]";
-    Logger::DebugLog(LOC, party_str + " index: " + ToString(index));
+    Logger::DebugLog(LOC, party_str + " masked index: " + ToString(masked_index));
 #endif
 
-    // Reconstruct masked inputs
-    uint64_t pr_0, pr_1, pr;
-    if (party_id == 0) {
-        ss_.EvaluateSub(index, key.r_sh, pr_0);
-        ss_.Reconst(party_id, chl, pr_0, pr_1, pr);
-    } else {
-        ss_.EvaluateSub(index, key.r_sh, pr_1);
-        ss_.Reconst(party_id, chl, pr_0, pr_1, pr);
+    uint64_t dp = EvaluateFullDomainThenDotProduct(key.dpf_key, database, masked_index, uv);
+
+    uint64_t dp_cor_sh;
+    ss_.EvaluateMult(party_id, chl, dp, key.w_sh, dp_cor_sh);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " dp_cor_sh: " + ToString(dp_cor_sh));
+#endif
+
+    return dp_cor_sh;
+}
+
+void DpfPirEvaluator::EvaluateMaskedIndex_Double(osuCrypto::Channel          &chl,
+                                                 const DpfPirKey             &key,
+                                                 std::vector<block>          &uv,
+                                                 const std::vector<uint64_t> &database_1,
+                                                 const std::vector<uint64_t> &database_2,
+                                                 const uint64_t               masked_index,
+                                                 std::array<uint64_t, 2>     &dot_product) const {
+
+    if (params_.GetParameters().GetOutputBitsize() != 1) {
+        Logger::ErrorLog(LOC, "Output bitsize must be 1, but got: " +
+                                  ToString(params_.GetParameters().GetOutputBitsize()));
+        return;
+    }
+
+    uint64_t party_id = key.dpf_key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
+
+    if (uv.size() != (1UL << nu)) {
+        Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv.size()) + " != " + ToString(1UL << nu));
+    }
+    if (database_1.size() != (1UL << d) || database_2.size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database_1.size()) + " != " + ToString(1UL << d) +
+                                  " or " + ToString(database_2.size()) + " != " + ToString(1UL << d));
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, party_str + " pr_sh: " + ToString(pr_0) + ", " + ToString(pr_1));
-    Logger::DebugLog(LOC, party_str + " pr: " + ToString(pr));
+    Logger::DebugLog(LOC, "Evaluating DpfPirEvaluator protocol with shared inputs");
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = (party_id == 0) ? "[P0]" : "[P1]";
+    Logger::DebugLog(LOC, party_str + " masked index: " + ToString(masked_index));
 #endif
 
-    // Evaluate the FDE
-    eval_.EvaluateFullDomain(key.dpf_key, uv);
-    uint64_t db_sum = 0;
+    EvaluateFullDomainThenDotProduct_Double(key.dpf_key, database_1, database_2, masked_index, uv, dot_product);
 
-    for (size_t i = 0; i < uv.size(); ++i) {
-        db_sum = Mod2N(db_sum + (database[Mod2N(i + pr, d)]) * uv[i], d);
+    ss_.EvaluateMult(party_id, chl, dot_product, {key.w_sh, key.w_sh}, dot_product);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " dot_product after mult: " + ToString(dot_product[0]) + ", " + ToString(dot_product[1]));
+#endif
+}
+
+void DpfPirEvaluator::EvaluateMaskedIndex_Triple(osuCrypto::Channel          &chl,
+                                                 const DpfPirKey             &key,
+                                                 std::vector<block>          &uv,
+                                                 const std::vector<uint64_t> &database_1,
+                                                 const std::vector<uint64_t> &database_2,
+                                                 const std::vector<uint64_t> &database_3,
+                                                 const uint64_t               masked_index,
+                                                 std::array<uint64_t, 3>     &dot_product) const {
+
+    if (params_.GetParameters().GetOutputBitsize() != 1) {
+        Logger::ErrorLog(LOC, "Output bitsize must be 1, but got: " +
+                                  ToString(params_.GetParameters().GetOutputBitsize()));
+        return;
+    }
+
+    uint64_t party_id = key.dpf_key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+    uint64_t nu       = params_.GetParameters().GetTerminateBitsize();
+
+    if (uv.size() != (1UL << nu)) {
+        Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv.size()) + " != " + ToString(1UL << nu));
+    }
+    if (database_1.size() != (1UL << d) || database_2.size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database_1.size()) + " != " + ToString(1UL << d) +
+                                  " or " + ToString(database_2.size()) + " != " + ToString(1UL << d));
     }
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-    Logger::DebugLog(LOC, party_str + " db_sum: " + ToString(db_sum));
+    Logger::DebugLog(LOC, "Evaluating DpfPirEvaluator protocol with shared inputs");
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = (party_id == 0) ? "[P0]" : "[P1]";
+    Logger::DebugLog(LOC, party_str + " masked index: " + ToString(masked_index));
 #endif
 
-    return db_sum;
+    EvaluateFullDomainThenDotProduct_Triple(key.dpf_key, database_1, database_2, database_3, masked_index, uv, dot_product);
+
+    ss_.EvaluateMult(party_id, chl, dot_product, {key.w_sh, key.w_sh, key.w_sh}, dot_product);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " dot_product after mult: " + ToString(dot_product[0]) + ", " + ToString(dot_product[1]) + ", " + ToString(dot_product[2]));
+#endif
 }
 
 uint64_t DpfPirEvaluator::EvaluateFullDomainThenDotProduct(const fss::dpf::DpfKey      &key,
@@ -324,6 +393,221 @@ uint64_t DpfPirEvaluator::EvaluateFullDomainThenDotProduct(const fss::dpf::DpfKe
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
     Logger::DebugLog(LOC, "Dot product result: " + ToString(db_sum));
 #endif
+    return db_sum;
+}
+
+void DpfPirEvaluator::EvaluateFullDomainThenDotProduct_Double(const fss::dpf::DpfKey      &key,
+                                                              const std::vector<uint64_t> &database_1,
+                                                              const std::vector<uint64_t> &database_2,
+                                                              const uint64_t               masked_idx,
+                                                              std::vector<block>          &outputs,
+                                                              std::array<uint64_t, 2>     &dot_product) const {
+
+    uint64_t party_id = key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+
+    // Evaluate the FDE
+    eval_.EvaluateFullDomain(key, outputs);
+    uint64_t db_sum_1 = 0, db_sum_2 = 0;
+
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        const uint64_t low  = outputs[i].get<uint64_t>()[0];
+        const uint64_t high = outputs[i].get<uint64_t>()[1];
+
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((low >> j) & 1ULL);
+            db_sum_1            = Mod2N(db_sum_1 + Sign(party_id) * (database_1[Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
+            db_sum_2            = Mod2N(db_sum_2 + Sign(party_id) * (database_2[Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
+        }
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((high >> j) & 1ULL);
+            db_sum_1            = Mod2N(db_sum_1 + Sign(party_id) * (database_1[Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+            db_sum_2            = Mod2N(db_sum_2 + Sign(party_id) * (database_2[Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+        }
+    }
+
+    dot_product = std::array<uint64_t, 2>{db_sum_1, db_sum_2};
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Dot product result: " + ToString(dot_product[0]) + ", " + ToString(dot_product[1]));
+#endif
+}
+
+void DpfPirEvaluator::EvaluateFullDomainThenDotProduct_Triple(const fss::dpf::DpfKey      &key,
+                                                              const std::vector<uint64_t> &database_1,
+                                                              const std::vector<uint64_t> &database_2,
+                                                              const std::vector<uint64_t> &database_3,
+                                                              const uint64_t               masked_idx,
+                                                              std::vector<block>          &outputs,
+                                                              std::array<uint64_t, 3>     &dot_product) const {
+
+    uint64_t party_id = key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+
+    // Evaluate the FDE
+    eval_.EvaluateFullDomain(key, outputs);
+    uint64_t db_sum_1 = 0, db_sum_2 = 0, db_sum_3 = 0;
+
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        const uint64_t low  = outputs[i].get<uint64_t>()[0];
+        const uint64_t high = outputs[i].get<uint64_t>()[1];
+
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((low >> j) & 1ULL);
+            db_sum_1            = Mod2N(db_sum_1 + Sign(party_id) * (database_1[Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
+            db_sum_2            = Mod2N(db_sum_2 + Sign(party_id) * (database_2[Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
+            db_sum_3            = Mod2N(db_sum_3 + Sign(party_id) * (database_3[Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
+        }
+        for (int j = 0; j < 64; ++j) {
+            const uint64_t mask = 0ULL - ((high >> j) & 1ULL);
+            db_sum_1            = Mod2N(db_sum_1 + Sign(party_id) * (database_1[Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+            db_sum_2            = Mod2N(db_sum_2 + Sign(party_id) * (database_2[Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+            db_sum_3            = Mod2N(db_sum_3 + Sign(party_id) * (database_3[Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+        }
+    }
+
+    dot_product = std::array<uint64_t, 3>{db_sum_1, db_sum_2, db_sum_3};
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Dot product result: " + ToString(dot_product[0]) + ", " + ToString(dot_product[1]) + ", " + ToString(dot_product[2]));
+#endif
+}
+
+void DpfPirEvaluator::EvaluateFullDomainThenDotProduct_Vectorized(const fss::dpf::DpfKey                   &key,
+                                                                  const std::vector<std::vector<uint64_t>> &databases,
+                                                                  const uint64_t                            masked_idx,
+                                                                  std::vector<block>                       &outputs,
+                                                                  std::vector<uint64_t>                    &dot_product) const {
+
+    uint64_t party_id = key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+
+    // Evaluate the FDE
+    eval_.EvaluateFullDomain(key, outputs);
+
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        const uint64_t low  = outputs[i].get<uint64_t>()[0];
+        const uint64_t high = outputs[i].get<uint64_t>()[1];
+
+        for (size_t db_idx = 0; db_idx < databases.size(); ++db_idx) {
+            for (int j = 0; j < 64; ++j) {
+                const uint64_t mask = 0ULL - ((low >> j) & 1ULL);
+                dot_product[db_idx] = Mod2N(dot_product[db_idx] + Sign(party_id) * (databases[db_idx][Mod2N((i * 128 + j) + masked_idx, d)] & mask), d);
+            }
+            for (int j = 0; j < 64; ++j) {
+                const uint64_t mask = 0ULL - ((high >> j) & 1ULL);
+                dot_product[db_idx] = Mod2N(dot_product[db_idx] + Sign(party_id) * (databases[db_idx][Mod2N((i * 128 + 64 + j) + masked_idx, d)] & mask), d);
+            }
+        }
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Dot product result: " + ToString(dot_product));
+#endif
+}
+
+uint64_t DpfPirEvaluator::EvaluateSharedIndexNaive(osuCrypto::Channel          &chl,
+                                                   const DpfPirKey             &key,
+                                                   std::vector<uint64_t>       &uv,
+                                                   const std::vector<uint64_t> &database,
+                                                   const uint64_t               index_sh) const {
+
+    if (params_.GetParameters().GetOutputBitsize() == 1) {
+        Logger::ErrorLog(LOC, "Output bitsize must be larger than 1, but got: " +
+                                  ToString(params_.GetParameters().GetOutputBitsize()));
+        return 0;
+    }
+
+    uint64_t party_id = key.dpf_key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+
+    if (uv.size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv.size()) + " != " + ToString(1UL << d));
+    }
+    if (database.size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database.size()) + " != " + ToString(1UL << d));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Evaluating DpfPirEvaluator protocol with shared inputs");
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = (party_id == 0) ? "[P0]" : "[P1]";
+    Logger::DebugLog(LOC, party_str + " index_sh: " + ToString(index_sh));
+#endif
+
+    // Reconstruct masked inputs
+    uint64_t pr_0, pr_1, pr;
+    if (party_id == 0) {
+        ss_.EvaluateSub(index_sh, key.r_sh, pr_0);
+        ss_.Reconst(party_id, chl, pr_0, pr_1, pr);
+    } else {
+        ss_.EvaluateSub(index_sh, key.r_sh, pr_1);
+        ss_.Reconst(party_id, chl, pr_0, pr_1, pr);
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " pr_sh: " + ToString(pr_0) + ", " + ToString(pr_1));
+    Logger::DebugLog(LOC, party_str + " pr: " + ToString(pr));
+#endif
+
+    // Evaluate the FDE
+    eval_.EvaluateFullDomain(key.dpf_key, uv);
+    uint64_t db_sum = 0;
+
+    for (size_t i = 0; i < uv.size(); ++i) {
+        db_sum = Mod2N(db_sum + (database[Mod2N(i + pr, d)]) * uv[i], d);
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " db_sum: " + ToString(db_sum));
+#endif
+
+    return db_sum;
+}
+
+uint64_t DpfPirEvaluator::EvaluateMaskedIndexNaive(osuCrypto::Channel          &chl,
+                                                   const DpfPirKey             &key,
+                                                   std::vector<uint64_t>       &uv,
+                                                   const std::vector<uint64_t> &database,
+                                                   const uint64_t               masked_index) const {
+
+    if (params_.GetParameters().GetOutputBitsize() == 1) {
+        Logger::ErrorLog(LOC, "Output bitsize must be larger than 1, but got: " +
+                                  ToString(params_.GetParameters().GetOutputBitsize()));
+        return 0;
+    }
+
+    uint64_t party_id = key.dpf_key.party_id;
+    uint64_t d        = params_.GetDatabaseSize();
+
+    if (uv.size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Output vector size does not match the number of nodes: " +
+                                  ToString(uv.size()) + " != " + ToString(1UL << d));
+    }
+    if (database.size() != (1UL << d)) {
+        Logger::ErrorLog(LOC, "Database size does not match the number of nodes: " +
+                                  ToString(database.size()) + " != " + ToString(1UL << d));
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, "Evaluating DpfPirEvaluator protocol with shared inputs");
+    Logger::DebugLog(LOC, "Party ID: " + ToString(party_id));
+    std::string party_str = (party_id == 0) ? "[P0]" : "[P1]";
+    Logger::DebugLog(LOC, party_str + " masked index: " + ToString(masked_index));
+#endif
+
+    // Evaluate the FDE
+    eval_.EvaluateFullDomain(key.dpf_key, uv);
+    uint64_t db_sum = 0;
+
+    for (size_t i = 0; i < uv.size(); ++i) {
+        db_sum = Mod2N(db_sum + (database[Mod2N(i + masked_index, d)]) * uv[i], d);
+    }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+    Logger::DebugLog(LOC, party_str + " db_sum: " + ToString(db_sum));
+#endif
+
     return db_sum;
 }
 
