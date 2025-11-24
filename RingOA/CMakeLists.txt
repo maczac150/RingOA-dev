@@ -38,6 +38,7 @@ target_sources(RingOA PRIVATE
   protocol/dpf_pir.cpp
   protocol/equality.cpp
   protocol/integer_comparison.cpp
+  protocol/min3.cpp
   protocol/obliv_select.cpp
   protocol/ringoa.cpp
   protocol/ringoa_fsc.cpp

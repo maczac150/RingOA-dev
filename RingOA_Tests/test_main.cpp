@@ -13,6 +13,7 @@
 #include "RingOA_Tests/protocol/dpf_pir_test.h"
 #include "RingOA_Tests/protocol/equality_test.h"
 #include "RingOA_Tests/protocol/integer_comparison_test.h"
+#include "RingOA_Tests/protocol/min3_test.h"
 #include "RingOA_Tests/protocol/obliv_select_test.h"
 #include "RingOA_Tests/protocol/ringoa_test.h"
 #include "RingOA_Tests/protocol/shared_ot_test.h"
@@ -81,6 +82,8 @@ void RegisterProtocolTests(osuCrypto::TestCollection &t) {
     t.add("Equality_Online_Test", Equality_Online_Test);
     t.add("IntegerComparison_Offline_Test", IntegerComparison_Offline_Test);
     t.add("IntegerComparison_Online_Test", IntegerComparison_Online_Test);
+    t.add("Min3_Offline_Test", Min3_Offline_Test);
+    t.add("Min3_Online_Test", Min3_Online_Test);
     t.add("DpfPir_Naive_Offline_Test", DpfPir_Naive_Offline_Test);
     t.add("DpfPir_Naive_Online_Test", DpfPir_Naive_Online_Test);
     t.add("DpfPir_Offline_Test", DpfPir_Offline_Test);

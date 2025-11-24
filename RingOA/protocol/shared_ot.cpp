@@ -91,7 +91,7 @@ void SharedOtKey::PrintKey(const bool detailed) const {
         Logger::DebugLog(LOC, "(rsh_from_prev, rsh_from_next): (" + ToString(rsh_from_prev) + ", " + ToString(rsh_from_next) + ")");
         Logger::DebugLog(LOC, kDash);
     } else {
-        Logger::DebugLog(LOC, "RingOa Key [Party " + ToString(party_id) + "]");
+        Logger::DebugLog(LOC, "SharedOt Key [Party " + ToString(party_id) + "]");
         key_from_prev.PrintKey(false);
         key_from_next.PrintKey(false);
         Logger::DebugLog(LOC, "(rsh_from_prev, rsh_from_next): (" + ToString(rsh_from_prev) + ", " + ToString(rsh_from_next) + ")");
