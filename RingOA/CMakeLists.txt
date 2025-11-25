@@ -47,6 +47,7 @@ target_sources(RingOA PRIVATE
 
   # wm
   wm/oquantile.cpp
+  wm/oquantile_fsc.cpp
   wm/owm.cpp
   wm/owm_fsc.cpp
   wm/plain_wm.cpp

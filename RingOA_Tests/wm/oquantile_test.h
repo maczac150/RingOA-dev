@@ -7,6 +7,8 @@ namespace test_ringoa {
 
 void OQuantile_Offline_Test();
 void OQuantile_Online_Test(const osuCrypto::CLP &cmd);
+void OQuantile_Fsc_Offline_Test();
+void OQuantile_Fsc_Online_Test(const osuCrypto::CLP &cmd);
 
 }    // namespace test_ringoa
 

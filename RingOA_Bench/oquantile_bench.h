@@ -9,6 +9,8 @@ void OQuantile_Offline_Bench(const osuCrypto::CLP &cmd);
 void OQuantile_Online_Bench(const osuCrypto::CLP &cmd);
 void OQuantile_VAF_Offline_Bench(const osuCrypto::CLP &cmd);
 void OQuantile_VAF_Online_Bench(const osuCrypto::CLP &cmd);
+void OQuantile_Fsc_VAF_Offline_Bench(const osuCrypto::CLP &cmd);
+void OQuantile_Fsc_VAF_Online_Bench(const osuCrypto::CLP &cmd);
 
 }    // namespace bench_ringoa
 

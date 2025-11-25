@@ -112,6 +112,8 @@ void RegisterWmTests(osuCrypto::TestCollection &t) {
     t.add("OWM_Fsc_Online_Test", OWM_Fsc_Online_Test);
     t.add("OQuantile_Offline_Test", OQuantile_Offline_Test);
     t.add("OQuantile_Online_Test", OQuantile_Online_Test);
+    t.add("OQuantile_Fsc_Offline_Test", OQuantile_Fsc_Offline_Test);
+    t.add("OQuantile_Fsc_Online_Test", OQuantile_Fsc_Online_Test);
 }
 
 void RegisterFmIndexTests(osuCrypto::TestCollection &t) {

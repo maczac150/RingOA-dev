@@ -36,6 +36,8 @@ osuCrypto::TestCollection Tests([](osuCrypto::TestCollection &t) {
     t.add("OQuantile_Online_Bench", OQuantile_Online_Bench);
     t.add("OQuantile_VAF_Offline_Bench", OQuantile_VAF_Offline_Bench);
     t.add("OQuantile_VAF_Online_Bench", OQuantile_VAF_Online_Bench);
+    t.add("OQuantile_Fsc_VAF_Offline_Bench", OQuantile_Fsc_VAF_Offline_Bench);
+    t.add("OQuantile_Fsc_VAF_Online_Bench", OQuantile_Fsc_VAF_Online_Bench);
 
     t.add("SharedOt_Offline_Bench", SharedOt_Offline_Bench);
     t.add("SharedOt_Online_Bench", SharedOt_Online_Bench);
