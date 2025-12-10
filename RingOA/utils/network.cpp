@@ -108,8 +108,17 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
         std::string            session_name_prev = "P" + std::to_string(std::min(party_id, id_prev)) + "_P" + std::to_string(std::max(party_id, id_prev));
         osuCrypto::SessionMode mode_next         = (party_id < id_next) ? osuCrypto::SessionMode::Server : osuCrypto::SessionMode::Client;
         osuCrypto::SessionMode mode_prev         = (party_id < id_prev) ? osuCrypto::SessionMode::Server : osuCrypto::SessionMode::Client;
-        uint16_t               port_next         = port_ + std::min(party_id, id_next);
-        uint16_t               port_prev         = port_ + std::min(party_id, id_prev);
+
+        // Use distinct ports per unordered pair to avoid collisions when all parties run on the same host.
+        auto pair_port = [&](uint32_t a, uint32_t b) -> uint16_t {
+            uint32_t lo = std::min(a, b), hi = std::max(a, b);
+            if (lo == 0 && hi == 1) return port_;
+            if (lo == 0 && hi == 2) return port_ + 1;
+            // lo == 1 && hi == 2
+            return port_ + 2;
+        };
+        uint16_t port_next = pair_port(party_id, id_next);
+        uint16_t port_prev = pair_port(party_id, id_prev);
 
         // Create sessions for next and previous parties
         osuCrypto::Session session_next(ios_, ip_address_, port_next, mode_next, session_name_next);
