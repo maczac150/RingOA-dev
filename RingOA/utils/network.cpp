@@ -120,9 +120,10 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
         uint16_t port_next = pair_port(party_id, id_next);
         uint16_t port_prev = pair_port(party_id, id_prev);
 
-        // Create sessions for next and previous parties
-        osuCrypto::Session session_next(ios_, ip_address_, port_next, mode_next, session_name_next);
-        osuCrypto::Session session_prev(ios_, ip_address_, port_prev, mode_prev, session_name_prev);
+        // Create separate IOService instances for each session to avoid conflicts
+        osuCrypto::IOService ios_next, ios_prev;
+        osuCrypto::Session session_next(ios_next, ip_address_, port_next, mode_next, session_name_next);
+        osuCrypto::Session session_prev(ios_prev, ip_address_, port_prev, mode_prev, session_name_prev);
         auto               chl_next = session_next.addChannel();
         auto               chl_prev = session_prev.addChannel();
 
