@@ -121,9 +121,13 @@ void ThreePartyNetworkManager::Start(const uint32_t party_id, std::function<void
         uint16_t port_prev = pair_port(party_id, id_prev);
 
         // Create separate IOService instances for each session to avoid conflicts
+        Logger::DebugLog(LOC, "[Party " + std::to_string(party_id) + "] port_next=" + std::to_string(port_next) + " port_prev=" + std::to_string(port_prev));
         osuCrypto::IOService ios_next, ios_prev;
+        Logger::DebugLog(LOC, "[Party " + std::to_string(party_id) + "] Creating session_next...");
         osuCrypto::Session session_next(ios_next, ip_address_, port_next, mode_next, session_name_next);
+        Logger::DebugLog(LOC, "[Party " + std::to_string(party_id) + "] Creating session_prev...");
         osuCrypto::Session session_prev(ios_prev, ip_address_, port_prev, mode_prev, session_name_prev);
+        Logger::DebugLog(LOC, "[Party " + std::to_string(party_id) + "] Sessions created");
         auto               chl_next = session_next.addChannel();
         auto               chl_prev = session_prev.addChannel();
 
